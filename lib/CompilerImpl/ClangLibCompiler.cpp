@@ -38,7 +38,7 @@ using namespace vc;
 using namespace clang;
 
 // static mutex object initialization
-std::mutex ClangLibCompiler::mtx;
+std::mutex ClangLibCompiler::opt_parse_mtx;
 
 // ----------------------------------------------------------------------------
 // ----------------------- zero-parameters constructor ------------------------
@@ -87,10 +87,8 @@ ClangLibCompiler::ClangLibCompiler(
 // ---------------------------------------------------------------------------
 /** Generate LLVM-IR from a C/C++ source file.
  *
- * It exploits clang driver to obtain the proper compilation parameters
- * starting from the user-defied options.
- * Later it compiles the source code without running any kind of backend pass.
- * Then the llvm::Module is written as bitcode file.
+ * This implementation exploits the clang driver to handle all the stages of
+ * the compilation process.
  */
 std::string ClangLibCompiler::generateIR(const std::string &src,
                                          const std::string &func,
@@ -98,9 +96,10 @@ std::string ClangLibCompiler::generateIR(const std::string &src,
                                          const std::list<Option> options) const
 {
   // What we want to generate
-  std::string llvmIRfileName = Compiler::getBitcodeFileName(versionID);
+  const std::string &llvmIRfileName = Compiler::getBitcodeFileName(versionID);
   // what we return when generateIR fails
-  const std::string failureFileName = "";
+  const std::string &failureFileName = "";
+  std::string log_str = "";
 
   auto report_error = [&](const std::string message) {
     std::string error_string = "ClangLibCompiler::generateIR";
@@ -112,31 +111,34 @@ std::string ClangLibCompiler::generateIR(const std::string &src,
     return;
   };
 
-  const std::string command_filename = _llvmManager->getClangExePath();
-  // clang -S -emit-llvm -fpic <options> src
+  const std::string &command_filename = _llvmManager->getClangExePath();
+
+  // clang++ <options> -fpic -shared src -olibFileName -Wno-return-type-c-linkage
   std::vector<const char *> cmd_str;
-  cmd_str.reserve(options.size() + 5);
+  cmd_str.reserve(options.size() + 6);
   cmd_str.push_back(command_filename.c_str());
   cmd_str.push_back(std::move("-c"));
   cmd_str.push_back(std::move("-emit-llvm"));
   cmd_str.push_back(std::move("-fpic"));
+  cmd_str.push_back(std::move("-Wno-return-type-c-linkage"));
+  const std::string outputArgument = "-o" + llvmIRfileName;
+  cmd_str.push_back(std::move(outputArgument).c_str());
 
   // create a local copy of option strings
-  const auto argv_owner = getArgV(options);
+  const auto& argv_owner = getArgV(options);
   std::vector<const char*> argv;
   argv.reserve(argv_owner.size());
   for (const auto& arg : argv_owner) {
     argv.push_back(arg.c_str());
   }
   cmd_str.insert(cmd_str.end(),
-                 std::make_move_iterator(argv.begin()),
-                 std::make_move_iterator(argv.end()));
+                 argv.begin(),
+                 argv.end());
   cmd_str.push_back(src.c_str());
 
   // log the command line string used to create this task
-  std::string log_str = "";
-  for (const auto c : cmd_str) {
-    log_str = log_str + " " + std::string(c);
+  for (const auto& arg : cmd_str) {
+    log_str = log_str + arg + " ";
   }
   Compiler::log_string(log_str);
 
@@ -145,68 +147,32 @@ std::string ClangLibCompiler::generateIR(const std::string &src,
                            *_diagEngine);
   NikiLauda.setTitle("clang as a library");
   NikiLauda.setCheckInputsExist(false);
+  NikiLauda.CCPrintOptionsFilename = logFile.c_str();
+  Compiler::lockMutex(logFile);
+  #ifdef VC_DEBUG
+  NikiLauda.CCPrintOptions = true;
+  #else
+  NikiLauda.CCPrintOptions = false;
+  #endif
 
   std::unique_ptr<driver::Compilation> C(NikiLauda.BuildCompilation(cmd_str));
   if (!C) {
     report_error("clang::driver::Compilation not created");
+    Compiler::unlockMutex(logFile);
     return failureFileName;
   }
 
-  const driver::JobList &Jobs = C->getJobs();
-  for (const auto j : Jobs) {
-    if (!llvm::isa<driver::Command>(j)) {
-      report_error("found job not clang::driver::command");
-      return failureFileName;
-    }
+  llvm::SmallVector<std::pair<int, const driver::Command*>,1> failCmd;
+  const auto res = NikiLauda.ExecuteCompilation(*C, failCmd);
+  Compiler::unlockMutex(logFile);
 
-    const driver::Command &cmd = llvm::cast<driver::Command>(j);
-    const driver::ArgStringList &cmd_args = cmd.getArguments();
-
-    #ifdef VC_DEBUG
-    // in case of debug build, log also internal options
-    std::string debug_command_string = "internal cmd options: ";
-    for (const auto& arg : cmd_args) {
-      debug_command_string = debug_command_string + std::string(arg) + " ";
-    }
-    Compiler::log_string(debug_command_string);
-    #endif
-
-    std::shared_ptr<clang::CompilerInvocation> CInv =
-      std::make_shared<clang::CompilerInvocation>();
-    clang::CompilerInvocation::CreateFromArgs(
-      *CInv,
-      const_cast<const char **>(cmd_args.data()),
-      const_cast<const char **>(cmd_args.data()) + cmd_args.size(),
-      *_diagEngine);
-    clang::CompilerInstance compiler;
-    compiler.setInvocation(CInv);
-    compiler.setDiagnostics(_diagEngine.get());
-    std::unique_ptr<clang::CodeGenAction> cg_action(
-      new clang::EmitLLVMOnlyAction());
-    if (!compiler.ExecuteAction(*cg_action)) {
-      report_error("EmitLLVMOnlyAction not executed");
-      return failureFileName;
-    }
-
-    std::unique_ptr<llvm::Module> module = cg_action->takeModule();
-    if (module) {
-      std::ofstream ofilestream;
-      ofilestream.open(llvmIRfileName, std::ios_base::binary);
-      if (ofilestream.is_open()) {
-        llvm::raw_os_ostream outFileStream(ofilestream);
-        llvm::WriteBitcodeToFile(module.get(), outFileStream);
-      }
-      ofilestream.close();
-    } else {
-      report_error("Module not created after EmitLLVMOnlyAction");
-      return failureFileName;
-    }
-  } // there should be no more than one job
-
-  if (Compiler::exists(llvmIRfileName)) {
+  if (exists(llvmIRfileName)) {
     return llvmIRfileName;
   }
-  report_error("Unknown error: unable to generate bitcode file");
+  const std::string &error_str = "Unknown error:"
+                                " unable to generate bitcode file"
+                                " - Driver error code: " + std::to_string(res);
+  report_error(error_str);
   return failureFileName;
 }
 
@@ -267,7 +233,7 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
   Compiler::log_string(log_str);
 
   // command line options are static and should be accessed exclusively
-  mtx.lock();
+  opt_parse_mtx.lock();
 
   llvm::cl::ParseCommandLineOptions(argc,
                                     const_cast<const char**>(argv.data()),
@@ -547,7 +513,7 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
     Out->os() << BOS->str();
   }
 
-  mtx.unlock();
+  opt_parse_mtx.unlock();
 
   // Declare success.
   Out->keep();
@@ -619,6 +585,12 @@ std::string ClangLibCompiler::generateBin(const std::string &src,
                            *_diagEngine);
   NikiLauda.setTitle("clang as a library");
   NikiLauda.setCheckInputsExist(false);
+  NikiLauda.CCPrintOptionsFilename = logFile.c_str();
+  #ifdef VC_DEBUG
+  NikiLauda.CCPrintOptions = true;
+  #else
+  NikiLauda.CCPrintOptions = false;
+  #endif
 
   std::unique_ptr<driver::Compilation> C(NikiLauda.BuildCompilation(cmd_str));
   if (!C) {
@@ -632,7 +604,7 @@ std::string ClangLibCompiler::generateBin(const std::string &src,
   if (exists(libFileName)) {
     return libFileName;
   }
-  const std::string error_str = "Unknown error:"
+  const std::string &error_str = "Unknown error:"
                                 " unable to generate shared object"
                                 " - Driver error code: " + std::to_string(res);
   report_error(error_str);

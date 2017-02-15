@@ -22,8 +22,11 @@
 #define LIB_VERSIONING_COMPILER_COMPILER_HPP
 
 #include "versioningCompiler/Option.hpp"
-#include <string>
 #include <list>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <string>
 
 namespace vc {
 
@@ -44,7 +47,10 @@ class Compiler
            bool supportIR = false);
 
 /** \brief Default destructor. */
-  inline virtual ~Compiler() {}
+  inline virtual ~Compiler()
+  {
+    removeReferenceToLogFile(logFile);
+  }
 
 /** \brief Returns the compiler unique identifier. */
   std::string getId() const;
@@ -150,6 +156,14 @@ class Compiler
    */
   std::string getSharedObjectFileName(const std::string &versionID) const;
 
+  /** \brief Acquire the lock of the mutex related to logfileName. Blocking.
+   */
+  static void lockMutex(const std::string &logFileName);
+
+  /** \brief Release the lock of the mutex related to logfileName.
+   */
+  static void unlockMutex(const std::string &logFileName);
+
   /** \brief default method to notify that the given implementation of the
    * Compiler class does not support a specific feature.
    *
@@ -164,6 +178,25 @@ class Compiler
    */
   std::string id;
 
+  /** Mutex to regulate exclusive access to log file.
+   * It also includes a reference counter.
+   */
+  static
+  std::map<std::string, std::pair<uint64_t, std::shared_ptr<std::mutex>>>
+  log_access_mtx_map;
+
+  /** \brief Mutex to modify reference counters on the mutex map. */
+  static std::mutex mtx_map_mtx;
+
+  /** \brief Increments the reference counter of the mutex related to
+   * logFileName. If needed, it adds a new entry.
+   */
+  static void addReferenceToLogFile(const std::string &logFileName);
+
+  /** \brief Decrements the reference counter of the mutex related to
+   * logFileName. If needed, it removes an entry.
+   */
+  static void removeReferenceToLogFile(const std::string &logFileName);
 };
 
 } // end namespace vc

@@ -34,7 +34,6 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Target/TargetMachine.h"
 
-#include <mutex>
 #include <string>
 #include <vector>
 
@@ -91,7 +90,7 @@ private:
 /** \brief mutex to regulate exclusive access to static command line options
  * during optimizer option parsing and processing.
  */
-  static std::mutex mtx;
+  static std::mutex opt_parse_mtx;
 
 };
 } /* end namespace vc */

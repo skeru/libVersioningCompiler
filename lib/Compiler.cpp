@@ -39,7 +39,10 @@ Compiler::Compiler(const std::string &compilerID,
                                     logFile(log),
                                     libWorkingDirectory(libWorkingDir),
                                     installDirectory(installDir),
-                                    hasSupportIR(supportIR) { }
+                                    hasSupportIR(supportIR)
+{
+  addReferenceToLogFile(logFile);
+}
 
 // ----------------------------------------------------------------------------
 // ------------------------- get compiler identifier --------------------------
@@ -68,6 +71,7 @@ void Compiler::log_exec(const std::string &command) const
   char buf[256];
   if (logFile != "") {
     _command = _command + " 2>&1";
+    lockMutex(logFile);
     logstream.open(logFile, std::ofstream::app);
     logstream << _command << std::endl;
   }
@@ -78,6 +82,7 @@ void Compiler::log_exec(const std::string &command) const
     }
     logstream << std::endl;
     logstream.close();
+    unlockMutex(logFile);
   }
   pclose(output);
   return;
@@ -90,9 +95,11 @@ void Compiler::log_string(const std::string &command) const
 {
   std::ofstream logstream;
   if (logFile != "") {
+    lockMutex(logFile);
     logstream.open(logFile, std::ofstream::app);
     logstream << command << std::endl;
     logstream.close();
+    unlockMutex(logFile);
   }
   return;
 }
@@ -153,5 +160,88 @@ void Compiler::unsupported(const std::string &message) const
   const std::string error_string = "Required Compiler unsupported feature:\n\t"
                                    + message;
   log_string(error_string);
+  return;
+}
+
+// ----------------------------------------------------------------------------
+// --------------------- static mutex map initialization ----------------------
+// ----------------------------------------------------------------------------
+std::map<std::string, std::pair<uint64_t, std::shared_ptr<std::mutex>>>
+Compiler::log_access_mtx_map;
+
+// ----------------------------------------------------------------------------
+// ------------ static initialization of mutex to access mutex map ------------
+// ----------------------------------------------------------------------------
+std::mutex Compiler::mtx_map_mtx;
+
+// ----------------------------------------------------------------------------
+// ---------------- static mutex map accessors : add reference ----------------
+// ----------------------------------------------------------------------------
+void Compiler::addReferenceToLogFile(const std::string &logFileName)
+{
+  if (logFileName == "") {
+    return;
+  }
+  mtx_map_mtx.lock();
+  auto it = log_access_mtx_map.find(logFileName);
+  if (it != log_access_mtx_map.end()) {
+    it->second.first ++;
+  } else {
+    log_access_mtx_map[logFileName] =
+      std::make_pair<uint64_t, std::shared_ptr<std::mutex>>(
+        1,
+        std::make_shared<std::mutex>());
+  }
+  mtx_map_mtx.unlock();
+  return;
+}
+
+// ----------------------------------------------------------------------------
+// -------------- static mutex map accessors : remove reference ---------------
+// ----------------------------------------------------------------------------
+void Compiler::removeReferenceToLogFile(const std::string &logFileName)
+{
+  if (logFileName == "") {
+    return;
+  }
+  mtx_map_mtx.lock();
+  auto it = log_access_mtx_map.find(logFileName);
+  if (it != log_access_mtx_map.end()) {
+    it->second.first --;
+    if(it->second.first <= 0) {
+      log_access_mtx_map.erase(it);
+    }
+  }
+  mtx_map_mtx.unlock();
+  return;
+}
+
+// ----------------------------------------------------------------------------
+// ----------------- static mutex map accessors : lock mutex ------------------
+// ----------------------------------------------------------------------------
+void Compiler::lockMutex(const std::string &logFileName)
+{
+  if (logFileName == "") {
+    return;
+  }
+  auto it = log_access_mtx_map.find(logFileName);
+  if (it != log_access_mtx_map.end()) {
+    it->second.second->lock();
+  }
+  return;
+}
+
+// ----------------------------------------------------------------------------
+// ---------------- static mutex map accessors : unlock mutex -----------------
+// ----------------------------------------------------------------------------
+void Compiler::unlockMutex(const std::string &logFileName)
+{
+  if (logFileName == "") {
+    return;
+  }
+  auto it = log_access_mtx_map.find(logFileName);
+  if (it != log_access_mtx_map.end()) {
+    it->second.second->unlock();
+  }
   return;
 }
