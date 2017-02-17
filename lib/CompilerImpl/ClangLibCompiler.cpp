@@ -235,6 +235,7 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
   // command line options are static and should be accessed exclusively
   opt_parse_mtx.lock();
 
+  resetOptOptions();
   llvm::cl::ParseCommandLineOptions(argc,
                                     const_cast<const char**>(argv.data()),
                                     "ClangLibCompiler::runOptimizer");

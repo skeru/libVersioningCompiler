@@ -212,6 +212,18 @@ static llvm::cl::opt<bool> Coroutines(
 // ----------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
+// --------------------- Reset all command line options ----------------------
+// ---------------------------------------------------------------------------
+static void resetOptOptions()
+{
+  auto &optionMap = llvm::cl::getRegisteredOptions();
+  for (auto &o : optionMap) {
+    o.second->reset();
+  }
+  return;
+}
+
+// ---------------------------------------------------------------------------
 // ---------------------- Pass related helper functions ----------------------
 // ---------------------------------------------------------------------------
 static inline void addPass(llvm::legacy::PassManagerBase &PM, llvm::Pass *P)
