@@ -26,6 +26,8 @@
 #  LIBVC_INCLUDES   = Include path for the header files of libVersioningCompiler
 #  LIBVC_LIBRARIES  = Link these to use libVersioningCompiler
 #  LIVC_LIB_DIR     = Extra libraries directories
+#  HAVE_CLANG_LIB_COMPILER = Set to true if libVersioningCompiler can have
+#                                 Clang as a library enabled
 
 ## -----------------------------------------------------------------------------
 ## Check for the header files
@@ -151,12 +153,16 @@ foreach (version ${LIBCLANG_KNOWN_LLVM_VERSIONS})
     )
 endforeach()
 
-find_program(LLVM_CONFIG_EXECUTABLE NAMES ${llvm_config_name} DOC "llvm-config executable")
+find_program(LLVM_CONFIG_EXECUTABLE
+             NAMES ${llvm_config_name}
+             DOC "llvm-config executable")
 
 if (LLVM_CONFIG_EXECUTABLE)
+  set (HAVE_LLVM TRUE)
   message (STATUS "Found components for LLVM")
   message (STATUS "llvm-config ........ = ${LLVM_CONFIG_EXECUTABLE}")
 else (LLVM_CONFIG_EXECUTABLE)
+  set (HAVE_LLVM FALSE)
   message (STATUS "Unable to find llvm-config executable")
   message (WARNING "Could NOT find LLVM config executable")
 endif (LLVM_CONFIG_EXECUTABLE)
@@ -265,15 +271,52 @@ find_path (LIBCLANG_INCLUDES clang-c/Index.h
   PATH_SUFFIXES LLVM/include #Windows package from http://llvm.org/releases/
   DOC "The path to the directory that contains clang-c/Index.h")
 
+if (LIBCLANG_INCLUDES)
+  set (HAVE_LIBCLANG TRUE)
+else(LIBCLANG_INCLUDES)
+  set (HAVE_LIBCLANG FALSE)
+endif(LIBCLANG_INCLUDES)
+
+## -----------------------------------------------------------------------------
+# Check LLVM version
+
+set (LLVM_VERSION_MIN_REQUIRED "4.0.0")
+
+if ( HAVE_LLVM AND
+     (NOT ( LLVM_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED )) AND
+     HAVE_LIBCLANG )
+  set ( ENABLE_CLANG_AS_LIB true )
+else()
+  if (NOT HAVE_LLVM)
+    message( WARNING "LLVM not detected" )
+  else(NOT HAVE_LLVM)
+    if (LLVM_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED)
+      message( WARNING "You are using an obsolete version of LLVM:\
+\n\t${LLVM_VERSION} detected.\t\
+Minimum required is ${LLVM_VERSION_MIN_REQUIRED}" )
+    else(LLVM_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED)
+      message( WARNING "LibClang not detected" )
+    endif (LLVM_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED)
+  endif (NOT HAVE_LLVM)
+  message( WARNING "Clang-as-a-library disabled" )
+endif()
+
+
 ## -----------------------------------------------------------------------------
 # compose the real list of paths
 
 set( LIBVC_INCLUDES ${LIBVC_INCLUDES}
                     ${DL_INCLUDES}
                     ${UUID_INCLUDE_DIR}
-                    ${LLVM_INCLUDE_DIR}
-                    ${LIBCLANG_INCLUDES}
                   )
+
+if (ENABLE_CLANG_AS_LIB)
+  set( LIBVC_INCLUDES ${LIBVC_INCLUDES}
+                      ${LLVM_INCLUDE_DIR}
+                      ${LIBCLANG_INCLUDES}
+                    )
+endif(ENABLE_CLANG_AS_LIB)
+
 list( REMOVE_DUPLICATES LIBVC_INCLUDES )
 
 ## -----------------------------------------------------------------------------
@@ -375,19 +418,29 @@ set( LIBVC_LIBRARIES
                      ${LIBVC_LIBRARY}
                      ${UUID_LIBRARY}
                      ${DL_LIBRARY}
-                     ${LIBCLANG_LIBRARIES}
-                     ${LLVM_MODULE_LIBS}
                    )
-list( REMOVE_DUPLICATES LIBVC_LIBRARIES )
 
 set ( LIVC_LIB_DIR
                      ${LIBVC_LIBRARY_DIR}
                      ${UUID_LIBRARY_DIR}
                      ${DL_LIBRARY_DIR}
-                     ${LIBCLANG_LIBRARY_DIR}
-                     ${LLVM_LIBRARY_DIR}
                    )
+
+if (ENABLE_CLANG_AS_LIB)
+  set ( LIVC_LIB_DIR   ${LIVC_LIB_DIR}
+                       ${LIBCLANG_LIBRARY_DIR}
+                       ${LLVM_LIBRARY_DIR}
+                     )
+
+  set( LIBVC_LIBRARIES ${LIBVC_LIBRARIES}
+                       ${LIBCLANG_LIBRARIES}
+                       ${LLVM_MODULE_LIBS}
+                     )
+endif(ENABLE_CLANG_AS_LIB)
+
 list( REMOVE_DUPLICATES LIVC_LIB_DIR )
+
+list( REMOVE_DUPLICATES LIBVC_LIBRARIES )
 
 ## -----------------------------------------------------------------------------
 ## -----------------------------------------------------------------------------
@@ -418,9 +471,16 @@ else ( HAVE_LIBVC )
   endif ( LIBVC_FIND_QUIETLY )
 endif ( HAVE_LIBVC )
 
+if (ENABLE_CLANG_AS_LIB)
+  set (HAVE_CLANG_LIB_COMPILER TRUE)
+else(ENABLE_CLANG_AS_LIB)
+  set (HAVE_CLANG_LIB_COMPILER FALSE)
+endif(ENABLE_CLANG_AS_LIB)
+
 mark_as_advanced (
     HAVE_LIBVC
     LIBVC_INCLUDES
     LIBVC_LIBRARIES
     LIVC_LIB_DIR
+    HAVE_CLANG_LIB_COMPILER
   )
