@@ -414,14 +414,12 @@ find_library (LIBVC_LIBRARY VersioningCompiler PATHS
 
 get_filename_component (LIBVC_LIBRARY_DIR ${LIBVC_LIBRARY} PATH)
 
-set( LIBVC_LIBRARIES
-                     ${LIBVC_LIBRARY}
+set( LIBVC_LIBRARIES ${LIBVC_LIBRARY}
                      ${UUID_LIBRARY}
                      ${DL_LIBRARY}
                    )
 
-set ( LIVC_LIB_DIR
-                     ${LIBVC_LIBRARY_DIR}
+set ( LIVC_LIB_DIR   ${LIBVC_LIBRARY_DIR}
                      ${UUID_LIBRARY_DIR}
                      ${DL_LIBRARY_DIR}
                    )
