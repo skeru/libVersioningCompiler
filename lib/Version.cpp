@@ -63,6 +63,14 @@ std::string Version::getID() const
 }
 
 // ----------------------------------------------------------------------------
+// --------------------------------- get Tag ----------------------------------
+// ----------------------------------------------------------------------------
+std::string Version::getTag() const
+{
+  return tag;
+}
+
+// ----------------------------------------------------------------------------
 // --------------------- has generated intermediate file ----------------------
 // ----------------------------------------------------------------------------
 bool Version::hasGeneratedIR() const
@@ -269,6 +277,7 @@ Version::Builder::Builder(const std::shared_ptr<Version> v)
 std::shared_ptr<Version> Version::Builder::build()
 {
   _version_ptr = std::shared_ptr<Version>(new Version());
+  _version_ptr->tag = _tag;
   _version_ptr->functionName = _functionName;
   _version_ptr->fileName_src = _fileName_src;
   _version_ptr->fileName_IR = _fileName_IR;
@@ -293,6 +302,7 @@ std::shared_ptr<Version> Version::Builder::build()
 // ----------------------------------------------------------------------------
 void Version::Builder::reset()
 {
+  _tag = "";
   _compiler = nullptr;
   _functionName = "";
   _fileName_src = "";

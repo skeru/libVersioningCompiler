@@ -55,6 +55,9 @@ class Version
   /** \brief String representation of the Version unique identifier. */
   std::string getID() const;
 
+  /** \brief User defined string description of the Version. */
+  std::string getTag() const;
+
   /** \brief Return true if an IR representation of this Version is available.
    * False otherwise.
    */
@@ -146,6 +149,9 @@ class Version
   /** \brief unique identifier. */
   std::string id;
 
+  /** \brief User-defined description. */
+  std::string tag;
+
   /** \brief Remove files when the object is deallocated. */
   bool autoremoveFilesEnable;
 
@@ -231,6 +237,9 @@ class Version::Builder
    * By default it is the name of the function, uppercase.
    */
   void addFunctionFlag(const std::string &flag = "");
+
+  /** \brief User defined tag to describe the version. */
+  std::string _tag;
 
   /** \brief Remove compiled files from disk when Version object is freed. */
   bool _autoremoveFilesEnable;
