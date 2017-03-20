@@ -201,7 +201,13 @@ class Version::Builder
   /** \brief constructs a Builder by cloning an existing Version. */
   Builder(const Version *v);
 
+  /** \brief constructs a Builder by cloning an existing Version. */
   Builder(const std::shared_ptr<Version> v);
+
+  /** \brief constructs a Builder and populate the mandatory parameters. */
+  Builder(const std::string &fileName,
+          const std::string &functionName,
+          const std::shared_ptr<Compiler> &compiler);
 
   /** \brief default constructor. */
   Builder();
@@ -213,15 +219,15 @@ class Version::Builder
   void reset();
 
   /** \brief Remove from the option list all options with a given tag. */
-  void removeOption(const std::string &o_id);
+  void removeOption(const std::string &tag);
 
   /** \brief Remove from optimizer Option list all options with a given tag.
    */
-  void removeOptOption(const std::string &o_id);
+  void removeOptOption(const std::string &tag);
 
   /** \brief Remove from gen_IR Option list all options with a given tag.
    */
-  void removeGenIROption(const std::string &o_id);
+  void removeGenIROption(const std::string &tag);
 
   /** \brief Reset compilation Option list to a new list. */
   void options(const std::list<Option> options);

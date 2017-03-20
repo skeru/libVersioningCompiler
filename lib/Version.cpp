@@ -272,6 +272,18 @@ Version::Builder::Builder(const std::shared_ptr<Version> v)
   : Builder(v.get()) { }
 
 // ----------------------------------------------------------------------------
+// ------------- constructor populating only mandatory parameters -------------
+// ----------------------------------------------------------------------------
+Version::Builder::Builder(const std::string &fileName,
+                          const std::string &functionName,
+                          const std::shared_ptr<Compiler> &compiler)
+{
+  _fileName_src = fileName;
+  _functionName = functionName,
+  _compiler = compiler;
+}
+
+// ----------------------------------------------------------------------------
 // ---------------------- Version object finalization -------------------------
 // ----------------------------------------------------------------------------
 std::shared_ptr<Version> Version::Builder::build()
