@@ -396,6 +396,26 @@ void Version::Builder::addFunctionFlag(const std::string &flag)
 }
 
 // ----------------------------------------------------------------------------
+// --------------- create version from shared object file name ----------------
+// ----------------------------------------------------------------------------
+std::shared_ptr<Version>
+Version::Builder::createFromSO(const std::string &sharedObject,
+                               const std::string &functionName,
+                               const std::shared_ptr<Compiler> &compiler,
+                               bool autoremoveFilesEnable,
+                               const std::string &tag)
+{
+  std::shared_ptr<Version> v = std::shared_ptr<Version>(new Version());
+  v->fileName_bin = sharedObject;
+  v->autoremoveFilesEnable = autoremoveFilesEnable;
+  v->functionName = functionName;
+  v->compiler = compiler;
+  v->tag = tag;
+  v->compile();
+  return v;
+}
+
+// ----------------------------------------------------------------------------
 // ---------------------------- get function flag -----------------------------
 // ----------------------------------------------------------------------------
 Option Version::Builder::getFunctionFlag(const std::string &flagName)

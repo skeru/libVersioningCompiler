@@ -212,6 +212,14 @@ class Version::Builder
   /** \brief default constructor. */
   Builder();
 
+  /** \brief construct a Version using an already existing shared object. */
+  static std::shared_ptr<Version> createFromSO(
+                                    const std::string &sharedObject,
+                                    const std::string &functionName,
+                                    const std::shared_ptr<Compiler> &compiler,
+                                    const bool autoremoveFilesEnable = true,
+                                    const std::string &tag = "");
+
   /** \brief actually create an immutable object Version. */
   std::shared_ptr<Version> build();
 
