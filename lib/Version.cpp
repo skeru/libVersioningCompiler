@@ -34,7 +34,8 @@ Version::Version()
   fileName_src = "";
   fileName_IR = "";
   fileName_bin = "";
-  handle = nullptr;
+  symbol = nullptr;
+  lib_handle = nullptr;
   uuid_t uuid;
   char tmp[128];
   uuid_generate(uuid);
@@ -47,6 +48,9 @@ Version::Version()
 // ----------------------------------------------------------------------------
 Version::~Version()
 {
+  if (lib_handle) {
+    compiler->releaseSymbol(&lib_handle, &symbol);
+  }
   if (autoremoveFilesEnable) {
     removeFile(fileName_bin);
     removeFile(fileName_IR_opt);
@@ -99,7 +103,42 @@ bool Version::hasGeneratedBin() const
 // ----------------------------------------------------------------------------
 bool Version::hasLoadedSymbol() const
 {
-  return (handle != nullptr);
+  return (getSymbol() != nullptr);
+}
+
+// ----------------------------------------------------------------------------
+// -------------------------- load function pointer ---------------------------
+// ----------------------------------------------------------------------------
+void Version::loadSymbol()
+{
+  if (!symbol && hasGeneratedBin()) {
+    symbol = compiler->loadSymbol(fileName_bin, functionName, &lib_handle);
+  }
+  return;
+}
+
+// ----------------------------------------------------------------------------
+// ----------------------------------- fold -----------------------------------
+// ----------------------------------------------------------------------------
+void Version::fold()
+{
+  if (lib_handle) {
+    compiler->releaseSymbol(&lib_handle, &symbol);
+  }
+  return;
+}
+
+// ----------------------------------------------------------------------------
+// ---------------------------------- reload ----------------------------------
+// ----------------------------------------------------------------------------
+void *Version::reload()
+{
+  if (lib_handle) {
+    fold();
+  }
+  symbol = nullptr;
+  loadSymbol();
+  return getSymbol();
 }
 
 // ----------------------------------------------------------------------------
@@ -107,7 +146,7 @@ bool Version::hasLoadedSymbol() const
 // ----------------------------------------------------------------------------
 void *Version::getSymbol() const
 {
-  return handle;
+  return symbol;
 }
 
 // ----------------------------------------------------------------------------
@@ -149,9 +188,7 @@ bool Version::compile()
     }
     fileName_bin = compiler->generateBin(src, functionName, id, optionList);
   }
-  if (hasGeneratedBin()) {
-    handle = compiler->loadSymbol(fileName_bin, functionName);
-  }
+  loadSymbol();
   return hasLoadedSymbol();
 }
 

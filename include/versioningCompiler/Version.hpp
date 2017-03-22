@@ -81,8 +81,26 @@ class Version
 
   /** \brief Return the symbol, if was correctly loaded.
    * nullptr otherwise.
+   *
+   * Please note that this symbol will stay valid only as long as the Version
+   * object is still alive.
+   * Closing the associated binary shared object will invalide this pointer.
    */
   void *getSymbol() const;
+
+  /** \brief Closes the shared object to save memory resources.
+   *
+   * After folding a Version it is not possible to access its symbol before
+   * reloading it.
+   */
+  void fold();
+
+  /** \brief Reloads a shared object after a fold. If the Version is not
+   * folded, this method will fold it and than load the function pointer again.
+   *
+   * \return the reloaded function pointer. nullptr on failure.
+   */
+  void *reload();
 
   /** \brief Generate the LLVM-IR code of the function.
    *
@@ -185,9 +203,16 @@ class Version
   std::string fileName_bin;
 
   /** \brief Loaded symbol, if available. */
-  void *handle;
+  void *symbol;
+
+  void *lib_handle;
 
   bool removeFile(const std::string &fileName);
+
+  /** \brief Loads function pointer symbol from the shared object.
+   * Shared object must already exists.
+   */
+  void loadSymbol();
 };
 
 /** \brief Version::Builder is used to configure a new version object.

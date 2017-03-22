@@ -32,7 +32,6 @@
 #include "versioningCompiler/CompilerImpl/ClangLLVM/OptUtils.hpp"
 
 #include <vector>
-#include <dlfcn.h> // needed for loadSymbol
 
 using namespace vc;
 using namespace clang;
@@ -647,24 +646,4 @@ inline std::vector<std::string> ClangLibCompiler::getArgV(
     v.push_back(getOptionString(o));
   }
   return v;
-}
-
-// ---------------------------------------------------------------------------
-// ------------------------------- loadSymbol --------------------------------
-// ---------------------------------------------------------------------------
-void *ClangLibCompiler::loadSymbol(const std::string &bin,
-                                   const std::string &func) const
-{
-  void *handle = nullptr;
-  if (exists(bin)) {
-    handle = dlopen(bin.c_str(), RTLD_NOW);
-  }
-  if (handle) {
-    handle = dlsym(handle, func.c_str());
-  } else {
-    char* error = dlerror();
-    std::string error_str(error);
-    Compiler::log_string(error_str);
-  }
-  return handle;
 }

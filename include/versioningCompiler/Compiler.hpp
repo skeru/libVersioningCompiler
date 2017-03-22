@@ -98,16 +98,23 @@ class Compiler
                                   const std::string &versionID,
                                   const std::list<Option> options) const = 0;
 
-/** \brief Opens the binary shared object and loads the symbol relative to the
- * given function.
+/** \brief Opens the binary shared object, stores in *handler the reference to
+ * the open shared object, and loads the symbol relative to the given function.
  *
  * Returns the loaded function pointer on success. nullptr otherwise.
  * Output of this method is supposed to reinterpreted by the caller.
- *
- * Implementation specific.
  */
-  virtual void *loadSymbol(const std::string &bin,
-                           const std::string &func) const = 0;
+  void *loadSymbol(const std::string &bin,
+                   const std::string &func,
+                   void ** handler) const;
+
+/** \brief Closes the binary shared object, set *handler to nullptr, and
+ * invalidates the symbol relative to the given function.
+ *
+ * Returns the loaded function pointer on success. nullptr otherwise.
+ * Output of this method is supposed to reinterpreted by the caller.
+ */
+  void releaseSymbol(void ** handler, void ** symbol) const;
 
 /** \brief Converts an Option object into a compiler flag.
  *

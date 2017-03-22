@@ -20,6 +20,7 @@
  */
 #include "versioningCompiler/Compiler.hpp"
 #include <cstdio>
+#include <dlfcn.h> // needed for loadSymbol
 #include <fstream>
 #include <sys/stat.h>
 
@@ -102,6 +103,52 @@ void Compiler::log_string(const std::string &command) const
     unlockMutex(logFile);
   }
   return;
+}
+
+// ---------------------------------------------------------------------------
+// ------------------------------- loadSymbol --------------------------------
+// ---------------------------------------------------------------------------
+void Compiler::releaseSymbol(void ** handler, void ** symbol) const
+{
+  if (dlclose(*handler)) {
+    char* error = dlerror();
+    std::string error_str(error);
+    log_string(error_str);
+  }
+  *handler = nullptr;
+  *symbol = nullptr;
+  return;
+}
+
+// ---------------------------------------------------------------------------
+// ------------------------------- loadSymbol --------------------------------
+// ---------------------------------------------------------------------------
+void* Compiler::loadSymbol(const std::string &bin,
+                           const std::string &func,
+                           void ** handler) const
+{
+  void *symbol = nullptr;
+  if (exists(bin)) {
+    *handler = dlopen(bin.c_str(), RTLD_NOW);
+  } else {
+    std::string error_str = "cannot load symbol from " + bin +
+                            " : file not found";
+    log_string(error_str);
+    return symbol;
+  }
+  if (*handler) {
+    symbol = dlsym(*handler, func.c_str());
+    if (!symbol) {
+      std::string error_str = "cannot load symbol from " + bin +
+                              " : symbol not found";
+      log_string(error_str);
+    }
+  } else {
+    char* error = dlerror();
+    std::string error_str(error);
+    log_string(error_str);
+  }
+  return symbol;
 }
 
 // ----------------------------------------------------------------------------

@@ -19,7 +19,6 @@
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
 #include "versioningCompiler/CompilerImpl/SystemCompiler.hpp"
-#include <dlfcn.h>
 
 using namespace vc;
 
@@ -122,27 +121,6 @@ std::string SystemCompiler::generateBin(const std::string &src,
     return binaryFile;
   }
   return "";
-}
-
-// ----------------------------------------------------------------------------
-// ----------------- load function symbol from shared object ------------------
-// ----------------------------------------------------------------------------
-void *SystemCompiler::loadSymbol(const std::string &bin,
-                                 const std::string &func) const
-{
-  void *handle = nullptr;
-  if (exists(bin)) {
-    handle = dlopen(bin.c_str(), RTLD_NOW);
-  }
-  if (handle) {
-    handle = dlsym(handle, func.c_str());
-  }
-  const char *error = dlerror();
-  if (error) {
-    const std::string error_string = std::string(error);
-    log_string(error_string);
-  }
-  return handle;
 }
 
 // ----------------------------------------------------------------------------

@@ -236,5 +236,17 @@ int main(int argc, char const *argv[])
     f[3](6);
     f[4](7);
   }
+  v->fold();
+  v2->fold();
+  v3->fold();
+  v4->fold();
+  v5->fold();
+  v3->reload();
+  signature_t reloaded = (signature_t)v3->getSymbol();
+  if (reloaded) {
+    reloaded(15);
+  } else {
+    std::cerr << "Error in folding and reloading v3" << std::endl;
+  }
   return 0;
 }

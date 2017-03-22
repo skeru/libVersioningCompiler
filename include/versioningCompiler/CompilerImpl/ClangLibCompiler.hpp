@@ -71,9 +71,6 @@ public:
                                   const std::list<Option> options) const
   override;
 
-  virtual void *loadSymbol(const std::string &bin,
-                           const std::string &func) const override;
-
   virtual std::string getOptionString(const Option &o) const override;
 
 private:
