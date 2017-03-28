@@ -6,7 +6,6 @@
 #  LLVM_CFLAGS      - llvm compiler flags
 #  LLVM_LFLAGS      - llvm linker flags
 #  LLVM_MODULE_LIBS - list of llvm libs for working with modules.
-#  LLVM_FOUND       - True if llvm found.
 #  LLVM_VERSION     - Installed version.
 
 set (LIBCLANG_KNOWN_LLVM_VERSIONS 4.0.0 4.0

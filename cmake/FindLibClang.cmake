@@ -9,8 +9,6 @@
 #               The libraries needed to use libclang.
 # - LIBCLANG_LIBRARY_DIR
 #               The path to the directory containing libclang.
-# - LIBCLANG_KNOWN_LLVM_VERSIONS
-#               Known LLVM release numbers.
 
 # most recent versions come first
 # http://apt.llvm.org/
@@ -107,8 +105,6 @@ FIND_AND_ADD_CLANG_LIB(clangLex)
 FIND_AND_ADD_CLANG_LIB(clangBasic)
 
 list (REMOVE_DUPLICATES LIBCLANG_LIBRARY_DIR)
-
-set (LIBCLANG_INCLUDES ${LIBCLANG_INCLUDES})
 
 ## -----------------------------------------------------------------------------
 ## Actions taken when all components have been found

@@ -48,13 +48,17 @@ link_directories(${UUID_LIBRARY})
 
 # LibClang library
 find_package(LibClang)
-include_directories(${LIBCLANG_INCLUDES})
-link_directories(${LIBCLANG_LIBRARY_DIR})
+if (HAVE_LIBCLANG)
+  include_directories(${LIBCLANG_INCLUDES})
+  link_directories(${LIBCLANG_LIBRARY_DIR})
+endif (HAVE_LIBCLANG)
 
 # LLVM library
 find_package(LLVM)
-include_directories(${LLVM_INCLUDE_DIR})
-link_directories(${LLVM_LIBRARY_DIR})
+if (HAVE_LLVM)
+  include_directories(${LLVM_INCLUDE_DIR})
+  link_directories(${LLVM_LIBRARY_DIR})
+endif (HAVE_LLVM)
 
 set (LLVM_VERSION_MIN_REQUIRED "4.0.0")
 
