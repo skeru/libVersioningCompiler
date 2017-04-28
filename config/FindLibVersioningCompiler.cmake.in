@@ -24,7 +24,7 @@
 #  HAVE_LIBVC       = Set to true, if all components of libVersioningCompiler
 #                          have been found.
 #  LIBVC_INCLUDES   = Include path for the header files of libVersioningCompiler
-#  LIBVC_LIBRARIES  = Link these to use libVersioningCompiler
+#  LIBVC_LIBRARIES  = Link these libraries to use libVersioningCompiler
 #  LIVC_LIB_DIR     = Extra libraries directories
 #  HAVE_CLANG_LIB_COMPILER = Set to true if libVersioningCompiler can have
 #                                 Clang as a library enabled
