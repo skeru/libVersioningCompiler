@@ -21,6 +21,7 @@
 #ifndef LIB_VERSIONING_COMPILER_OPTION_HPP
 #define LIB_VERSIONING_COMPILER_OPTION_HPP
 
+#include <list>
 #include <string>
 
 namespace vc {
@@ -72,6 +73,28 @@ class Option
   std::string prefix;
 
 };
+
+/** static High-Level API - Option creation */
+static inline Option make_option(const std::string& opt_string) {
+  return Option("", opt_string);
+}
+
+/** Option list data type */
+typedef std::list<Option> opt_list_t;
+
+/** static High-Level API - Option list creation
+ *
+ * WARNING: converting a list of elements is not efficient!
+ * Please use this API only when it is not feasible to directly create a
+ * list of Options, alias opt_list_t.
+ */
+static inline opt_list_t make_option_list(const std::list<std::string>& l) {
+  opt_list_t ol;
+  for (const auto elem : l) {
+    ol.push_back(make_option(elem));
+  }
+  return ol;
+}
 
 } // end namespace vc
 

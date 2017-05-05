@@ -46,18 +46,18 @@ class SystemCompiler : public Compiler
   virtual std::string generateIR(const std::string &src,
                                  const std::string &func,
                                  const std::string &versionID,
-                                 const std::list<Option> options) const
+                                 const opt_list_t options) const
   override;
 
   virtual std::string runOptimizer(const std::string &src_IR,
                                    const std::string &versionID,
-                                   const std::list<Option> options) const
+                                   const opt_list_t options) const
   override;
 
   virtual std::string generateBin(const std::string &src,
                                   const std::string &func,
                                   const std::string &versionID,
-                                  const std::list<Option> options) const
+                                  const opt_list_t options) const
   override;
 
   virtual std::string getOptionString(const Option &o) const override;

@@ -119,15 +119,15 @@ class Version
   bool compile();
 
   /** \brief ordered list of options used to build this version. */
-  const std::list<Option> getOptionList() const;
+  const opt_list_t getOptionList() const;
 
   /** \brief ordered list of options used to generate the IR for this version.
    */
-  const std::list<Option> getGenIRoptionList() const;
+  const opt_list_t getGenIRoptionList() const;
 
   /** \brief ordered list of options used to run the optimizer on this version.
    */
-  const std::list<Option> getOptOptionList() const;
+  const opt_list_t getOptOptionList() const;
 
   /** \brief Compiler used to compile this Version. */
   std::string getCompilerId() const;
@@ -174,18 +174,18 @@ class Version
   bool autoremoveFilesEnable;
 
   /** \brief ordered list of options used to build this version. */
-  std::list<Option> optionList;
+  opt_list_t optionList;
 
   /** \brief ordered list of options used to generate the IR for this version.
    */
-  std::list<Option> genIRoptionList;
+  opt_list_t genIRoptionList;
 
   /** \brief ordered list of options used to run the optimizer on this version.
    */
-  std::list<Option> optOptionList;
+  opt_list_t optOptionList;
 
   /** \brief Compiler used to compile this Version. */
-  std::shared_ptr<Compiler> compiler;
+  compiler_ptr_t compiler;
 
   /** \brief name of the versioned function. */
   std::string functionName;
@@ -215,6 +215,8 @@ class Version
   void loadSymbol();
 };
 
+typedef std::shared_ptr<Version> version_ptr_t;
+
 /** \brief Version::Builder is used to configure a new version object.
  *
  * Once configuration is done, builder can finalize a Version object through
@@ -227,26 +229,25 @@ class Version::Builder
   Builder(const Version *v);
 
   /** \brief constructs a Builder by cloning an existing Version. */
-  Builder(const std::shared_ptr<Version> v);
+  Builder(const version_ptr_t v);
 
   /** \brief constructs a Builder and populate the mandatory parameters. */
   Builder(const std::string &fileName,
           const std::string &functionName,
-          const std::shared_ptr<Compiler> &compiler);
+          const compiler_ptr_t &compiler);
 
   /** \brief default constructor. */
   Builder();
 
   /** \brief construct a Version using an already existing shared object. */
-  static std::shared_ptr<Version> createFromSO(
-                                    const std::string &sharedObject,
+  static version_ptr_t createFromSO(const std::string &sharedObject,
                                     const std::string &functionName,
-                                    const std::shared_ptr<Compiler> &compiler,
+                                    const compiler_ptr_t &compiler,
                                     const bool autoremoveFilesEnable = true,
                                     const std::string &tag = "");
 
   /** \brief actually create an immutable object Version. */
-  std::shared_ptr<Version> build();
+  version_ptr_t build();
 
   /** \brief Reset builder to its default values. */
   void reset();
@@ -263,13 +264,13 @@ class Version::Builder
   void removeGenIROption(const std::string &tag);
 
   /** \brief Reset compilation Option list to a new list. */
-  void options(const std::list<Option> options);
+  void options(const opt_list_t options);
 
   /** \brief Reset gen_IR Option list to a new list. */
-  void genIRoptions(const std::list<Option> options);
+  void genIRoptions(const opt_list_t options);
 
   /** \brief Reset optimizer Option list to a new list. */
-  void optOptions(const std::list<Option> options);
+  void optOptions(const opt_list_t options);
 
   /** \brief Insert a define in the compilation stages to enable the
    * compilation of the given function.
@@ -284,7 +285,7 @@ class Version::Builder
   bool _autoremoveFilesEnable;
 
   /** \brief Compiler to be used to compile this Version. */
-  std::shared_ptr<Compiler> _compiler;
+  compiler_ptr_t _compiler;
 
   /** \brief name of the versioned function. */
   std::string _functionName;
@@ -299,17 +300,17 @@ class Version::Builder
   std::string _fileName_IR;
 
   /** \brief ordered list of options to be used to build this version. */
-  std::list<Option> _optionList;
+  opt_list_t _optionList;
 
   /** \brief ordered list of options to be used to generate the IR. */
-  std::list<Option> _genIROptionList;
+  opt_list_t _genIROptionList;
 
   /** \brief ordered list of options to be used to build this version. */
-  std::list<Option> _optOptionList;
+  opt_list_t _optOptionList;
 
  private:
   /** \brief shared pointer to the object to be built. */
-  std::shared_ptr<Version> _version_ptr;
+  version_ptr_t _version_ptr;
 
   /** \brief Returns a flag to be enabled in order to compile the given function.
    *

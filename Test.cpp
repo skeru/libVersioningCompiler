@@ -64,18 +64,18 @@ int main(int argc, char const *argv[])
   // Right now only Compilers called via a system call are available. That's
   // why they are called SystemCompilers.
   // Support for Compiler-as-a-library will be added soon.
-  std::shared_ptr<vc::Compiler> cc = std::make_shared<vc::SystemCompiler>();
-  std::shared_ptr<vc::Compiler> gcc = std::make_shared<vc::SystemCompiler>(
-                                          "gcc",
-                                          "gcc",
-                                          ".",
-                                          "./test.log",
-                                          "/usr/bin",
-                                          false
-                                        );
+  vc::compiler_ptr_t cc = vc::make_compiler<vc::SystemCompiler>();
+  vc::compiler_ptr_t gcc = vc::make_compiler<vc::SystemCompiler>(
+                                                                 "gcc",
+                                                                 "gcc",
+                                                                 ".",
+                                                                 "./test.log",
+                                                                 "/usr/bin",
+                                                                 false
+                                                                 );
   // FAQ: I have a separate install folder for LLVM/clang.
   // ANS: Here it is an example of how to handle that case.
-  std::shared_ptr<vc::Compiler> clang = std::make_shared<vc::SystemCompilerOptimizer>(
+  vc::compiler_ptr_t clang = vc::make_compiler<vc::SystemCompilerOptimizer>(
                                           "llvm/clang",
                                           "clang",
                                           "opt",
@@ -85,7 +85,7 @@ int main(int argc, char const *argv[])
                                           "/usr/lib/llvm/bin"
                                         );
 #if HAVE_CLANG_AS_LIB
-  std::shared_ptr<vc::Compiler> clangAsLib = std::make_shared<vc::ClangLibCompiler>(
+  vc::compiler_ptr_t clangAsLib = vc::make_compiler<vc::ClangLibCompiler>(
                                           "clangAsALibrary",
                                           ".",
                                           "test_clang.log"
@@ -95,7 +95,7 @@ int main(int argc, char const *argv[])
   // start configuring version v
   builder._compiler = cc;
   // finalization of a version. no compilation has been called yet.
-  std::shared_ptr<vc::Version> v = builder.build();
+  vc::version_ptr_t v = builder.build();
   // end configuring version v
 
   // start configuring version v2
@@ -106,7 +106,7 @@ int main(int argc, char const *argv[])
   // ...and the option list
   builder.options({vc::Option("o", "-O", "2")});
   // Version v2 is finalized as v, with the above mentioned changes.
-  std::shared_ptr<vc::Version> v2 = builder.build();
+  vc::version_ptr_t v2 = builder.build();
   // end configuring version v2
 
   // start configuring version v3
@@ -119,7 +119,7 @@ int main(int argc, char const *argv[])
                                     vc::Option("unroll", "-loop-unroll"),
                                     vc::Option("mem2reg", "-mem2reg")
                                    };
-  std::shared_ptr<vc::Version> v3 = another_builder.build();
+  vc::version_ptr_t v3 = another_builder.build();
   // end configuring version v3
 
   // start configuring version v4
@@ -131,7 +131,7 @@ int main(int argc, char const *argv[])
                             vc::Option("mem2reg", "-mem2reg"),
                             vc::Option("o", "-O", "3"),
                            };
-  std::shared_ptr<vc::Version> v4 = builder.build();
+  vc::version_ptr_t v4 = builder.build();
   // end configuring version v4
 
   // actually compile v.
@@ -206,7 +206,7 @@ int main(int argc, char const *argv[])
   }
   std::cout << "Notify: v4 compiled." << std::endl;
 
-  std::shared_ptr<vc::Version> v5 =
+  vc::version_ptr_t v5 =
     vc::Version::Builder::createFromSO(v4->getFileName_bin(),
                                        TEST_FUNCTION,
                                        gcc,

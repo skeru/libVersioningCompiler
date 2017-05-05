@@ -71,7 +71,7 @@ bool SystemCompilerOptimizer::hasOptimizer() const
 // ----------------------------------------------------------------------------
 std::string SystemCompilerOptimizer::runOptimizer(const std::string &src_IR,
                                                   const std::string &versionID,
-                                                  const std::list<Option> options) const
+                                                  const opt_list_t options) const
 {
   std::string commandString;
   commandString = optInstallDirectory + "/" + optCallString;

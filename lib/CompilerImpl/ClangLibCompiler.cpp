@@ -92,7 +92,7 @@ ClangLibCompiler::ClangLibCompiler(
 std::string ClangLibCompiler::generateIR(const std::string &src,
                                          const std::string &func,
                                          const std::string &versionID,
-                                         const std::list<Option> options) const
+                                         const opt_list_t options) const
 {
   // What we want to generate
   const std::string &llvmIRfileName = Compiler::getBitcodeFileName(versionID);
@@ -200,7 +200,7 @@ std::string ClangLibCompiler::generateIR(const std::string &src,
  */
 std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
                                            const std::string &versionID,
-                                           const std::list<Option> options) const
+                                           const opt_list_t options) const
 {
   // What we want to generate
   const std::string optBCfilename = Compiler::getOptBitcodeFileName(versionID);
@@ -534,7 +534,7 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
 std::string ClangLibCompiler::generateBin(const std::string &src,
                                           const std::string &func,
                                           const std::string &versionID,
-                                          const std::list<Option> options) const
+                                          const opt_list_t options) const
 {
   // What we want to generate
   const std::string libFileName = Compiler::getSharedObjectFileName(versionID);
@@ -638,7 +638,7 @@ inline std::string ClangLibCompiler::getOptionString(const Option &o) const
 // --------------------------------- getArgV ---------------------------------
 // ---------------------------------------------------------------------------
 inline std::vector<std::string> ClangLibCompiler::getArgV(
-                                const std::list<Option> optionList) const
+                                const opt_list_t optionList) const
 {
   std::vector<std::string> v;
   v.reserve(optionList.size());

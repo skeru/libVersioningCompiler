@@ -161,21 +161,21 @@ should be added. E.g.
 Instantiate and configure all compilers that are going to be used.
 ```
 // default system compiler
-std::shared_ptr<vc::Compiler> cc = std::make_shared<vc::SystemCompiler>();
+vc::compiler_ptr_t cc = vc::make_compiler<vc::SystemCompiler>();
 
 // /usr/bin/gcc using ./test.log as log file
-std::shared_ptr<vc::Compiler> gcc = std::make_shared<vc::SystemCompiler>(
+vc::compiler_ptr_t gcc = vc::make_compiler<vc::SystemCompiler>(
                                         "gcc",
                                         "gcc",
                                         ".",
                                         "./test.log",
                                         "/usr/bin",
                                         false
-                                    );
+                                        );
 
 // custom installation of LLVM/clang
 // /clang-3.7.0/bin/clang as compiler and /clang-3.7.0/bin/opt as optimizer
-std::shared_ptr<vc::Compiler> clang = std::make_shared<vc::SystemCompilerOptimizer>(
+vc::compiler_ptr_t clang = vc::make_compiler<vc::SystemCompilerOptimizer>(
                                             "llvm/clang",
                                             "clang",
                                             "opt",
@@ -205,7 +205,7 @@ builder._optOptionList = {                  // set optimizer option list
                           vc::Option("unroll", "-loop-unroll"),
                           vc::Option("mem2reg", "-mem2reg")
                          };
-std::shared_ptr<vc::Version> v = builder.build(); // MANDATORY finalize Version
+vc::version_ptr_t v = builder.build(); // MANDATORY finalize Version
 ```
 After a Version finalization, the builder can be modified and reused to build
 another Version or it can be destroyed.
@@ -215,7 +215,7 @@ It is also possible to clone a Version in a new Builder to initialize it.
 ```
 // reuse builder from v
 builder._compiler = cc;
-std::shared_ptr<vc::Version> v2 = builder.build();
+vc::version_ptr_t v2 = builder.build();
 
 // initialize another_builder using v2 configuration
 vc::Version::Builder another_builder = vc::Version::Builder(v2);
@@ -266,10 +266,10 @@ Please consider to switch to Low-level APIs for a more fine-grained approach.
 
 #### For every desired Version object
 ```
- std::shared_ptr<Version> v = vc::createVersion(FILENAME_SRC,
-                                                FUNCTION_NAME,
-                                                {Option("O", "-O", "2"), ... }
-                                               );
+ vc::version_ptr_t v = vc::createVersion(FILENAME_SRC,
+                                         FUNCTION_NAME,
+                                         {vc::Option("O", "-O", "2"), ... }
+                                        );
  signature_t fn_ptr = (signature_t) vc::compileAndGetSymbol(v);
  if (fn_ptr) {  // check if correctly compiled and loaded symbol
    fn_ptr(42);  // run the compiled function version

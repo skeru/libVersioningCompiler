@@ -29,29 +29,29 @@
 namespace vc {
 
 /** Default compiler to be used in this helper. */
-std::shared_ptr<Compiler> libVC_default_compiler;
+compiler_ptr_t libVC_default_compiler;
 
 /** Instantiate default Compiler */
 void vc_utils_init();
 
 /** Create a Version using default parameters */
-std::shared_ptr<Version> createVersion(const std::string &src,
-                                       const std::string &fn,
-                                       const std::list<Option> &options);
+version_ptr_t createVersion(const std::string &src,
+                            const std::string &fn,
+                            const opt_list_t &options);
 
 /** Compile a version and extract function pointer (has to be casted) */
-void* compileAndGetSymbol(std::shared_ptr<Version>& v);
+void* compileAndGetSymbol(version_ptr_t& v);
 
 //---------- implementation ----------
 
 void vc_utils_init() {
-  libVC_default_compiler = std::make_shared<SystemCompiler>();
+  libVC_default_compiler = make_compiler<SystemCompiler>();
   return;
 }
 
-std::shared_ptr<Version> createVersion(const std::string &src,
-                                       const std::string &fn,
-                                       const std::list<Option> &options) {
+version_ptr_t createVersion(const std::string &src,
+                            const std::string &fn,
+                            const opt_list_t &options) {
   Version::Builder builder;
   builder._compiler = libVC_default_compiler;
   builder._fileName_src = src;
@@ -61,7 +61,7 @@ std::shared_ptr<Version> createVersion(const std::string &src,
   return builder.build();
 }
 
-void* compileAndGetSymbol(std::shared_ptr<Version>& v) {
+void* compileAndGetSymbol(version_ptr_t& v) {
   v->compile();
   return v->getSymbol();
 }

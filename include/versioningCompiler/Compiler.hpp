@@ -75,7 +75,7 @@ class Compiler
   virtual std::string generateIR(const std::string &src,
                                  const std::string &func,
                                  const std::string &versionID,
-                                 const std::list<Option> options) const = 0;
+                                 const opt_list_t options) const = 0;
 
 /** \brief Runs optimizer on the input LLVM-IR source file.
  *
@@ -85,7 +85,7 @@ class Compiler
  */
   virtual std::string runOptimizer(const std::string &src_IR,
                                    const std::string &versionID,
-                                   const std::list<Option> options) const = 0;
+                                   const opt_list_t options) const = 0;
 
 /** \brief Runs compiler on the input source file.
  *
@@ -96,7 +96,7 @@ class Compiler
   virtual std::string generateBin(const std::string &src,
                                   const std::string &func,
                                   const std::string &versionID,
-                                  const std::list<Option> options) const = 0;
+                                  const opt_list_t options) const = 0;
 
 /** \brief Opens the binary shared object, stores in *handler the reference to
  * the open shared object, and loads the symbol relative to the given function.
@@ -205,6 +205,18 @@ class Compiler
    */
   static void removeReferenceToLogFile(const std::string &logFileName);
 };
+
+/** Compiler pointer data type */
+typedef std::shared_ptr<Compiler> compiler_ptr_t;
+
+/** High-Level API to create a compiler_ptr_t */
+template<class CompilerImplClass, class... Args>
+static inline compiler_ptr_t make_compiler(Args&&... args) {
+  static_assert(std::is_base_of<Compiler, CompilerImplClass>::value,
+    "attempting to build a compiler_ptr_t using an implementation "
+    "which is not derived from Compiler base class");
+  return std::make_shared<CompilerImplClass>(std::forward<Args>(args)...);
+}
 
 } // end namespace vc
 

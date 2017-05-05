@@ -48,7 +48,7 @@ class SystemCompilerOptimizer : public SystemCompiler
 
   virtual std::string runOptimizer(const std::string &src_IR,
                                    const std::string &versionID,
-                                   const std::list<Option> options) const
+                                   const opt_list_t options) const
   override;
 
  protected:

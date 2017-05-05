@@ -195,7 +195,7 @@ bool Version::compile()
 // ----------------------------------------------------------------------------
 // ----------------- get ordered list of compilation options ------------------
 // ----------------------------------------------------------------------------
-const std::list<Option> Version::getOptionList() const
+const opt_list_t Version::getOptionList() const
 {
   return optionList;
 }
@@ -203,7 +203,7 @@ const std::list<Option> Version::getOptionList() const
 // ----------------------------------------------------------------------------
 // ----------- get ordered list of intermediate generation options ------------
 // ----------------------------------------------------------------------------
-const std::list<Option> Version::getGenIRoptionList() const
+const opt_list_t Version::getGenIRoptionList() const
 {
   return genIRoptionList;
 }
@@ -211,7 +211,7 @@ const std::list<Option> Version::getGenIRoptionList() const
 // ----------------------------------------------------------------------------
 // ------------------ get ordered list of optimizer options -------------------
 // ----------------------------------------------------------------------------
-const std::list<Option> Version::getOptOptionList() const
+const opt_list_t Version::getOptOptionList() const
 {
   return optOptionList;
 }
@@ -305,7 +305,7 @@ Version::Builder::Builder(const Version *v)
 // ----------------------------------------------------------------------------
 // -------------------- proxy for the above contrusctor -----------------------
 // ----------------------------------------------------------------------------
-Version::Builder::Builder(const std::shared_ptr<Version> v)
+Version::Builder::Builder(const version_ptr_t v)
   : Builder(v.get()) { }
 
 // ----------------------------------------------------------------------------
@@ -313,7 +313,7 @@ Version::Builder::Builder(const std::shared_ptr<Version> v)
 // ----------------------------------------------------------------------------
 Version::Builder::Builder(const std::string &fileName,
                           const std::string &functionName,
-                          const std::shared_ptr<Compiler> &compiler)
+                          const compiler_ptr_t &compiler)
 {
   _fileName_src = fileName;
   _functionName = functionName,
@@ -323,9 +323,9 @@ Version::Builder::Builder(const std::string &fileName,
 // ----------------------------------------------------------------------------
 // ---------------------- Version object finalization -------------------------
 // ----------------------------------------------------------------------------
-std::shared_ptr<Version> Version::Builder::build()
+version_ptr_t Version::Builder::build()
 {
-  _version_ptr = std::shared_ptr<Version>(new Version());
+  _version_ptr = version_ptr_t(new Version());
   _version_ptr->tag = _tag;
   _version_ptr->functionName = _functionName;
   _version_ptr->fileName_src = _fileName_src;
@@ -366,7 +366,7 @@ void Version::Builder::reset()
 // ----------------------------------------------------------------------------
 // ------------------------ set compilation options ---------------------------
 // ----------------------------------------------------------------------------
-void Version::Builder::options(const std::list<Option> options)
+void Version::Builder::options(const opt_list_t options)
 {
   _optionList = options;
 }
@@ -374,7 +374,7 @@ void Version::Builder::options(const std::list<Option> options)
 // ----------------------------------------------------------------------------
 // ------------------ set intermediate generation options ---------------------
 // ----------------------------------------------------------------------------
-void Version::Builder::genIRoptions(const std::list<Option> options)
+void Version::Builder::genIRoptions(const opt_list_t options)
 {
   _genIROptionList = options;
 }
@@ -382,7 +382,7 @@ void Version::Builder::genIRoptions(const std::list<Option> options)
 // ----------------------------------------------------------------------------
 // ------------------------- set optimizer options ----------------------------
 // ----------------------------------------------------------------------------
-void Version::Builder::optOptions(const std::list<Option> options)
+void Version::Builder::optOptions(const opt_list_t options)
 {
   _optOptionList = options;
 }
@@ -435,14 +435,13 @@ void Version::Builder::addFunctionFlag(const std::string &flag)
 // ----------------------------------------------------------------------------
 // --------------- create version from shared object file name ----------------
 // ----------------------------------------------------------------------------
-std::shared_ptr<Version>
-Version::Builder::createFromSO(const std::string &sharedObject,
-                               const std::string &functionName,
-                               const std::shared_ptr<Compiler> &compiler,
-                               bool autoremoveFilesEnable,
-                               const std::string &tag)
+version_ptr_t Version::Builder::createFromSO(const std::string &sharedObject,
+                                             const std::string &functionName,
+                                             const compiler_ptr_t &compiler,
+                                             bool autoremoveFilesEnable,
+                                             const std::string &tag)
 {
-  std::shared_ptr<Version> v = std::shared_ptr<Version>(new Version());
+  version_ptr_t v = version_ptr_t(new Version());
   v->fileName_bin = sharedObject;
   v->autoremoveFilesEnable = autoremoveFilesEnable;
   v->functionName = functionName;

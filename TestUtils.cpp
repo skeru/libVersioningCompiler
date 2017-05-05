@@ -40,9 +40,9 @@ using namespace vc; // libVersioningCompiler namespace
 
 int main(int argc, char const *argv[]) {
   vc_utils_init();
-  std::list<Option> options;
+  opt_list_t options;
   options.push_back(Option("O", "-O", "2"));
-  std::shared_ptr<Version> v = createVersion(PATH_TO_C_TEST_CODE, TEST_FUNCTION, options);
+  version_ptr_t v = createVersion(PATH_TO_C_TEST_CODE, TEST_FUNCTION, options);
   signature_t fn_ptr = (signature_t) compileAndGetSymbol(v);
   if(fn_ptr)
     fn_ptr(3);
