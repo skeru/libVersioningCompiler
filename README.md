@@ -7,10 +7,6 @@ It also provides support for versioning of the compiled functions.
 This software is distributed under the LGPLv3 license.
 See LICENSE.txt and LICENSE.LESSER.txt for the full text of the license.
 
-Part of this software include third-party source code.
-See additional license file(s) for those parts of this software
-(LLVM_LICENSE.txt)
-
 ## Dependencies
 libVersioningCompiler requires:
  - Ubuntu 16.04 or greater
@@ -95,7 +91,7 @@ It is possible to decide the exact moment when the compiler is invoked.
 It is possible to debug at fine grain.
 
 High-level APIs allow to reduce the verbosity of some operations by
-aggregating the most common sequence of function calls.
+aggregating the most common sequence of low-level function calls.
 All basic functionalities are summarized within 3 functions.
  - Initialize
  - Create Version object
@@ -152,13 +148,15 @@ which must be addressed in both cases of high-level and low-level APIs.
 #### Include
 `#include "versioningCompiler/Version.hpp"`
 
-According to the chosen Compiler implementation, the corresponding include
-should be added. E.g.
+In addition -- according to the chosen Compiler implementation --
+the corresponding include should be added. E.g.
 
 `#include "versioningCompiler/SystemCompilerOptimizer.hpp"`
 
 #### Once on setup
 Instantiate and configure all compilers that are going to be used.
+Please take a look at the source code documentation of each `Compiler`
+for a more detailed explanation of the constructor parameters.
 ```
 // default system compiler
 vc::compiler_ptr_t cc = vc::make_compiler<vc::SystemCompiler>();
@@ -261,7 +259,7 @@ Please consider to switch to Low-level APIs for a more fine-grained approach.
 #### Include
 `#include "versioningCompiler/Utils.hpp"`
 
-#### Once on setup
+#### Once, on setup
 ` vc::vc_utils_init();`
 
 #### For every desired Version object
