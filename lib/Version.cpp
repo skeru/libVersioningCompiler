@@ -1,4 +1,4 @@
-/* Copyright 2017 Politecnico di Milano.
+/* Copyright 2017-2018 Politecnico di Milano.
  * Developed by : Stefano Cherubin
  *                PhD student, Politecnico di Milano
  *                <first_name>.<family_name>@polimi.it
@@ -30,11 +30,12 @@ using namespace vc;
 Version::Version()
 {
   autoremoveFilesEnable = true;
-  functionName = "";
-  fileName_src = "";
+  functionName = {};
+  fileName_src = {};
   fileName_IR = "";
   fileName_bin = "";
-  symbol = nullptr;
+  symbol = {};
+  tags = {};
   lib_handle = nullptr;
   uuid_t uuid;
   char tmp[128];
@@ -49,8 +50,9 @@ Version::Version()
 Version::~Version()
 {
   if (lib_handle) {
-    compiler->releaseSymbol(&lib_handle, &symbol);
+    compiler->releaseSymbol(&lib_handle); // close the shared object
   }
+  symbol.clear(); // invalide symbols
   if (autoremoveFilesEnable) {
     removeFile(fileName_bin);
     removeFile(fileName_IR_opt);
@@ -69,9 +71,9 @@ std::string Version::getID() const
 // ----------------------------------------------------------------------------
 // --------------------------------- get Tag ----------------------------------
 // ----------------------------------------------------------------------------
-std::string Version::getTag() const
+std::vector<std::string> Version::getTags() const
 {
-  return tag;
+  return tags;
 }
 
 // ----------------------------------------------------------------------------
@@ -103,7 +105,7 @@ bool Version::hasGeneratedBin() const
 // ----------------------------------------------------------------------------
 bool Version::hasLoadedSymbol() const
 {
-  return (getSymbol() != nullptr);
+  return (!symbol.empty());
 }
 
 // ----------------------------------------------------------------------------
@@ -111,8 +113,8 @@ bool Version::hasLoadedSymbol() const
 // ----------------------------------------------------------------------------
 void Version::loadSymbol()
 {
-  if (!symbol && hasGeneratedBin()) {
-    symbol = compiler->loadSymbol(fileName_bin, functionName, &lib_handle);
+  if (symbol.empty() && hasGeneratedBin()) {
+    symbol = compiler->loadSymbols(fileName_bin, functionName, &lib_handle);
   }
   return;
 }
@@ -123,7 +125,8 @@ void Version::loadSymbol()
 void Version::fold()
 {
   if (lib_handle) {
-    compiler->releaseSymbol(&lib_handle, &symbol);
+    compiler->releaseSymbol(&lib_handle);
+    symbol.clear();
   }
   return;
 }
@@ -136,7 +139,7 @@ void *Version::reload()
   if (lib_handle) {
     fold();
   }
-  symbol = nullptr;
+  symbol.clear();
   loadSymbol();
   return getSymbol();
 }
@@ -146,7 +149,37 @@ void *Version::reload()
 // ----------------------------------------------------------------------------
 void *Version::getSymbol() const
 {
+  return symbol.at(0);
+}
+
+// ----------------------------------------------------------------------------
+// --------------------------- get function pointer ---------------------------
+// ----------------------------------------------------------------------------
+void *Version::getSymbol(const int index) const
+{
+  return symbol.at(index);
+}
+
+// ----------------------------------------------------------------------------
+// --------------------------- get function pointer ---------------------------
+// ----------------------------------------------------------------------------
+std::vector<void *> Version::getSymbols() const
+{
   return symbol;
+}
+
+// ----------------------------------------------------------------------------
+// --------------------------- get function pointer ---------------------------
+// ----------------------------------------------------------------------------
+void *Version::getSymbol(const std::string& functionName) const
+{
+  using map_finder_t = decltype(mapFnToIndex)::const_iterator;
+  map_finder_t it = mapFnToIndex.find(functionName);
+  if (it != mapFnToIndex.end())
+  {
+    return getSymbol(it->second);
+  }
+  return nullptr;
 }
 
 // ----------------------------------------------------------------------------
@@ -178,11 +211,11 @@ bool Version::compile()
     return true;
   }
   if (! hasGeneratedBin()) {
-    std::string src;
+    std::vector<std::string> src;
     if (fileName_IR_opt != "") {
-      src = fileName_IR_opt;
+      src.push_back(fileName_IR_opt);
     } else if (fileName_IR != "") {
-      src = fileName_IR;
+      src.push_back(fileName_IR);
     } else {
       src = fileName_src;
     }
@@ -229,6 +262,22 @@ std::string Version::getCompilerId() const
 // ----------------------------------------------------------------------------
 std::string Version::getFunctionName() const
 {
+  return functionName.at(0);
+}
+
+// ----------------------------------------------------------------------------
+// --------------------------- get function name ------------------------------
+// ----------------------------------------------------------------------------
+std::string Version::getFunctionName(const int index) const
+{
+  return functionName.at(index);
+}
+
+// ----------------------------------------------------------------------------
+// --------------------------- get function name ------------------------------
+// ----------------------------------------------------------------------------
+std::vector<std::string> Version::getFunctionNames() const
+{
   return functionName;
 }
 
@@ -236,6 +285,22 @@ std::string Version::getFunctionName() const
 // --------------------------- get source filename ----------------------------
 // ----------------------------------------------------------------------------
 std::string Version::getFileName_src() const
+{
+  return fileName_src.at(0);
+}
+
+// ----------------------------------------------------------------------------
+// --------------------------- get source filename ----------------------------
+// ----------------------------------------------------------------------------
+std::string Version::getFileName_src(const int index) const
+{
+  return fileName_src.at(index);
+}
+
+// ----------------------------------------------------------------------------
+// --------------------------- get source filename ----------------------------
+// ----------------------------------------------------------------------------
+std::vector<std::string> Version::getFileNames_src() const
 {
   return fileName_src;
 }
@@ -315,8 +380,20 @@ Version::Builder::Builder(const std::string &fileName,
                           const std::string &functionName,
                           const compiler_ptr_t &compiler)
 {
-  _fileName_src = fileName;
-  _functionName = functionName,
+  _fileName_src.push_back(fileName);
+  _functionName.push_back(functionName);
+  _compiler = compiler;
+}
+
+// ----------------------------------------------------------------------------
+// ------------- constructor populating only mandatory parameters -------------
+// ----------------------------------------------------------------------------
+Version::Builder::Builder(const std::vector<std::string> &fileNames,
+                          const std::vector<std::string> &functionNames,
+                          const compiler_ptr_t &compiler)
+{
+  _fileName_src = fileNames;
+  _functionName = functionNames;
   _compiler = compiler;
 }
 
@@ -326,8 +403,11 @@ Version::Builder::Builder(const std::string &fileName,
 version_ptr_t Version::Builder::build()
 {
   _version_ptr = version_ptr_t(new Version());
-  _version_ptr->tag = _tag;
+  _version_ptr->tags = _tags;
   _version_ptr->functionName = _functionName;
+  for (int i = 0; i < _functionName.size(); i++) { // build reverse index
+    _version_ptr->mapFnToIndex[_functionName[i]] = i;
+  }
   _version_ptr->fileName_src = _fileName_src;
   _version_ptr->fileName_IR = _fileName_IR;
   _version_ptr->compiler = _compiler;
@@ -351,16 +431,55 @@ version_ptr_t Version::Builder::build()
 // ----------------------------------------------------------------------------
 void Version::Builder::reset()
 {
-  _tag = "";
+  _tags = {};
+  _version_ptr = nullptr;
   _compiler = nullptr;
-  _functionName = "";
-  _fileName_src = "";
+  _functionName.clear();
+  _fileName_src.clear();
   _fileName_IR = "";
   _optionList.clear();
   _genIROptionList.clear();
   _optOptionList.clear();
   _flagDefineList.clear();
   _autoremoveFilesEnable = true;
+  return;
+}
+
+// ----------------------------------------------------------------------------
+// ----------------------------- add source file ------------------------------
+// ----------------------------------------------------------------------------
+void Version::Builder::addSourceFile(const std::string &src)
+{
+  _fileName_src.push_back(src);
+  return;
+}
+
+// ----------------------------------------------------------------------------
+// ------------------------------- add metadata -------------------------------
+// ----------------------------------------------------------------------------
+void Version::Builder::addTag(const std::string &tag)
+{
+  _tags.push_back(tag);
+  return;
+}
+
+// ----------------------------------------------------------------------------
+// --------------------------- add include directory --------------------------
+// ----------------------------------------------------------------------------
+void Version::Builder::addIncludeDir(const std::string &path)
+{
+  _genIROptionList.push_back(Option("includeDir", "-I", path));
+  _optionList.push_back(Option("includeDir", "-I", path));
+  return;
+}
+
+// ----------------------------------------------------------------------------
+// ---------------------------- add link directory ----------------------------
+// ----------------------------------------------------------------------------
+void Version::Builder::addLinkingDir(const std::string &path)
+{
+  _optionList.push_back(Option("linkDir", "-L", path));
+  return;
 }
 
 // ----------------------------------------------------------------------------
@@ -369,6 +488,7 @@ void Version::Builder::reset()
 void Version::Builder::options(const opt_list_t options)
 {
   _optionList = options;
+  return;
 }
 
 // ----------------------------------------------------------------------------
@@ -377,6 +497,7 @@ void Version::Builder::options(const opt_list_t options)
 void Version::Builder::genIRoptions(const opt_list_t options)
 {
   _genIROptionList = options;
+  return;
 }
 
 // ----------------------------------------------------------------------------
@@ -385,6 +506,7 @@ void Version::Builder::genIRoptions(const opt_list_t options)
 void Version::Builder::optOptions(const opt_list_t options)
 {
   _optOptionList = options;
+  return;
 }
 
 // ----------------------------------------------------------------------------
@@ -394,6 +516,7 @@ void Version::Builder::removeOption(const std::string &tag)
 {
   auto check = [tag](const Option & _o) -> bool {return _o.getTag() == tag;};
   _optionList.remove_if(check);
+  return;
 }
 
 // ----------------------------------------------------------------------------
@@ -403,6 +526,7 @@ void Version::Builder::removeOptOption(const std::string &tag)
 {
   auto check = [tag](const Option & _o) -> bool {return _o.getTag() == tag;};
   _optOptionList.remove_if(check);
+  return;
 }
 
 // ----------------------------------------------------------------------------
@@ -412,6 +536,7 @@ void Version::Builder::removeGenIROption(const std::string &tag)
 {
   auto check = [tag](const Option & _o) -> bool {return _o.getTag() == tag;};
   _genIROptionList.remove_if(check);
+  return;
 }
 
 // ----------------------------------------------------------------------------
@@ -419,15 +544,8 @@ void Version::Builder::removeGenIROption(const std::string &tag)
 // ----------------------------------------------------------------------------
 void Version::Builder::addFunctionFlag(const std::string &flag)
 {
-  std::string tmp = flag;
-  if (tmp == "") {
-    tmp = _functionName;
-    for (auto &c : tmp) {
-      c = toupper(c);
-    }
-  }
-  if (tmp != "") {
-    _flagDefineList.push_front(tmp);
+  if (flag != "") {
+    _flagDefineList.push_front(flag);
   }
   return;
 }
@@ -439,14 +557,33 @@ version_ptr_t Version::Builder::createFromSO(const std::string &sharedObject,
                                              const std::string &functionName,
                                              const compiler_ptr_t &compiler,
                                              bool autoremoveFilesEnable,
-                                             const std::string &tag)
+                                             const std::vector<std::string> &tags)
 {
   version_ptr_t v = version_ptr_t(new Version());
   v->fileName_bin = sharedObject;
   v->autoremoveFilesEnable = autoremoveFilesEnable;
-  v->functionName = functionName;
+  v->functionName.push_back(functionName);
   v->compiler = compiler;
-  v->tag = tag;
+  v->tags = tags;
+  v->compile();
+  return v;
+}
+
+// ----------------------------------------------------------------------------
+// --------------- create version from shared object file name ----------------
+// ----------------------------------------------------------------------------
+version_ptr_t Version::Builder::createFromSO(const std::string &sharedObject,
+                                             const std::vector<std::string> &functionNames,
+                                             const compiler_ptr_t &compiler,
+                                             bool autoremoveFilesEnable,
+                                             const std::vector<std::string> &tags)
+{
+  version_ptr_t v = version_ptr_t(new Version());
+  v->fileName_bin = sharedObject;
+  v->autoremoveFilesEnable = autoremoveFilesEnable;
+  v->functionName = functionNames;
+  v->compiler = compiler;
+  v->tags = tags;
   v->compile();
   return v;
 }

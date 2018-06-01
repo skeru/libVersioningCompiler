@@ -1,4 +1,4 @@
-/* Copyright 2017 Politecnico di Milano.
+/* Copyright 2017-2018 Politecnico di Milano.
  * Developed by : Stefano Cherubin
  *                PhD student, Politecnico di Milano
  *                <first_name>.<family_name>@polimi.it
@@ -106,9 +106,9 @@ void Compiler::log_string(const std::string &command) const
 }
 
 // ---------------------------------------------------------------------------
-// ------------------------------- loadSymbol --------------------------------
+// ----------------------------- releaseSymbol -------------------------------
 // ---------------------------------------------------------------------------
-void Compiler::releaseSymbol(void ** handler, void ** symbol) const
+void Compiler::releaseSymbol(void ** handler) const
 {
   if (dlclose(*handler)) {
     char* error = dlerror();
@@ -116,39 +116,41 @@ void Compiler::releaseSymbol(void ** handler, void ** symbol) const
     log_string(error_str);
   }
   *handler = nullptr;
-  *symbol = nullptr;
   return;
 }
 
 // ---------------------------------------------------------------------------
 // ------------------------------- loadSymbol --------------------------------
 // ---------------------------------------------------------------------------
-void* Compiler::loadSymbol(const std::string &bin,
-                           const std::string &func,
-                           void ** handler) const
+std::vector<void*> Compiler::loadSymbols(const std::string &bin,
+                                         const std::vector<std::string> &func,
+                                         void ** handler) const
 {
-  void *symbol = nullptr;
+  std::vector<void *> symbols = {};
   if (exists(bin)) {
     *handler = dlopen(bin.c_str(), RTLD_NOW);
   } else {
     std::string error_str = "cannot load symbol from " + bin +
                             " : file not found";
     log_string(error_str);
-    return symbol;
+    return symbols;
   }
   if (*handler) {
-    symbol = dlsym(*handler, func.c_str());
-    if (!symbol) {
-      std::string error_str = "cannot load symbol from " + bin +
-                              " : symbol not found";
-      log_string(error_str);
-    }
+    for (const std::string& f : func) {
+      void *symbol = dlsym(*handler, f.c_str());
+      if (!symbol) {
+        std::string error_str = "cannot load symbol " + f + " from " + bin +
+        " : symbol not found";
+        log_string(error_str);
+      }
+      symbols.push_back(symbol);
+    } // end for
   } else {
     char* error = dlerror();
     std::string error_str(error);
     log_string(error_str);
   }
-  return symbol;
+  return symbols;
 }
 
 // ----------------------------------------------------------------------------

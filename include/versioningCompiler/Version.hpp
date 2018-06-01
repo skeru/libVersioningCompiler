@@ -1,4 +1,4 @@
-/* Copyright 2017 Politecnico di Milano.
+/* Copyright 2017-2018 Politecnico di Milano.
  * Developed by : Stefano Cherubin
  *                PhD student, Politecnico di Milano
  *                <first_name>.<family_name>@polimi.it
@@ -27,6 +27,8 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <unordered_map>
+#include <vector>
 #include <uuid/uuid.h>
 
 namespace vc {
@@ -56,7 +58,7 @@ class Version
   std::string getID() const;
 
   /** \brief User defined string description of the Version. */
-  std::string getTag() const;
+  std::vector<std::string> getTags() const;
 
   /** \brief Return true if an IR representation of this Version is available.
    * False otherwise.
@@ -79,7 +81,7 @@ class Version
    */
   bool hasLoadedSymbol() const;
 
-  /** \brief Return the symbol, if was correctly loaded.
+  /** \brief Return the first symbol, if was correctly loaded.
    * nullptr otherwise.
    *
    * Please note that this symbol will stay valid only as long as the Version
@@ -87,6 +89,33 @@ class Version
    * Closing the associated binary shared object will invalide this pointer.
    */
   void *getSymbol() const;
+
+  /** \brief Return the symbol at index, if was correctly loaded.
+   * nullptr otherwise.
+   *
+   * Please note that this symbol will stay valid only as long as the Version
+   * object is still alive.
+   * Closing the associated binary shared object will invalide this pointer.
+   */
+  void *getSymbol(const int index) const;
+
+  /** \brief Return symbols, if were correctly loaded.
+   * empty vector otherwise.
+   *
+   * Please note that these symbol will stay valid only as long as the Version
+   * object is still alive.
+   * Closing the associated binary shared object will invalide these pointers.
+   */
+  std::vector<void *> getSymbols() const;
+
+  /** \brief Return symbol corresponding to functionName, if was correctly loaded.
+   * nullptr otherwise.
+   *
+   * Please note that this symbol will stay valid only as long as the Version
+   * object is still alive.
+   * Closing the associated binary shared object will invalide this pointer.
+   */
+  void *getSymbol(const std::string& functionName) const;
 
   /** \brief Closes the shared object to save memory resources.
    *
@@ -135,8 +164,20 @@ class Version
   /** \brief name of the versioned function. */
   std::string getFunctionName() const;
 
+  /** \brief name of the versioned function at index. */
+  std::string getFunctionName(int index) const;
+
+  /** \brief names of the versioned functions. */
+  std::vector<std::string> getFunctionNames() const;
+
   /** \brief file name where the source code, if available, is stored. */
   std::string getFileName_src() const;
+
+  /** \brief file name where the source code, if available, is stored. */
+  std::string getFileName_src(const int index) const;
+
+  /** \brief file name where the source code, if available, is stored. */
+  std::vector<std::string> getFileNames_src() const;
 
   /** \brief file name where the IR, if available, is stored. */
   std::string getFileName_IR() const;
@@ -168,7 +209,7 @@ class Version
   std::string id;
 
   /** \brief User-defined description. */
-  std::string tag;
+  std::vector<std::string> tags;
 
   /** \brief Remove files when the object is deallocated. */
   bool autoremoveFilesEnable;
@@ -188,10 +229,10 @@ class Version
   compiler_ptr_t compiler;
 
   /** \brief name of the versioned function. */
-  std::string functionName;
+  std::vector<std::string> functionName;
 
   /** \brief file name where the source code, if available, is stored. */
-  std::string fileName_src;
+  std::vector<std::string> fileName_src;
 
   /** \brief file name where the IR, if available, is stored. */
   std::string fileName_IR;
@@ -203,7 +244,9 @@ class Version
   std::string fileName_bin;
 
   /** \brief Loaded symbol, if available. */
-  void *symbol;
+  std::vector<void *> symbol;
+
+  std::unordered_map<std::string, int> mapFnToIndex;
 
   void *lib_handle;
 
@@ -236,6 +279,11 @@ class Version::Builder
           const std::string &functionName,
           const compiler_ptr_t &compiler);
 
+  /** \brief constructs a Builder and populate the mandatory parameters. */
+  Builder(const std::vector<std::string> &fileNames,
+          const std::vector<std::string> &functionNames,
+          const compiler_ptr_t &compiler);
+
   /** \brief default constructor. */
   Builder();
 
@@ -244,7 +292,14 @@ class Version::Builder
                                     const std::string &functionName,
                                     const compiler_ptr_t &compiler,
                                     const bool autoremoveFilesEnable = true,
-                                    const std::string &tag = "");
+                                    const std::vector<std::string> &tag = {});
+
+  /** \brief construct a Version using an already existing shared object. */
+  static version_ptr_t createFromSO(const std::string &sharedObject,
+                                    const std::vector<std::string> &functionNames,
+                                    const compiler_ptr_t &compiler,
+                                    const bool autoremoveFilesEnable = true,
+                                    const std::vector<std::string> &tag = {});
 
   /** \brief actually create an immutable object Version. */
   version_ptr_t build();
@@ -252,16 +307,32 @@ class Version::Builder
   /** \brief Reset builder to its default values. */
   void reset();
 
+  /** \brief Add a source file to be compiled.
+  */
+  void addSourceFile(const std::string &src);
+
+  /** \brief Add string tag to the version.
+  */
+  void addTag(const std::string &tag);
+
+  /** \brief Add compiler option to specify additional include directory.
+  */
+  void addIncludeDir(const std::string &path);
+
+  /** \brief Add compiler option to specify additional linking directory.
+  */
+  void addLinkingDir(const std::string &path);
+
   /** \brief Remove from the option list all options with a given tag. */
-  void removeOption(const std::string &tag);
+  void removeOption(const std::string &optionTag);
 
   /** \brief Remove from optimizer Option list all options with a given tag.
    */
-  void removeOptOption(const std::string &tag);
+  void removeOptOption(const std::string &optionTag);
 
   /** \brief Remove from gen_IR Option list all options with a given tag.
    */
-  void removeGenIROption(const std::string &tag);
+  void removeGenIROption(const std::string &optionTag);
 
   /** \brief Reset compilation Option list to a new list. */
   void options(const opt_list_t options);
@@ -273,13 +344,29 @@ class Version::Builder
   void optOptions(const opt_list_t options);
 
   /** \brief Insert a define in the compilation stages to enable the
-   * compilation of the given function.
-   * By default it is the name of the function, uppercase.
+   * compilation of the given functions.
    */
-  void addFunctionFlag(const std::string &flag = "");
+  void addFunctionFlag(const std::string &flag);
+
+  /** \brief Insert a define in the compilation stages to enable the
+   * compilation of the given functions.
+   */
+  template<typename value_t>
+  void addDefine(const std::string &defineName, const value_t& defineValue) {
+    std::string flag = defineName + "=" + std::to_string(defineValue);
+    return addFunctionFlag(flag);
+  }
+
+  /** \brief Insert a define in the compilation stages to enable the
+   * compilation of the given functions.
+   */
+  void addDefine(const std::string &defineName, const char* defineValue) {
+    std::string flag = defineName + "=" + std::string(defineValue);
+    return addFunctionFlag(flag);
+  }
 
   /** \brief User defined tag to describe the version. */
-  std::string _tag;
+  std::vector<std::string> _tags;
 
   /** \brief Remove compiled files from disk when Version object is freed. */
   bool _autoremoveFilesEnable;
@@ -288,13 +375,13 @@ class Version::Builder
   compiler_ptr_t _compiler;
 
   /** \brief name of the versioned function. */
-  std::string _functionName;
+  std::vector<std::string> _functionName;
 
   /** \brief Defines that should be enabled to compile the given function. */
   std::list<std::string> _flagDefineList;
 
   /** \brief file name where the source code, if available, is stored. */
-  std::string _fileName_src;
+  std::vector<std::string> _fileName_src;
 
   /** \brief file name where the IR, if available, is stored. */
   std::string _fileName_IR;

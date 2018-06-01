@@ -1,4 +1,4 @@
-/* Copyright 2017 Politecnico di Milano.
+/* Copyright 2017-2018 Politecnico di Milano.
  * Developed by : Stefano Cherubin
  *                PhD student, Politecnico di Milano
  *                <first_name>.<family_name>@polimi.it
@@ -53,9 +53,9 @@ int main(int argc, char const *argv[])
   // the same builder by calling reset() on it, or just using another builder.
   // WARNING: builder does not call any compiler
   vc::Version::Builder builder, another_builder;
-  builder._functionName = TEST_FUNCTION;
-  builder._fileName_src = PATH_TO_C_TEST_CODE;
-  builder.addFunctionFlag();
+  builder._functionName.push_back(TEST_FUNCTION);
+  builder._fileName_src.push_back(PATH_TO_C_TEST_CODE);
+  builder.addFunctionFlag(TEST_FUNCTION);
   // ---------- Initialize the compiler to be used. ----------
   // Should be done just once.
   // Compiler is stateless from all points of view but logging:
@@ -211,7 +211,7 @@ int main(int argc, char const *argv[])
                                        TEST_FUNCTION,
                                        gcc,
                                        false,
-                                       "version created from shared object");
+                                       {"version created from shared object"});
   if (! v5->compile()) {
     if (v5->hasGeneratedBin()) {
       std::cerr << "v5 has binary " << v5->getFileName_bin() << std::endl;

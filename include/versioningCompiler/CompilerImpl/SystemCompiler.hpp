@@ -1,4 +1,4 @@
-/* Copyright 2017 Politecnico di Milano.
+/* Copyright 2017-2018 Politecnico di Milano.
  * Developed by : Stefano Cherubin
  *                PhD student, Politecnico di Milano
  *                <first_name>.<family_name>@polimi.it
@@ -43,8 +43,8 @@ class SystemCompiler : public Compiler
 
   virtual bool hasOptimizer() const override;
 
-  virtual std::string generateIR(const std::string &src,
-                                 const std::string &func,
+  virtual std::string generateIR(const std::vector<std::string> &src,
+                                 const std::vector<std::string> &func,
                                  const std::string &versionID,
                                  const opt_list_t options) const
   override;
@@ -54,8 +54,8 @@ class SystemCompiler : public Compiler
                                    const opt_list_t options) const
   override;
 
-  virtual std::string generateBin(const std::string &src,
-                                  const std::string &func,
+  virtual std::string generateBin(const std::vector<std::string> &src,
+                                  const std::vector<std::string> &func,
                                   const std::string &versionID,
                                   const opt_list_t options) const
   override;

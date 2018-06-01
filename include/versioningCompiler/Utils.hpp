@@ -1,4 +1,4 @@
-/* Copyright 2017 Politecnico di Milano.
+/* Copyright 2017-2018 Politecnico di Milano.
  * Developed by : Stefano Cherubin
  *                PhD student, Politecnico di Milano
  *                <first_name>.<family_name>@polimi.it
@@ -35,6 +35,11 @@ compiler_ptr_t libVC_default_compiler;
 void vc_utils_init();
 
 /** Create a Version using default parameters */
+version_ptr_t createVersion(const std::vector<std::string> &src,
+                            const std::vector<std::string> &fn,
+                            const opt_list_t &options);
+
+/** Create a Version using default parameters */
 version_ptr_t createVersion(const std::string &src,
                             const std::string &fn,
                             const opt_list_t &options);
@@ -54,10 +59,20 @@ version_ptr_t createVersion(const std::string &src,
                             const opt_list_t &options) {
   Version::Builder builder;
   builder._compiler = libVC_default_compiler;
+  builder._fileName_src.push_back(src);
+  builder._functionName.push_back(fn);
+  builder._optionList = options;
+  return builder.build();
+}
+
+version_ptr_t createVersion(const std::vector<std::string> &src,
+                            const std::vector<std::string> &fn,
+                            const opt_list_t &options) {
+  Version::Builder builder;
+  builder._compiler = libVC_default_compiler;
   builder._fileName_src = src;
   builder._functionName = fn;
   builder._optionList = options;
-  builder.addFunctionFlag();
   return builder.build();
 }
 

@@ -1,4 +1,4 @@
-/* Copyright 2017 Politecnico di Milano.
+/* Copyright 2017-2018 Politecnico di Milano.
  * Developed by : Stefano Cherubin
  *                PhD student, Politecnico di Milano
  *                <first_name>.<family_name>@polimi.it
@@ -27,6 +27,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <vector>
 
 namespace vc {
 
@@ -72,8 +73,8 @@ class Compiler
  *
  * Implementation specific.
  */
-  virtual std::string generateIR(const std::string &src,
-                                 const std::string &func,
+  virtual std::string generateIR(const std::vector<std::string> &src,
+                                 const std::vector<std::string> &func,
                                  const std::string &versionID,
                                  const opt_list_t options) const = 0;
 
@@ -93,8 +94,8 @@ class Compiler
  *
  * Implementation specific.
  */
-  virtual std::string generateBin(const std::string &src,
-                                  const std::string &func,
+  virtual std::string generateBin(const std::vector<std::string> &src,
+                                  const std::vector<std::string> &func,
                                   const std::string &versionID,
                                   const opt_list_t options) const = 0;
 
@@ -104,9 +105,9 @@ class Compiler
  * Returns the loaded function pointer on success. nullptr otherwise.
  * Output of this method is supposed to reinterpreted by the caller.
  */
-  void *loadSymbol(const std::string &bin,
-                   const std::string &func,
-                   void ** handler) const;
+  std::vector<void*> loadSymbols(const std::string &bin,
+                                 const std::vector<std::string> &func,
+                                 void ** handler) const;
 
 /** \brief Closes the binary shared object, set *handler to nullptr, and
  * invalidates the symbol relative to the given function.
@@ -114,7 +115,7 @@ class Compiler
  * Returns the loaded function pointer on success. nullptr otherwise.
  * Output of this method is supposed to reinterpreted by the caller.
  */
-  void releaseSymbol(void ** handler, void ** symbol) const;
+  void releaseSymbol(void ** handler) const;
 
 /** \brief Converts an Option object into a compiler flag.
  *

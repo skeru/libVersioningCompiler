@@ -1,4 +1,4 @@
-/* Copyright 2017 Politecnico di Milano.
+/* Copyright 2017-2018 Politecnico di Milano.
  * Developed by : Stefano Cherubin
  *                PhD student, Politecnico di Milano
  *                <first_name>.<family_name>@polimi.it
@@ -89,8 +89,8 @@ ClangLibCompiler::ClangLibCompiler(
  * This implementation exploits the clang driver to handle all the stages of
  * the compilation process.
  */
-std::string ClangLibCompiler::generateIR(const std::string &src,
-                                         const std::string &func,
+std::string ClangLibCompiler::generateIR(const std::vector<std::string> &src,
+                                         const std::vector<std::string> &func,
                                          const std::string &versionID,
                                          const opt_list_t options) const
 {
@@ -133,7 +133,9 @@ std::string ClangLibCompiler::generateIR(const std::string &src,
   cmd_str.insert(cmd_str.end(),
                  argv.begin(),
                  argv.end());
-  cmd_str.push_back(src.c_str());
+  for (const auto& src_file : src) {
+   cmd_str.push_back(src_file.c_str());
+  }
 
   // log the command line string used to create this task
   for (const auto& arg : cmd_str) {
@@ -531,8 +533,8 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
  * This implementation exploits the clang driver to handle all the stages of
  * the compilation and linking process.
  */
-std::string ClangLibCompiler::generateBin(const std::string &src,
-                                          const std::string &func,
+std::string ClangLibCompiler::generateBin(const std::vector<std::string> &src,
+                                          const std::vector<std::string> &func,
                                           const std::string &versionID,
                                           const opt_list_t options) const
 {
@@ -572,7 +574,9 @@ std::string ClangLibCompiler::generateBin(const std::string &src,
   cmd_str.insert(cmd_str.end(),
                  argv.begin(),
                  argv.end());
-  cmd_str.push_back(src.c_str());
+  for (const auto& src_file : src) {
+    cmd_str.push_back(src_file.c_str());
+  }
 
   // log the command line string used to create this task
   for (const auto& arg : cmd_str) {

@@ -1,4 +1,4 @@
-/* Copyright 2017 Politecnico di Milano.
+/* Copyright 2017-2018 Politecnico di Milano.
  * Developed by : Stefano Cherubin
  *                PhD student, Politecnico di Milano
  *                <first_name>.<family_name>@polimi.it
@@ -62,8 +62,8 @@ bool SystemCompiler::hasOptimizer() const
 // ----------------------------------------------------------------------------
 // ------------------------------- generate IR --------------------------------
 // ----------------------------------------------------------------------------
-std::string SystemCompiler::generateIR(const std::string &src,
-                                       const std::string &func,
+std::string SystemCompiler::generateIR(const std::vector<std::string> &src,
+                                       const std::vector<std::string> &func,
                                        const std::string &versionID,
                                        const opt_list_t options) const
 {
@@ -77,7 +77,9 @@ std::string SystemCompiler::generateIR(const std::string &src,
     for (auto &o : options) {
       command = command + " " + getOptionString(o);
     }
-    command = command + " " + src;
+    for (const auto & src_file : src) {
+      command = command + " " + src_file;
+    }
     Compiler::log_exec(command);
     if (exists(IRFile)) {
       return IRFile;
@@ -103,8 +105,8 @@ std::string SystemCompiler::runOptimizer(const std::string &src_IR,
 // ----------------------------------------------------------------------------
 // ------------------------------- generate bin -------------------------------
 // ----------------------------------------------------------------------------
-std::string SystemCompiler::generateBin(const std::string &src,
-                                        const std::string &func,
+std::string SystemCompiler::generateBin(const std::vector<std::string> &src,
+                                        const std::vector<std::string> &func,
                                         const std::string &versionID,
                                         const opt_list_t options) const
 {
@@ -115,7 +117,9 @@ std::string SystemCompiler::generateBin(const std::string &src,
   for (const auto &o : options) {
     command = command + " " + getOptionString(o);
   }
-  command = command + " " + src;
+  for (const auto & src_file : src) {
+    command = command + " " + src_file;
+  }
   log_exec(command);
   if (exists(binaryFile)) {
     return binaryFile;
