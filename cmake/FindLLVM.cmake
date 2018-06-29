@@ -32,6 +32,8 @@ set (llvm_lib_search_paths
 foreach (version ${LIBCLANG_KNOWN_LLVM_VERSIONS})
   string(REPLACE "." "" undotted_version "${version}")
   list(APPEND llvm_header_search_paths
+    # git installation
+    "/usr/local/include/llvm"
     # LLVM Debian/Ubuntu nightly packages: http://apt.llvm.org/
     "/usr/lib/llvm-${version}/include/"
     # LLVM MacPorts
@@ -53,6 +55,8 @@ foreach (version ${LIBCLANG_KNOWN_LLVM_VERSIONS})
                             )
 
   list(APPEND llvm_lib_search_paths
+    # git installation
+    "/usr/local/lib"
     # LLVM Debian/Ubuntu nightly packages: http://apt.llvm.org/
     "/usr/lib/llvm-${version}/lib/"
     # LLVM MacPorts
@@ -114,6 +118,12 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+execute_process(
+  COMMAND ${LLVM_CONFIG_EXECUTABLE} --system-libs
+  OUTPUT_VARIABLE LLVM_SYSTEM
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
 if (NOT LLVM_FIND_QUIETLY)
   if (LLVM_VERSION)
     message (STATUS "LLVM_VERSION ....... = ${LLVM_VERSION}")
@@ -146,6 +156,11 @@ if (NOT LLVM_FIND_QUIETLY)
     else(LLVM_MODULE_LIBS)
       message (STATUS "LLVM_MODULE_LIBS ... = NOT FOUND")
     endif (LLVM_MODULE_LIBS)
+    if (LLVM_SYSTEM)
+      message (STATUS "LLVM_SYSTEM_LIBS ... = ${LLVM_SYSTEM}")
+    else(LLVM_SYSTEM)
+      message (STATUS "LLVM_SYSTEM_LIBS ... = NOT FOUND")
+    endif (LLVM_SYSTEM)
   endif (LLVM_FIND_VERBOSE)
 endif (NOT LLVM_FIND_QUIETLY)
 
@@ -156,5 +171,6 @@ mark_as_advanced(
   LLVM_CFLAGS
   LLVM_LFLAGS
   LLVM_MODULE_LIBS
+  LLVM_SYSTEM
   LLVM_VERSION
 )

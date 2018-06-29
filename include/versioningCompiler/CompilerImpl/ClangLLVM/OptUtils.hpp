@@ -32,7 +32,7 @@
 #include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/Bitcode/BitcodeWriterPass.h"
-#include "llvm/CodeGen/CommandFlags.h"
+#include "llvm/CodeGen/CommandFlags.def"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/IRPrintingPasses.h"
@@ -259,7 +259,7 @@ static void AddOptimizationPasses(llvm::legacy::PassManagerBase &MPM,
   if (DisableInline) {
     // No inlining pass
   } else if (OptLevel > 1) {
-    Builder.Inliner = llvm::createFunctionInliningPass(OptLevel, SizeLevel);
+    Builder.Inliner = llvm::createFunctionInliningPass(OptLevel, SizeLevel, false);
   } else {
     Builder.Inliner = llvm::createAlwaysInlinerLegacyPass();
   }
@@ -280,11 +280,7 @@ static void AddOptimizationPasses(llvm::legacy::PassManagerBase &MPM,
 
   // Add target-specific passes that need to run as early as possible.
   if (TM) {
-    Builder.addExtension(
-      llvm::PassManagerBuilder::EP_EarlyAsPossible,
-      [&](const llvm::PassManagerBuilder&, llvm::legacy::PassManagerBase &PM) {
-        TM->addEarlyAsPossiblePasses(PM);
-      });
+    TM->adjustPassManager(Builder);
   }
   if (Coroutines) {
     llvm::addCoroutinePassesToExtensionPoints(Builder);

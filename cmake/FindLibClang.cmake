@@ -30,11 +30,14 @@ set (libclang_llvm_header_search_paths)
 set (libclang_llvm_lib_search_paths
                                   # LLVM Fedora
                                   /usr/lib/llvm
+                                  /usr/local/lib
                                 )
 
 foreach (version ${LIBCLANG_KNOWN_LLVM_VERSIONS})
   string(REPLACE "." "" undotted_version "${version}")
   list(APPEND libclang_llvm_header_search_paths
+    # git installation
+    "/usr/local/include/clang"
     # LLVM Debian/Ubuntu nightly packages: http://apt.llvm.org/
     "/usr/lib/llvm-${version}/include/"
     # LLVM MacPorts
@@ -48,6 +51,8 @@ foreach (version ${LIBCLANG_KNOWN_LLVM_VERSIONS})
     )
 
   list(APPEND libclang_llvm_lib_search_paths
+    # git installation
+    "/usr/local/lib"
     # LLVM Debian/Ubuntu nightly packages: http://apt.llvm.org/
     "/usr/lib/llvm-${version}/lib/"
     # LLVM MacPorts

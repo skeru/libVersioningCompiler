@@ -301,7 +301,7 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
                                                  optFeaturesStr,
                                                  Options,
                                                  getRelocModel(),
-                                                 CMModel,
+                                                 getCodeModel(),
                                                  GetCodeGenOptLevel());
   }
   std::unique_ptr<TargetMachine> actualTM(optTMachine);
@@ -379,10 +379,7 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
 
     const llvm::PassInfo *PassInf = PassList[i];
     llvm::Pass *P = nullptr;
-    if (PassInf->getTargetMachineCtor()) {
-      P = PassInf->getTargetMachineCtor()(actualTM.get());
-    }
-    else if (PassInf->getNormalCtor()) {
+    if (PassInf->getNormalCtor()) {
       P = PassInf->getNormalCtor()();
     }
     else {
@@ -434,10 +431,10 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
   }
 
   std::error_code outFileCreationErrorCode;
-  std::unique_ptr<llvm::tool_output_file> Out =
-    llvm::make_unique<llvm::tool_output_file>(optBCfilename,
-                                              outFileCreationErrorCode,
-                                              llvm::sys::fs::F_None);
+  std::unique_ptr<llvm::ToolOutputFile> Out =
+    llvm::make_unique<llvm::ToolOutputFile>(optBCfilename,
+                                            outFileCreationErrorCode,
+                                            llvm::sys::fs::F_None);
   if (!Out) {
     report_error("Could not create output file");
     return failureFileName;

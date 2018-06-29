@@ -94,12 +94,13 @@ void LLVMInstanceManager::initializeLLVM()
   llvm::initializeRewriteSymbolsLegacyPassPass(passRegistry);
   llvm::initializeWinEHPreparePass(passRegistry);
   llvm::initializeDwarfEHPreparePass(passRegistry);
-  llvm::initializeSafeStackPass(passRegistry);
+  llvm::initializeSafeStackLegacyPassPass(passRegistry);
   llvm::initializeSjLjEHPreparePass(passRegistry);
   llvm::initializePreISelIntrinsicLoweringLegacyPassPass(passRegistry);
   llvm::initializeGlobalMergePass(passRegistry);
   llvm::initializeInterleavedAccessPass(passRegistry);
-  llvm::initializeCountingFunctionInserterPass(passRegistry);
+  llvm::initializeEntryExitInstrumenterPass(passRegistry);
+  llvm::initializePostInlineEntryExitInstrumenterPass(passRegistry);
   llvm::initializeUnreachableBlockElimLegacyPassPass(passRegistry);
 
   // remember default target triple

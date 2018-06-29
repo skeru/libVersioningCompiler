@@ -60,7 +60,7 @@ if (HAVE_LLVM)
   link_directories(${LLVM_LIBRARY_DIR})
 endif (HAVE_LLVM)
 
-set (LLVM_VERSION_MIN_REQUIRED "4.0.0")
+set (LLVM_VERSION_MIN_REQUIRED "6.0.0")
 
 if ( HAVE_LLVM AND
      (NOT ( LLVM_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED )) AND
@@ -89,6 +89,7 @@ if (ENABLE_CLANG_AS_LIB)
   set (VC_LIB_DEPS ${VC_LIB_DEPS}
                    ${LIBCLANG_LIBRARIES}
                    ${LLVM_MODULE_LIBS}
+                   ${LLVM_SYSTEM}
                    )
 
   set ( VC_DEPS_EXTRA_LINK_FLAGS "${LLVM_LFLAGS}" )
@@ -105,7 +106,7 @@ if (NOT CMAKE_BUILD_TYPE)
   set ( CMAKE_BUILD_TYPE Release )
 endif()
 
-set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11" )
+set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti" )
 set ( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVC_DEBUG" )
 set ( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -fPIC" )
 
