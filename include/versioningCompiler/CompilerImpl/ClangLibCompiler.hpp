@@ -54,8 +54,8 @@ public:
 
   virtual bool hasOptimizer() const override;
 
-  virtual std::string generateIR(const std::string &src,
-                                 const std::string &func,
+  virtual std::string generateIR(const std::vector<std::string> &src,
+                                 const std::vector<std::string> &func,
                                  const std::string &versionID,
                                  const opt_list_t options) const
   override;
@@ -65,8 +65,8 @@ public:
                                    const opt_list_t options) const
   override;
 
-  virtual std::string generateBin(const std::string &src,
-                                  const std::string &func,
+  virtual std::string generateBin(const std::vector<std::string> &src,
+                                  const std::vector<std::string> &func,
                                   const std::string &versionID,
                                   const opt_list_t options) const
   override;
