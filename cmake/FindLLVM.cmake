@@ -49,6 +49,7 @@ foreach (version ${LIBCLANG_KNOWN_LLVM_VERSIONS})
                               llvm-config${version}
                               llvm-config-${undotted_version}
                               llvm-config${undotted_version}
+                              llvm-config
                             )
 
   list(APPEND llvm_lib_search_paths
