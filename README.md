@@ -16,8 +16,8 @@ libVersioningCompiler requires:
 external libraries:
  - dl
  - uuid-dev
- - (OPTIONAL) llvm-4.0-dev
- - (OPTIONAL) libclang-4.0-dev
+ - (OPTIONAL) llvm-6.0-dev
+ - (OPTIONAL) libclang-6.0-dev
 
 Compiling without the OPTIONAL dependencies will disable some features,
 like the Clang-as-a-library compiler implementation.
@@ -190,20 +190,20 @@ The configuration is done using a builder instance. Once a builder is
 correctly configured, it is possible to take a snapshot of it by creating a
 Version. Builder::build() will create a Version.
 ```
-vc::Version::Builder builder;               // MANDATORY instantiate Builder
-builder._functionName = FUNCTION_NAME;      // MANDATORY set function name
-builder._fileName_src = FILENAME_SRC;       // MANDATORY set source file
+vc::Version::Builder builder;                    // MANDATORY instantiate Builder
+builder._functionName.push_back(FUNCTION_NAME);  // MANDATORY set function name
+builder._fileName_src.push_back(FILENAME_SRC);   // MANDATORY set source file
 builder._compiler = clang;  // MANDATORY set clang as compiler for the version
-builder.options({                           // set compilation option list
-                 vc::Option("o", "-O", "2") // add "-O2"
+builder.options({                                // set compilation option list
+                 vc::Option("o", "-O", "2")      // add "-O2"
                 });
-builder._optOptionList = {                  // set optimizer option list
+builder._optOptionList = {                       // set optimizer option list
                           vc::Option("fp-contract", "-fp-contract=", "fast"),
                           vc::Option("inline", "-inline"),
                           vc::Option("unroll", "-loop-unroll"),
                           vc::Option("mem2reg", "-mem2reg")
                          };
-vc::version_ptr_t v = builder.build(); // MANDATORY finalize Version
+vc::version_ptr_t v = builder.build();           // MANDATORY finalize Version
 ```
 After a Version finalization, the builder can be modified and reused to build
 another Version or it can be destroyed.
@@ -230,7 +230,7 @@ bool ok = v->compile();
 if (! ok) {
   // handle compilation error
 } else {
-  fn_ptr = (signature_t) v->getSymbol();
+  fn_ptr = (signature_t) v->getSymbol(0);
 }
 ```
 
