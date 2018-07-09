@@ -39,6 +39,14 @@
 #define TEST_FUNCTION "test_function"
 #endif
 
+#ifndef SECOND_FUNCTION
+#define SECOND_FUNCTION "test_function2"
+#endif
+
+#ifndef TEST_FUNCTION_LBL
+#define TEST_FUNCTION_LBL "TEST_FUNCTION"
+#endif
+
 // someone should provide the signature of the function now versioning
 // in the form of function pointer type.
 typedef int (*signature_t)(int);
@@ -54,8 +62,9 @@ int main(int argc, char const *argv[])
   // WARNING: builder does not call any compiler
   vc::Version::Builder builder, another_builder;
   builder._functionName.push_back(TEST_FUNCTION);
+  builder._functionName.push_back(SECOND_FUNCTION);
   builder._fileName_src.push_back(PATH_TO_C_TEST_CODE);
-  builder.addFunctionFlag(TEST_FUNCTION);
+  builder.addFunctionFlag(TEST_FUNCTION_LBL);
   // ---------- Initialize the compiler to be used. ----------
   // Should be done just once.
   // Compiler is stateless from all points of view but logging:
@@ -167,7 +176,7 @@ int main(int argc, char const *argv[])
     } else {
       std::cerr << "Error: optimization of IR v3 failed." << std::endl;
     }
-    std::cerr << "\tPlease check the compiler/optimizer install path" << std::endl;
+    std::cerr << "\tPlease check the compiler/optimizer install path in Test.cpp source file" << std::endl;
   }
   std::cerr << "Notify: v3 IR prepared. Going for v3 compilation" << std::endl;
   // compiles from optimized version, if available
@@ -225,6 +234,7 @@ int main(int argc, char const *argv[])
 
   std::vector<signature_t> f;
   f.push_back((signature_t)v->getSymbol());
+  f.push_back((signature_t)v->getSymbol(1));
   f.push_back((signature_t)v2->getSymbol());
   f.push_back((signature_t)v3->getSymbol());
   f.push_back((signature_t)v4->getSymbol());
@@ -235,6 +245,9 @@ int main(int argc, char const *argv[])
     f[2](5);
     f[3](6);
     f[4](7);
+    f[5](77);
+  } else {
+    std::cerr << "Error function pointers unavailable" << '\n';
   }
   v->fold();
   v2->fold();

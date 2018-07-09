@@ -42,9 +42,12 @@ int main(int argc, char const *argv[]) {
   vc_utils_init();
   opt_list_t options;
   options.push_back(Option("O", "-O", "2"));
+  options.push_back(Option("O", "-D", "TEST_FUNCTION"));
   version_ptr_t v = createVersion(PATH_TO_C_TEST_CODE, TEST_FUNCTION, options);
   signature_t fn_ptr = (signature_t) compileAndGetSymbol(v);
   if(fn_ptr)
     fn_ptr(3);
+  else
+    std::cerr << "Error: function pointer unavailable" << '\n';
   return 0;
 }

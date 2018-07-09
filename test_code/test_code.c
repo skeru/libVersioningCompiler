@@ -21,6 +21,9 @@
 #include <stdio.h>
 
 #ifdef TEST_FUNCTION
+
+float global_var;
+
 /**
  * Test function for the versioning compiler library.
  * In the test, this function is compiled and loaded dynamically.
@@ -29,7 +32,25 @@ int test_function(int x)
 {
   float y = x;
   y = y*y;
+  global_var = y;
   printf("I'm a test function printing a number x^2 = %.3f\n", y);
   return 0;
 }
+
+/**
+ * Test function for the versioning compiler library.
+ * In the test, this function is compiled and loaded dynamically.
+ */
+int test_function2(int x)
+{
+  float y;
+  if (x) {
+    y = global_var;
+  } else {
+    y = x * x * x;
+  }
+  printf("I'm a test function printing an old number = %.3f\n", y);
+  return 0;
+}
+
 #endif /* TEST_FUNCTION */
