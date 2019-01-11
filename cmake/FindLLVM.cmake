@@ -8,8 +8,9 @@
 #  LLVM_MODULE_LIBS - list of llvm libs for working with modules.
 #  LLVM_VERSION     - Installed version.
 
-set (LIBCLANG_KNOWN_LLVM_VERSIONS 7.0.0 7.0 7
-  6.0.1 6.0 6
+set (LIBCLANG_KNOWN_LLVM_VERSIONS 8.0.0 8.0 8
+  7.0.1 7.0.0 7.0 7
+  6.0.1 6.0.0 6.0 6
   5.0.2 5.0.1 5.0.0 5.0 5
   4.0.1 4.0.0 4.0
   3.9.1 3.9.0 3.9
