@@ -46,7 +46,7 @@ class SystemCompiler : public Compiler
   virtual std::string generateIR(const std::vector<std::string> &src,
                                  const std::vector<std::string> &func,
                                  const std::string &versionID,
-                                 const opt_list_t options) const
+                                 const opt_list_t options)
   override;
 
   virtual std::string runOptimizer(const std::string &src_IR,
@@ -57,7 +57,7 @@ class SystemCompiler : public Compiler
   virtual std::string generateBin(const std::vector<std::string> &src,
                                   const std::vector<std::string> &func,
                                   const std::string &versionID,
-                                  const opt_list_t options) const
+                                  const opt_list_t options)
   override;
 
   virtual std::string getOptionString(const Option &o) const override;

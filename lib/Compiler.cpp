@@ -108,7 +108,7 @@ void Compiler::log_string(const std::string &command) const
 // ---------------------------------------------------------------------------
 // ----------------------------- releaseSymbol -------------------------------
 // ---------------------------------------------------------------------------
-void Compiler::releaseSymbol(void ** handler) const
+void Compiler::releaseSymbol(void ** handler)
 {
   if (dlclose(*handler)) {
     char* error = dlerror();
@@ -122,9 +122,9 @@ void Compiler::releaseSymbol(void ** handler) const
 // ---------------------------------------------------------------------------
 // ------------------------------- loadSymbol --------------------------------
 // ---------------------------------------------------------------------------
-std::vector<void*> Compiler::loadSymbols(const std::string &bin,
+std::vector<void*> Compiler::loadSymbols(std::string &bin,
                                          const std::vector<std::string> &func,
-                                         void ** handler) const
+                                         void ** handler)
 {
   std::vector<void *> symbols = {};
   if (exists(bin)) {
