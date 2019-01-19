@@ -108,9 +108,9 @@ if (NOT CMAKE_BUILD_TYPE)
   set ( CMAKE_BUILD_TYPE Release )
 endif()
 
-set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti -fvisibility-inlines-hidden" )
-set ( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVC_DEBUG -fvisibility-inlines-hidden" )
-set ( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -fPIC -fvisibility-inlines-hidden" )
+set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -ldl -fno-use-cxa-atexit" )
+set ( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVC_DEBUG -fno-rtti -fno-use-cxa-atexit" )
+set ( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -fPIC -fno-rtti -fno-use-cxa-atexit" )
 
 #----- Sources
 set ( SRC_PREFIX "lib" )
@@ -131,6 +131,7 @@ set ( VC_LIB_HDR1
                 ${VC_LIB_HDR_PREFIX}/Compiler.hpp
                 ${VC_LIB_HDR_PREFIX}/Utils.hpp
                 ${VC_LIB_HDR_PREFIX}/DebugUtils.hpp
+                ${VC_LIB_HDR_PREFIX}/JITUtils.hpp
                 )
 
 set ( VC_LIB_HDR_PREFIX2 ${CMAKE_CURRENT_SOURCE_DIR}/include/versioningCompiler/CompilerImpl )
@@ -148,12 +149,14 @@ if (ENABLE_CLANG_AS_LIB)
                               )
 
   set (VC_LIB_SRC ${VC_LIB_SRC}
+                  ${SRC_PREFIX}/CompilerImpl/JITCompiler.cpp
                   ${SRC_PREFIX}/CompilerImpl/ClangLibCompiler.cpp
                   ${SRC_PREFIX}/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.cpp
                   ${SRC_PREFIX}/CompilerImpl/ClangLLVM/LLVMInstanceManager.cpp
                   )
 
   set ( VC_LIB_HDR2 ${VC_LIB_HDR2}
+                    ${VC_LIB_HDR_PREFIX2}/JITCompiler.hpp
                     ${VC_LIB_HDR_PREFIX2}/ClangLibCompiler.hpp
                     )
 
@@ -173,7 +176,7 @@ set (VC_LIB_HDR ${VC_LIB_HDR1} ${VC_LIB_HDR2} ${VC_LIB_HDR3} )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/include )
 
 add_library( ${VC_LIB_NAME} STATIC ${VC_LIB_SRC} ${VC_LIB_HDR} )
-target_link_libraries( ${VC_LIB_NAME} ${VC_LIB_DEPS} )
+target_link_libraries( ${VC_LIB_NAME} ${VC_LIB_DEPS} z pthread tinfo)
 
 ###############################################
 ##               CONFIGURE                   ##
@@ -202,6 +205,30 @@ endif (ENABLE_CLANG_AS_LIB)
 ##             TEST APP                      ##
 ###############################################
 
+## TestJit.cpp
+#----- Sources
+
+set (VC_TESTJIT_APP_SRC TestJit.cpp)
+
+set (VC_EXE_NAME libVC_testJit)
+
+if (ENABLE_CLANG_AS_LIB)
+  set_source_files_properties(${VC_TESTJIT_APP_SRC} PROPERTIES
+          COMPILE_FLAGS "-fno-use-cxa-atexit -flto -DHAVE_CLANG_AS_LIB -DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
+          )
+else (ENABLE_CLANG_AS_LIB)
+  set_source_files_properties(${VC_TESTJIT_APP_SRC} PROPERTIES
+          COMPILE_FLAGS "-fno-use-cxa-atexit -flto -DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
+          )
+endif (ENABLE_CLANG_AS_LIB)
+
+add_executable(${VC_EXE_NAME} ${VC_TESTJIT_APP_SRC})
+
+link_directories(${LLVM_LIBRARY_DIR} ${LIBCLANG_LIBRARY_DIR} "${CMAKE_INSTALL_PREFIX}/lib")
+target_link_libraries(${VC_EXE_NAME} ${VC_LIB_NAME} ${VC_LIB_DEPS})
+
+
+## Test.cpp
 #----- Sources
 set ( VC_TEST_APP_SRC Test.cpp )
 
