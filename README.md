@@ -7,6 +7,8 @@ It also provides support for versioning of the compiled functions.
 This software is distributed under the LGPLv3 license.
 See LICENSE.txt and LICENSE.LESSER.txt for the full text of the license.
 
+An introductory video is available on [YouTube](https://www.youtube.com/watch?v=1p8IajxOgoY).
+
 ## Dependencies
 libVersioningCompiler requires:
  - Ubuntu 16.04 or greater
