@@ -1,7 +1,13 @@
-/* Copyright 2017-2018 Politecnico di Milano.
+/* Copyright 2017 Politecnico di Milano.
  * Developed by : Stefano Cherubin
  *                PhD student, Politecnico di Milano
  *                <first_name>.<family_name>@polimi.it
+ *                Marco Festa
+ *                Ms student, Politecnico di Milano
+ *                <first_name>2.<family_name>@mail.polimi.it
+ *                Nicole Gervasoni
+ *                Ms student, Politecnico di Milano
+ *                <first_name>annamaria.<family_name>@mail.polimi.it
  *
  * This file is part of libVersioningCompiler
  *
@@ -18,7 +24,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
-#include "versioningCompiler/CompilerImpl/ClangLibCompiler.hpp"
+#include "versioningCompiler/CompilerImpl/JITCompiler.hpp"
 #include "versioningCompiler/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.hpp"
 #include "versioningCompiler/DebugUtils.hpp"
 
@@ -28,56 +34,58 @@
 #include "clang/Frontend/CompilerInvocation.h"
 #include "clang/CodeGen/CodeGenAction.h"
 
+
+#include "clang/Frontend/TextDiagnosticPrinter.h"
+#include "clang/Basic/DiagnosticOptions.h"
+#include "clang/Basic/Diagnostic.h"
+
 // opt stuff
 #include "versioningCompiler/CompilerImpl/ClangLLVM/OptUtils.hpp"
 
 #include <vector>
+#include <iostream>
 
 using namespace vc;
 using namespace clang;
 
 // static mutex object initialization
-std::mutex ClangLibCompiler::opt_parse_mtx;
-
-// ----------------------------------------------------------------------------
-// ----------------------- zero-parameters constructor ------------------------
-// ----------------------------------------------------------------------------
-ClangLibCompiler::ClangLibCompiler()
-                : ClangLibCompiler(
-                                   "ClangLibCompiler", // compilerID
-                                   ".",                // libWorkingDir
-                                   ""                  // no log file
-                                  ) { }
+std::mutex JITCompiler::opt_parse_mtx;
 
 // ----------------------------------------------------------------------------
 // --------------------------- detailed constructor ---------------------------
 // ----------------------------------------------------------------------------
-ClangLibCompiler::ClangLibCompiler(
-                                   const std::string &compilerID,
-                                   const std::string &libWorkingDir,
-                                   const std::string &log
-                                  ) : Compiler(
-                                               compilerID,
-                                               "#", // compiler call string
-                                               libWorkingDir,
-                                               log, // log filename
-                                               "~", // install directory
-                                               true // support IR
-                                              )
-{
-  // initialize LLVM stuff and shutdown everything at program tear down
+JITCompiler::JITCompiler(
+        const std::string &compilerID,
+        const std::string &libWorkingDir,
+        const std::string &log,
+        llvm::TargetMachine &targetMachine
+) : Compiler(
+        compilerID,
+        "#", // compiler call string
+        libWorkingDir,
+        log, // log filename
+        "~", // install directory
+        true // support IR
+),
+    _targetMachine(llvm::EngineBuilder().selectTarget()),
+    _dataLayout(targetMachine.createDataLayout()) {
+  std::cout << "Constructing compiler object.." << std::endl;
   _llvmManager = LLVMInstanceManager::getInstance();
 
   // custom diagnostic engine creation
   _diagnosticOptions = new clang::DiagnosticOptions();
   _diagnosticIDs = new clang::DiagnosticIDs();
   _diagConsumer = std::make_shared<vc::FileLogDiagnosticConsumer>(
-                                       log,
-                                       _diagnosticOptions.get());
+          log,
+          _diagnosticOptions.get());
   _diagEngine = new clang::DiagnosticsEngine(_diagnosticIDs,
                                              _diagnosticOptions.get(),
                                              _diagConsumer.get(),
                                              false);
+
+  // initialize JIT objects
+  llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
+
   return;
 }
 
@@ -89,11 +97,10 @@ ClangLibCompiler::ClangLibCompiler(
  * This implementation exploits the clang driver to handle all the stages of
  * the compilation process.
  */
-std::string ClangLibCompiler::generateIR(const std::vector<std::string> &src,
-                                         const std::vector<std::string> &func,
-                                         const std::string &versionID,
-                                         const opt_list_t options)
-{
+std::string JITCompiler::generateIR(const std::vector<std::string> &src,
+                                    const std::vector<std::string> &func,
+                                    const std::string &versionID,
+                                    const opt_list_t options) {
   // What we want to generate
   const std::string &llvmIRfileName = Compiler::getBitcodeFileName(versionID);
   // what we return when generateIR fails
@@ -101,13 +108,13 @@ std::string ClangLibCompiler::generateIR(const std::vector<std::string> &src,
   std::string log_str = "";
 
   auto report_error = [&](const std::string message) {
-    std::string error_string = "ClangLibCompiler::generateIR";
-    error_string = error_string + " ERROR during processing of version ";
-    error_string = error_string + versionID;
-    error_string = error_string + "\n\t";
-    error_string = error_string + message;
-    Compiler::log_string(error_string);
-    return;
+      std::string error_string = "JITCompiler::generateIR";
+      error_string = error_string + " ERROR during processing of version ";
+      error_string = error_string + versionID;
+      error_string = error_string + "\n\t";
+      error_string = error_string + message;
+      Compiler::log_string(error_string);
+      return;
   };
 
   const std::string &command_filename = _llvmManager->getClangExePath();
@@ -124,10 +131,10 @@ std::string ClangLibCompiler::generateIR(const std::vector<std::string> &src,
   cmd_str.push_back(std::move(outputArgument).c_str());
 
   // create a local copy of option strings
-  const auto& argv_owner = getArgV(options);
-  std::vector<const char*> argv;
+  const auto &argv_owner = getArgV(options);
+  std::vector<const char *> argv;
   argv.reserve(argv_owner.size());
-  for (const auto& arg : argv_owner) {
+  for (const auto &arg : argv_owner) {
     argv.push_back(arg.c_str());
   }
   cmd_str.insert(cmd_str.end(),
@@ -138,7 +145,7 @@ std::string ClangLibCompiler::generateIR(const std::vector<std::string> &src,
   }
 
   // log the command line string used to create this task
-  for (const auto& arg : cmd_str) {
+  for (const auto &arg : cmd_str) {
     log_str = log_str + arg + " ";
   }
   Compiler::log_string(log_str);
@@ -150,11 +157,11 @@ std::string ClangLibCompiler::generateIR(const std::vector<std::string> &src,
   NikiLauda.setCheckInputsExist(false);
   NikiLauda.CCPrintOptionsFilename = logFile.c_str();
   Compiler::lockMutex(logFile);
-  #ifdef VC_DEBUG
+#ifdef VC_DEBUG
   NikiLauda.CCPrintOptions = true;
-  #else
+#else
   NikiLauda.CCPrintOptions = false;
-  #endif
+#endif
 
   std::unique_ptr<driver::Compilation> C(NikiLauda.BuildCompilation(cmd_str));
   if (!C) {
@@ -163,7 +170,7 @@ std::string ClangLibCompiler::generateIR(const std::vector<std::string> &src,
     return failureFileName;
   }
 
-  llvm::SmallVector<std::pair<int, const driver::Command*>,1> failCmd;
+  llvm::SmallVector<std::pair<int, const driver::Command *>, 1> failCmd;
   const auto res = NikiLauda.ExecuteCompilation(*C, failCmd);
   Compiler::unlockMutex(logFile);
 
@@ -171,13 +178,13 @@ std::string ClangLibCompiler::generateIR(const std::vector<std::string> &src,
     return llvmIRfileName;
   }
   const std::string &error_str = "Unknown error:"
-                                " unable to generate bitcode file"
-                                " - Driver error code: " + std::to_string(res);
+                                 " unable to generate bitcode file"
+                                 " - Driver error code: " + std::to_string(res);
   report_error(error_str);
   return failureFileName;
 }
 
-// ---------------------------------------------------------------------------
+//------------------------------------------------------------------------
 // ------------------------------ runOptimizer -------------------------------
 // ---------------------------------------------------------------------------
 /** Run modular code optimizer on the LLVM-IR intermediate file.
@@ -200,10 +207,9 @@ std::string ClangLibCompiler::generateIR(const std::vector<std::string> &src,
  *
  * This method only supports the legacy pass manager.
  */
-std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
-                                           const std::string &versionID,
-                                           const opt_list_t options) const
-{
+std::string JITCompiler::runOptimizer(const std::string &src_IR,
+                                      const std::string &versionID,
+                                      const opt_list_t options) const {
   // What we want to generate
   const std::string optBCfilename = Compiler::getOptBitcodeFileName(versionID);
 
@@ -211,23 +217,23 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
   const std::string failureFileName = "";
 
   auto report_error = [&](const std::string message) {
-    std::string error_string = "ClangLibCompiler::runOptimizer";
-    error_string = error_string + " ERROR during processing of version ";
-    error_string = error_string + versionID;
-    error_string = error_string + "\n\t";
-    error_string = error_string + message;
-    Compiler::log_string(error_string);
-    return;
+      std::string error_string = "JITCompiler::runOptimizer";
+      error_string = error_string + " ERROR during processing of version ";
+      error_string = error_string + versionID;
+      error_string = error_string + "\n\t";
+      error_string = error_string + message;
+      Compiler::log_string(error_string);
+      return;
   };
 
   llvm::LLVMContext optContext;
-  const std::vector<std::string>& argv_owner = getArgV(options);
+  const std::vector<std::string> &argv_owner = getArgV(options);
   const size_t argc = argv_owner.size() + 1; // opt <options>
-  std::vector<const char*> argv;
+  std::vector<const char *> argv;
   std::string log_str = "opt ";
   argv.reserve(argc);
   argv.push_back(std::move("opt"));
-  for (const auto& arg : argv_owner) {
+  for (const auto &arg : argv_owner) {
     argv.push_back(arg.c_str());
     log_str = log_str + arg + " ";
   }
@@ -238,8 +244,8 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
 
   resetOptOptions();
   llvm::cl::ParseCommandLineOptions(argc,
-                                    const_cast<const char**>(argv.data()),
-                                    "ClangLibCompiler::runOptimizer");
+                                    const_cast<const char **>(argv.data()),
+                                    "JITCompiler::runOptimizer");
 
   optContext.setDiscardValueNames(DiscardValueNames);
   if (!DisableDITypeMap) {
@@ -281,9 +287,9 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
   // retrieve module triple and prepare Target Machine object (may be empty)
   llvm::Triple moduleTriple(module->getTargetTriple());
   std::string optCPUStr, optFeaturesStr;
-  llvm::TargetMachine* optTMachine = nullptr;
+  llvm::TargetMachine *optTMachine = nullptr;
   const llvm::TargetOptions Options = InitTargetOptionsFromCodeGenFlags();
-                                      // llvm static helper function
+  // llvm static helper function
   std::string lookupError;
   if (moduleTriple.getArch()) {
     optCPUStr = getCPUStr();            // llvm static helper function
@@ -330,7 +336,7 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
 
   // Add internal analysis passes from the target machine.
   Passes.add(llvm::createTargetTransformInfoWrapperPass(
-    (actualTM) ? actualTM->getTargetIRAnalysis() : llvm::TargetIRAnalysis()));
+          (actualTM) ? actualTM->getTargetIRAnalysis() : llvm::TargetIRAnalysis()));
 
   std::unique_ptr<llvm::legacy::FunctionPassManager> FPasses;
   if (OptLevelO0 ||
@@ -338,11 +344,10 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
       OptLevelO2 ||
       OptLevelOs ||
       OptLevelOz ||
-      OptLevelO3)
-  {
+      OptLevelO3) {
     FPasses.reset(new llvm::legacy::FunctionPassManager(module.get()));
     FPasses->add(llvm::createTargetTransformInfoWrapperPass(
-      actualTM ? actualTM->getTargetIRAnalysis() : TargetIRAnalysis()));
+            actualTM ? actualTM->getTargetIRAnalysis() : TargetIRAnalysis()));
   }
 
   // Create a new optimization pass for each one specified on the command line
@@ -381,8 +386,7 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
     llvm::Pass *P = nullptr;
     if (PassInf->getNormalCtor()) {
       P = PassInf->getNormalCtor()();
-    }
-    else {
+    } else {
       report_error("Cannot create pass: " +
                    std::string(PassInf->getPassName()));
     }
@@ -432,9 +436,9 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
 
   std::error_code outFileCreationErrorCode;
   std::unique_ptr<llvm::ToolOutputFile> Out =
-    llvm::make_unique<llvm::ToolOutputFile>(optBCfilename,
-                                            outFileCreationErrorCode,
-                                            llvm::sys::fs::F_None);
+          llvm::make_unique<llvm::ToolOutputFile>(optBCfilename,
+                                                  outFileCreationErrorCode,
+                                                  llvm::sys::fs::F_None);
   if (!Out) {
     report_error("Could not create output file");
     return failureFileName;
@@ -471,19 +475,19 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
                                        EmitModuleHash));
   }
 
-  #ifdef VC_DEBUG
+#ifdef VC_DEBUG
   // Before executing passes, print the final values of the LLVM options.
   llvm::cl::PrintOptionValues();
-  #endif
+#endif
 
 
   // If requested, run all passes again with the same pass manager to catch
   // bugs caused by persistent state in the passes
   if (RunTwice) {
-      std::unique_ptr<llvm::Module> module2(llvm::CloneModule(module.get()));
-      Passes.run(*module2);
-      CompileTwiceBuffer = Buffer;
-      Buffer.clear();
+    std::unique_ptr<llvm::Module> module2(llvm::CloneModule(module.get()));
+    Passes.run(*module2);
+    CompileTwiceBuffer = Buffer;
+    Buffer.clear();
   }
 
   // Now that we have all of the passes ready, run them.
@@ -497,10 +501,10 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
                 Buffer.size()) != 0)) {
       // running twice the same passes generated diverging bitcode versions
       const std::string error_messsage =
-        "Running the pass manager twice changed the output.\n"
-        "Writing the result of the second run to the specified output.\n"
-        "To generate the one-run comparison binary, just run without\n"
-        "the compile-twice option\n";
+              "Running the pass manager twice changed the output.\n"
+              "Writing the result of the second run to the specified output.\n"
+              "To generate the one-run comparison binary, just run without\n"
+              "the compile-twice option\n";
       report_error(error_messsage);
       Out->os() << BOS->str();
       Out->keep();
@@ -523,113 +527,240 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
 }
 
 // ---------------------------------------------------------------------------
-// ------------------------------- generateBin -------------------------------
+// -------------------------------- addModule --------------------------------
 // ---------------------------------------------------------------------------
-/** Generate binary shared object
+/** addModule wrapper
  *
- * This implementation exploits the clang driver to handle all the stages of
- * the compilation and linking process.
+ * Makes the actual call to llvm CompileLayer addModule functions and saves the JIT compilation
+ * results in the JITCompiler class state
  */
-std::string ClangLibCompiler::generateBin(const std::vector<std::string> &src,
-                                          const std::vector<std::string> &func,
-                                          const std::string &versionID,
-                                          const opt_list_t options)
-{
-  // What we want to generate
-  const std::string libFileName = Compiler::getSharedObjectFileName(versionID);
-  // what we return when generateIR fails
-  const std::string failureFileName = "";
-  std::string log_str = "";
+void JITCompiler::addModule(std::shared_ptr<llvm::Module> M, const std::string &versionID) {
+  auto cm_iterator = _comp_map.find(versionID);
 
-  auto report_error = [&](const std::string message) {
-    std::string error_string = "ClangLibCompiler::generateBin";
-    error_string = error_string + " ERROR during processing of version ";
-    error_string = error_string + versionID;
-    error_string = error_string + "\n\t";
-    error_string = error_string + message;
+  if (cm_iterator == _comp_map.end()) {
+    std::string error_string = "JITCompiler::addModule ";
+    error_string = error_string + "compileLayer for " + versionID + " not found";
     Compiler::log_string(error_string);
     return;
-  };
-
-  // clang++ <options> -fpic -shared src -olibFileName -Wno-return-type-c-linkage
-  std::vector<const char *> cmd_str;
-  cmd_str.reserve(options.size() + 6);
-  cmd_str.push_back(std::move("clang++"));
-  cmd_str.push_back(std::move("-fpic"));
-  cmd_str.push_back(std::move("-shared"));
-  cmd_str.push_back(std::move("-Wno-return-type-c-linkage"));
-  const std::string outputArgument = "-o" + libFileName;
-  cmd_str.push_back(std::move(outputArgument).c_str());
-
-  // create a local copy of option strings
-  const auto& argv_owner = getArgV(options);
-  std::vector<const char*> argv;
-  argv.reserve(argv_owner.size());
-  for (const auto& arg : argv_owner) {
-    argv.push_back(arg.c_str());
   }
-  cmd_str.insert(cmd_str.end(),
-                 argv.begin(),
-                 argv.end());
-  for (const auto& src_file : src) {
-    cmd_str.push_back(src_file.c_str());
-  }
+  auto Resolver = llvm::orc::createLambdaResolver(
+          [&](const std::string &Name) {
+              if (auto Sym = _comp_map[versionID]->findSymbol(Name, false))
+                return Sym;
+              return llvm::JITSymbol(nullptr);
+          },
+          [](const std::string &Name) {
+              if (auto SymAddr =
+                      llvm::RTDyldMemoryManager::getSymbolAddressInProcess(Name))
+                return llvm::JITSymbol(SymAddr, llvm::JITSymbolFlags::Exported);
+              return llvm::JITSymbol(nullptr);
+          });
 
-  // log the command line string used to create this task
-  for (const auto& arg : cmd_str) {
-    log_str = log_str + arg + " ";
-  }
-  Compiler::log_string(log_str);
-
-  driver::Driver NikiLauda(_llvmManager->getClangExePath(),
-                           _llvmManager->getDefaultTriple()->str(),
-                           *_diagEngine);
-  NikiLauda.setTitle("clang as a library");
-  NikiLauda.setCheckInputsExist(false);
-  NikiLauda.CCPrintOptionsFilename = logFile.c_str();
-  #ifdef VC_DEBUG
-  NikiLauda.CCPrintOptions = true;
-  #else
-  NikiLauda.CCPrintOptions = false;
-  #endif
-
-  std::unique_ptr<driver::Compilation> C(NikiLauda.BuildCompilation(cmd_str));
-  if (!C) {
-    report_error("clang::driver::Compilation not created");
-    return failureFileName;
-  }
-
-  llvm::SmallVector<std::pair<int, const driver::Command*>,1> failCmd;
-  const auto res = NikiLauda.ExecuteCompilation(*C, failCmd);
-
-  if (exists(libFileName)) {
-    return libFileName;
-  }
-  const std::string &error_str = "Unknown error:"
-                                " unable to generate shared object"
-                                " - Driver error code: " + std::to_string(res);
-  report_error(error_str);
-  return failureFileName;
+  _handles_map[versionID] = llvm::cantFail(_comp_map[versionID]->addModule(std::move(M), std::move(Resolver)));
+  return;
 }
 
 // ---------------------------------------------------------------------------
-// ------------------------------ hasOptimizer ------------------------------
+// ------------------------------- findSymbol --------------------------------
 // ---------------------------------------------------------------------------
-bool ClangLibCompiler::hasOptimizer() const
-{
+llvm::JITSymbol JITCompiler::findSymbol(const std::string Name, const std::string &versionID) {
+  std::string MangledName;
+  llvm::raw_string_ostream MangledNameStream(MangledName);
+  llvm::Mangler::getNameWithPrefix(MangledNameStream, Name, _dataLayout);
+
+  return _comp_map[versionID]->findSymbol(MangledNameStream.str(), true);
+}
+
+// ---------------------------------------------------------------------------
+// ------------------------------- loadSymbol --------------------------------
+// ---------------------------------------------------------------------------
+/** Symbol Loading
+ *
+ * This implementation looks for the version saved module and adds it to the llvm
+ * CompileLayer. It later resolves the symbol and returns it to its caller. This is
+ * the function which actually performs the JIT compilation
+ */
+
+
+//  if (exists(bin)) {
+//    *handler = dlopen(bin.c_str(), RTLD_NOW);
+//  } else {
+//    std::string error_str = "cannot load symbol from " + bin +
+//                            " : file not found";
+//    log_string(error_str);
+//    return symbols;
+//  }
+//  if (*handler) {
+//    for (const std::string& f : func) {
+//      void *symbol = dlsym(*handler, f.c_str());
+//      if (!symbol) {
+//        std::string error_str = "cannot load symbol " + f + " from " + bin +
+//        " : symbol not found";
+//        log_string(error_str);
+//      }
+//      symbols.push_back(symbol);
+//    } // end for
+//  } else {
+//    char* error = dlerror();
+//    std::string error_str(error);
+//    log_string(error_str);
+//  }
+//  return symbols;
+
+std::vector<void*> JITCompiler::loadSymbols(std::string &bin,
+                               const std::vector<std::string> &func,
+                               void ** handler) {
+
+  std::vector<void *> symbols = {};
+
+  // In JITCompiter implementation bin is used as a reference to our version ID
+  std::string versionID = bin;
+
+  auto mm_iterator = _modules_map.find(versionID);
+  if (mm_iterator == _modules_map.end()) {
+    std::string error_string = "JITCompiler::loadSymbol ";
+    error_string = error_string + "cannot load symbol from " + versionID + " - module not found";
+    Compiler::log_string(error_string);
+    return symbols;
+  }
+
+  *handler = &bin;
+  std::shared_ptr<llvm::Module> m = _modules_map[versionID];
+
+  // Calling a wrapper to the actual llvm addModule method
+  addModule(m, bin);
+
+  auto hm_iterator = _handles_map.find(versionID);
+  if (hm_iterator == _handles_map.end()) {
+    std::string error_string = "JITCompiler::loadSymbol ";
+    error_string = error_string + "cannot load symbol from " + versionID + " - addModule call failed";
+    Compiler::log_string(error_string);
+    return symbols;
+  }
+
+  _isloaded_map[versionID] = true;
+
+      for (const std::string& f : func) {
+      void *symbol = (void *) llvm::cantFail(findSymbol(f, versionID).getAddress());
+      if (!symbol) {
+        std::string error_str = "cannot load symbol " + f + " from " + bin +
+        " : symbol not found";
+        log_string(error_str);
+      }
+      symbols.push_back(symbol);
+    } // end for
+
+  return symbols;
+
+}
+
+// ---------------------------------------------------------------------------
+// ------------------------------- releaseSymbol -----------------------------
+// ---------------------------------------------------------------------------
+/** Module release
+ *
+ * This implementation uses the handler argument to keep the internal JITCompiler
+ * class state consistent cleaning the loaded symbols and removing the llvm Module
+ * from the specific CompileLayer
+ */
+void JITCompiler::releaseSymbol(void **handler) {
+
+  std::string *id = static_cast<std::string *>(*handler);
+
+  auto map_rows_iterator = _isloaded_map.find(*id);
+  if (map_rows_iterator == _isloaded_map.end()) {
+    std::string error_string = "JITCompiler::releaseSymbol";
+    error_string = error_string + " ERROR - module not found ";
+    Compiler::log_string(error_string);
+    return;
+  } else {
+    llvm::cantFail(_comp_map[*id]->removeModule(_handles_map[*id]));
+    _handles_map.erase(*id);
+    _isloaded_map.erase(*id);
+  }
+
+  *handler = nullptr;
+  return;
+}
+
+// ---------------------------------------------------------------------------
+// ------------------------------- generateBin -------------------------------
+// ---------------------------------------------------------------------------
+/** JIT Compile the llvm module
+ *
+ * This implementation parses a previously generated (and eventually optimized) IR file
+ * elevating it to its in-memory representation. This module is then saved in the JITCompiler
+ * class instance state to be later added (by the loadSymbol method) to llvm's CompilerLayer
+ */
+std::string JITCompiler::generateBin(const std::vector<std::string> &src,
+                                     const std::vector<std::string> &func,
+                                     const std::string &versionID,
+                                     const opt_list_t options) {
+
+  // The source IR file name to JIT compile
+  std::string source = src[0]; // if contains IR then it's just one element, otherwise will generate it
+
+  _obj_map[versionID] = std::make_shared<llvm::orc::RTDyldObjectLinkingLayer>(
+          [this]() { return std::make_shared<llvm::SectionMemoryManager>(); });
+  _comp_map[versionID] = make_unique<llvm::orc::IRCompileLayer<llvm::orc::RTDyldObjectLinkingLayer, llvm::orc::SimpleCompiler>>(
+          llvm::orc::IRCompileLayer<llvm::orc::RTDyldObjectLinkingLayer, llvm::orc::SimpleCompiler>(
+                  *(_obj_map[versionID]), llvm::orc::SimpleCompiler(
+                          *_targetMachine)));
+
+  // IR filename
+  const std::string llvmIRfileName = Compiler::getBitcodeFileName(versionID);
+  // IR optimized filename
+  const std::string llvmOPTIRfileName = Compiler::getOptBitcodeFileName(versionID);
+  // If IR files were not generated, generate it now but don't optimize it
+  if (!exists(llvmOPTIRfileName) && !exists(llvmIRfileName)) {
+    Compiler::log_string("IR file not found, generating from source..");
+
+    source = generateIR(src, func, versionID, options);
+  }
+
+
+  // What we return when generateIR fails
+  const std::string failureName = "";
+
+
+  auto report_error = [&](const std::string message) {
+      std::string error_string = "JITCompiler::generateBin";
+      error_string = error_string + " ERROR during processing of version ";
+      error_string = error_string + versionID;
+      error_string = error_string + "\n\t";
+      error_string = error_string + message;
+      Compiler::log_string(error_string);
+      return;
+  };
+
+  llvm::SMDiagnostic parsing_input_error_code;
+  Compiler::log_string("Jitting IR file: " + source);
+
+  _modules_map[versionID] = move(llvm::parseIRFile(source, parsing_input_error_code, _opt_context));
+  std::shared_ptr<llvm::Module> m = _modules_map[versionID];
+  if (!m) {
+    report_error("Module was not generated");
+    return failureName;
+  }
+  addModule(m, versionID);
+  return versionID;
+}
+
+// ---------------------------------------------------------------------------
+// ------------------------------ hasOptimizer -------------------------------
+// ---------------------------------------------------------------------------
+bool JITCompiler::hasOptimizer() const {
   return true;
 }
 
 // ---------------------------------------------------------------------------
 // ----------------------------- getOptionString -----------------------------
 // ---------------------------------------------------------------------------
-inline std::string ClangLibCompiler::getOptionString(const Option &o) const
-{
+inline std::string JITCompiler::getOptionString(const Option &o) const {
   // remove single and double quotes
   std::string tmp_val = o.getValue();
   if (tmp_val.length() > 1 &&
-      (tmp_val[0] == '\"' && tmp_val[tmp_val.length() - 1] == '\"'))
-  {
+      (tmp_val[0] == '\"' && tmp_val[tmp_val.length() - 1] == '\"')) {
     tmp_val = tmp_val.substr(1, tmp_val.length() - 2);
   }
   return o.getPrefix() + tmp_val;
@@ -638,13 +769,16 @@ inline std::string ClangLibCompiler::getOptionString(const Option &o) const
 // ---------------------------------------------------------------------------
 // --------------------------------- getArgV ---------------------------------
 // ---------------------------------------------------------------------------
-inline std::vector<std::string> ClangLibCompiler::getArgV(
-                                const opt_list_t optionList) const
-{
+inline std::vector<std::string> JITCompiler::getArgV(
+        const opt_list_t optionList) const {
   std::vector<std::string> v;
   v.reserve(optionList.size());
-  for (const auto& o : optionList) {
+  for (const auto &o : optionList) {
     v.push_back(getOptionString(o));
   }
   return v;
 }
+
+
+template
+class llvm::orc::IRCompileLayer<llvm::orc::RTDyldObjectLinkingLayer, llvm::orc::SimpleCompiler>;

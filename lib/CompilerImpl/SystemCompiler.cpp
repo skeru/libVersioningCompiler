@@ -62,10 +62,10 @@ bool SystemCompiler::hasOptimizer() const
 // ----------------------------------------------------------------------------
 // ------------------------------- generate IR --------------------------------
 // ----------------------------------------------------------------------------
-std::string SystemCompiler::generateIR(const std::vector<std::string> &src,
+  std::string SystemCompiler::generateIR(const std::vector<std::string> &src,
                                        const std::vector<std::string> &func,
                                        const std::string &versionID,
-                                       const opt_list_t options) const
+                                       const opt_list_t options)
 {
   // NO LLVM-IR support enabled by default
   if (hasIRSupport()) {
@@ -108,7 +108,7 @@ std::string SystemCompiler::runOptimizer(const std::string &src_IR,
 std::string SystemCompiler::generateBin(const std::vector<std::string> &src,
                                         const std::vector<std::string> &func,
                                         const std::string &versionID,
-                                        const opt_list_t options) const
+                                        const opt_list_t options)
 {
   // system call - command construction
   std::string command = installDirectory + "/" + callString;

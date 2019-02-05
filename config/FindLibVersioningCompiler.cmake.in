@@ -245,6 +245,8 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+set(LLVM_SYSTEM pthread z tinfo)
+
 ## -----------------------------------------------------------------------------
 # Try to find libclang
 #
@@ -496,6 +498,7 @@ if (ENABLE_CLANG_AS_LIB)
   set( LIBVC_LIBRARIES ${LIBVC_LIBRARIES}
                        ${LIBCLANG_LIBRARIES}
                        ${LLVM_MODULE_LIBS}
+                       ${LLVM_SYSTEM}
                      )
 endif(ENABLE_CLANG_AS_LIB)
 
