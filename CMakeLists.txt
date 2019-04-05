@@ -20,6 +20,8 @@
 
 cmake_minimum_required(VERSION 3.0.2)
 
+project(libVersioningCompiler)
+
 #----- Set the name of the Version Compiler library
 set (VC_LIB_NAME "VersioningCompiler")
 
@@ -118,6 +120,7 @@ set ( VC_LIB_SRC
                 ${SRC_PREFIX}/Compiler.cpp
                 ${SRC_PREFIX}/CompilerImpl/SystemCompiler.cpp
                 ${SRC_PREFIX}/CompilerImpl/SystemCompilerOptimizer.cpp
+                ${SRC_PREFIX}/CompilerImpl/TAFFOCompiler.cpp
                 )
 
 #----- Headers
@@ -134,6 +137,7 @@ set ( VC_LIB_HDR_PREFIX2 ${CMAKE_CURRENT_SOURCE_DIR}/include/versioningCompiler/
 set ( VC_LIB_HDR2
                 ${VC_LIB_HDR_PREFIX2}/SystemCompiler.hpp
                 ${VC_LIB_HDR_PREFIX2}/SystemCompilerOptimizer.hpp
+                ${VC_LIB_HDR_PREFIX2}/TAFFOCompiler.hpp
                 )
 
 
