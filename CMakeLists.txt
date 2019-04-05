@@ -90,7 +90,7 @@ set (VC_LIB_DEPS ${DL_LIBRARY}
 if (ENABLE_CLANG_AS_LIB)
   set (VC_LIB_DEPS ${VC_LIB_DEPS}
                    ${LIBCLANG_LIBRARIES}
-                   ${LLVM_MODULE_LIBS}
+                   ${LLVM_MODULE_LIBFILES}
                    ${LLVM_SYSTEM}
                    )
 
@@ -173,7 +173,6 @@ set (VC_LIB_HDR ${VC_LIB_HDR1} ${VC_LIB_HDR2} ${VC_LIB_HDR3} )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/include )
 
 add_library( ${VC_LIB_NAME} STATIC ${VC_LIB_SRC} ${VC_LIB_HDR} )
-target_link_directories(${VC_LIB_NAME} PUBLIC ${LIBCLANG_LIBRARY_DIR} "${CMAKE_INSTALL_PREFIX}/lib")
 target_link_libraries( ${VC_LIB_NAME} ${VC_LIB_DEPS} )
 
 ###############################################
