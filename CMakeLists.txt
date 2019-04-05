@@ -173,6 +173,7 @@ set (VC_LIB_HDR ${VC_LIB_HDR1} ${VC_LIB_HDR2} ${VC_LIB_HDR3} )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/include )
 
 add_library( ${VC_LIB_NAME} STATIC ${VC_LIB_SRC} ${VC_LIB_HDR} )
+target_link_directories(${VC_LIB_NAME} PUBLIC ${LIBCLANG_LIBRARY_DIR} "${CMAKE_INSTALL_PREFIX}/lib")
 target_link_libraries( ${VC_LIB_NAME} ${VC_LIB_DEPS} )
 
 ###############################################
@@ -219,7 +220,6 @@ endif (ENABLE_CLANG_AS_LIB)
 
 add_executable(${VC_EXE_NAME} ${VC_TEST_APP_SRC})
 
-link_directories(${LLVM_LIBRARY_DIR} ${LIBCLANG_LIBRARY_DIR} "${CMAKE_INSTALL_PREFIX}/lib")
 target_link_libraries(${VC_EXE_NAME} ${VC_LIB_NAME} ${VC_LIB_DEPS})
 
 
@@ -243,7 +243,6 @@ endif (ENABLE_CLANG_AS_LIB)
 
 add_executable(${VC_EXE2_NAME} ${VC_TEST2_APP_SRC})
 
-link_directories(${LLVM_LIBRARY_DIR} ${LIBCLANG_LIBRARY_DIR} "${CMAKE_INSTALL_PREFIX}/lib")
 target_link_libraries(${VC_EXE2_NAME} ${VC_LIB_NAME} ${VC_LIB_DEPS})
 
 ###############################################
