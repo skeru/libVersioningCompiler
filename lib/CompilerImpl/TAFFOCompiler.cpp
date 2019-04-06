@@ -191,7 +191,7 @@ std::string TAFFOCompiler::generateIR(
   } else {
     conv_bitcode = Compiler::getBitcodeFileName(versionID);
   }
-  std::string conv_cmd = getInvocation(Conversion) + " -S -o \"" + conv_bitcode + "\" \"" + dta_bitcode + "\"";
+  std::string conv_cmd = getInvocation(Conversion) + " -dce -S -o \"" + conv_bitcode + "\" \"" + dta_bitcode + "\"";
   Compiler::log_exec(conv_cmd);
   if (!exists(conv_bitcode))
     return "";
