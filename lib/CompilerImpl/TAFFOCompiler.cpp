@@ -199,7 +199,7 @@ std::string TAFFOCompiler::generateIR(
     return conv_bitcode;
   
   std::string end_bitcode = Compiler::getBitcodeFileName(versionID);
-  std::string end_cmd = llvmClangPath + " -c -emit-llvm -o \"" + conv_bitcode + "\" \"" + dta_bitcode + "\"";
+  std::string end_cmd = llvmClangPath + " -c -emit-llvm -o \"" + end_bitcode + "\" \"" + conv_bitcode + "\"";
   for (auto &o : optOpts) {
     end_cmd = end_cmd + " " + getOptionString(o);
   }
@@ -252,7 +252,7 @@ inline std::string TAFFOCompiler::getOptionString(const Option &o) const
       (tmp_val.find(" ") != std::string::npos ||
        tmp_val.find("\t") != std::string::npos) &&
       // ...but not if already within quotes
-      !(tmp_val[0] == tmp_val[tmp_val.length() - 1] && tmp_val[0] == '\"'))
+      !(tmp_val[0] == tmp_val[tmp_val.length() - 1] && (tmp_val[0] == '\"' || tmp_val[0] == '\'')))
   {
     tmp_val = "\"" + tmp_val + "\"";
   }
@@ -260,4 +260,11 @@ inline std::string TAFFOCompiler::getOptionString(const Option &o) const
 }
 
 
+Option TAFFOCompiler::getScalarAnnotationDefine(const std::string& define, double min, double max)
+{
+  std::string tag = "TAFFO_" + define;
+  std::string lhs = "-D" + define + "=";
+  std::string rhs = "'\"scalar(range(" + std::to_string(min) + ", " + std::to_string(max) + "))\"'";
+  return Option(tag, lhs, rhs);
+}
 

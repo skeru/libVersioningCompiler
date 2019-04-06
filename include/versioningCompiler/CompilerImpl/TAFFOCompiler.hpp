@@ -75,6 +75,8 @@ public:
     const opt_list_t options) const override;
 
   virtual std::string getOptionString(const Option &o) const override;
+
+  static Option getScalarAnnotationDefine(const std::string& define, double min, double max);
   
 private:
   std::string llvmOptPath;
