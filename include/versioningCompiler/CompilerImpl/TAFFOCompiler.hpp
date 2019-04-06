@@ -25,18 +25,32 @@
 
 namespace vc {
 
+
 class TAFFOCompiler : public Compiler
 {
 public:
+  enum Language {
+    C,
+    CXX
+  };
+
   TAFFOCompiler();
+
+  TAFFOCompiler(
+    const std::string &compilerID,
+    const std::string &llvmInstallPrefix,
+    Language lang = C,
+    const std::string &taffoInstallPrefix = "",
+    const std::string &libWorkingDir = ".",
+    const std::string &log = "");
 
   TAFFOCompiler(
     const std::string &compilerID,
     const std::string &llvmOptPath,
     const std::string &llvmClangPath,
     const std::string &llvmLinkerPath,
-    const std::string &taffoInstallPrefix,
-    const std::string &libWorkingDir,
+    const std::string &taffoInstallPrefix = "",
+    const std::string &libWorkingDir = ".",
     const std::string &log = "");
 
   inline virtual ~TAFFOCompiler() {}
@@ -83,6 +97,7 @@ private:
   std::string getInvocation(const Component& c) const;
   static void splitOptimizationOptions(const opt_list_t& in, opt_list_t& outOpt, opt_list_t& outRest);
 };
+
 
 } // end namespace vc
 

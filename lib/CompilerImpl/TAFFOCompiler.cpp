@@ -50,6 +50,47 @@ TAFFOCompiler::TAFFOCompiler(
 }
 
 
+TAFFOCompiler::TAFFOCompiler(
+  const std::string &compilerID,
+  const std::string &llvmInstallPrefix,
+  Language lang,
+  const std::string &taffoInstallPrefix,
+  const std::string &libWorkingDir,
+  const std::string &log) :
+  Compiler(compilerID, "", libWorkingDir, log, "", true),
+  taffoInstallPrefix(taffoInstallPrefix)
+{
+  std::string llvmPfx;
+  if (llvmInstallPrefix.empty()) {
+    if (const char *e_llvmdir = getenv("LLVM_DIR")) {
+      llvmPfx = e_llvmdir;
+    } else {
+      llvmPfx = "/usr";
+    }
+  } else {
+    llvmPfx = llvmInstallPrefix;
+  }
+
+  switch (lang) {
+    case C:
+      if (const char *e_clang = getenv("CLANG")) 
+        llvmClangPath = e_clang;
+      else
+        llvmClangPath = llvmPfx + "/bin/clang";
+      break;
+    case CXX:
+      if (const char *e_clangxx = getenv("CLANGXX")) 
+        llvmClangPath = e_clangxx;
+      else
+        llvmClangPath = llvmPfx + "/bin/clang++";
+      break;
+  }
+
+  llvmOptPath = llvmPfx + "/bin/opt";
+  llvmLinkerPath = llvmClangPath;
+}
+
+
 TAFFOCompiler::TAFFOCompiler() :
   TAFFOCompiler(
     "taffo",
@@ -150,7 +191,7 @@ std::string TAFFOCompiler::generateIR(
   } else {
     conv_bitcode = Compiler::getBitcodeFileName(versionID);
   }
-  std::string conv_cmd = getInvocation(Conversion) + " -o \"" + conv_bitcode + "\" \"" + dta_bitcode + "\"";
+  std::string conv_cmd = getInvocation(Conversion) + " -S -o \"" + conv_bitcode + "\" \"" + dta_bitcode + "\"";
   Compiler::log_exec(conv_cmd);
   if (!exists(conv_bitcode))
     return "";
