@@ -77,12 +77,16 @@ public:
   virtual std::string getOptionString(const Option &o) const override;
 
   static Option getScalarAnnotationDefine(const std::string& define, double min, double max);
+
+  void setDisableVRA(bool disableVRA) { noVRA = disableVRA; }
+  bool getDisableVRA() { return noVRA; }
   
 private:
   std::string llvmOptPath;
   std::string llvmClangPath;
   std::string llvmLinkerPath;
   std::string taffoInstallPrefix;
+  bool noVRA;
   
   struct Component
   {

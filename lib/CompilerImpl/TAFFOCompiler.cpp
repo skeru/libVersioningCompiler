@@ -168,15 +168,22 @@ std::string TAFFOCompiler::generateIR(
   
   std::string init_bitcode = Compiler::getBitcodeFileName(versionID + "_2_init");
   std::string init_cmd = getInvocation(Init) + " -S -o \"" + init_bitcode + "\" \"" + raw_bitcode + "\"";
+  if (noVRA)
+    init_cmd += " -vracompat";
   Compiler::log_exec(init_cmd);
   if (!exists(init_bitcode))
     return "";
   
-  std::string vra_bitcode = Compiler::getBitcodeFileName(versionID + "_3_vra");
-  std::string vra_cmd = getInvocation(VRA) + " -S -o \"" + vra_bitcode + "\" \"" + init_bitcode + "\"";
-  Compiler::log_exec(vra_cmd);
-  if (!exists(vra_bitcode))
-    return "";
+  std::string vra_bitcode;
+  if (!noVRA) {
+    vra_bitcode = Compiler::getBitcodeFileName(versionID + "_3_vra");
+    std::string vra_cmd = getInvocation(VRA) + " -S -o \"" + vra_bitcode + "\" \"" + init_bitcode + "\"";
+    Compiler::log_exec(vra_cmd);
+    if (!exists(vra_bitcode))
+      return "";
+  } else {
+    vra_bitcode = init_bitcode;
+  }
   
   std::string dta_bitcode = Compiler::getBitcodeFileName(versionID + "_4_dta");
   std::string dta_cmd = getInvocation(DTA) + " -S -o \"" + dta_bitcode + "\" \"" + vra_bitcode + "\"";
