@@ -170,6 +170,8 @@ std::string TAFFOCompiler::generateIR(
   std::string init_cmd = getInvocation(Init) + " -S -o \"" + init_bitcode + "\" \"" + raw_bitcode + "\"";
   if (noVRA)
     init_cmd += " -vracompat";
+  if (restrictFunClone)
+    init_cmd += " -manualclone";
   Compiler::log_exec(init_cmd);
   if (!exists(init_bitcode))
     return "";

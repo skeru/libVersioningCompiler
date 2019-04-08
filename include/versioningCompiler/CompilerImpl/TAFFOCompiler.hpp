@@ -80,6 +80,9 @@ public:
 
   void setDisableVRA(bool disableVRA) { noVRA = disableVRA; }
   bool getDisableVRA() { return noVRA; }
+
+  void setRestrictiveFunctionCloning(bool rfc) { restrictFunClone = rfc; }
+  bool getRestrictiveFunctionCloning() { return restrictFunClone; }
   
 private:
   std::string llvmOptPath;
@@ -87,6 +90,7 @@ private:
   std::string llvmLinkerPath;
   std::string taffoInstallPrefix;
   bool noVRA;
+  bool restrictFunClone;
   
   struct Component
   {
