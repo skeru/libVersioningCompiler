@@ -213,8 +213,10 @@ bool Version::compile()
   if (! hasGeneratedBin()) {
     std::vector<std::string> src;
     if (fileName_IR_opt != "") {
+      src.clear();
       src.push_back(fileName_IR_opt);
     } else if (fileName_IR != "") {
+      src.clear();
       src.push_back(fileName_IR);
     } else {
       src = fileName_src;
