@@ -195,18 +195,18 @@ std::string TAFFOCompiler::generateIR(
   
   std::string conv_bitcode;
   /* skip final clang pass when there are no options to process */
-  if (optOpts.size() > 0) {
-    conv_bitcode = Compiler::getBitcodeFileName(versionID + "_5_conv");
-  } else {
+  // if (optOpts.size() > 0) {
+    // conv_bitcode = Compiler::getBitcodeFileName(versionID + "_5_conv");
+  // } else {
     conv_bitcode = Compiler::getBitcodeFileName(versionID);
-  }
+  // }
   std::string conv_cmd = getInvocation(Conversion) + " -dce -S -o \"" + conv_bitcode + "\" \"" + dta_bitcode + "\"";
   Compiler::log_exec(conv_cmd);
   if (!exists(conv_bitcode))
     return "";
-  if (optOpts.size() == 0)
-    return conv_bitcode;
-  
+  // if (optOpts.size() == 0)
+  //   return conv_bitcode;
+
   std::string end_bitcode = Compiler::getBitcodeFileName(versionID);
   std::string end_cmd = llvmClangPath + " -c -emit-llvm -o \"" + end_bitcode + "\" \"" + conv_bitcode + "\"";
   for (auto &o : optOpts) {
@@ -238,13 +238,20 @@ std::string TAFFOCompiler::generateBin(
   const std::string &versionID,
   const opt_list_t options) const
 {
-  std::string bitcode = generateIR(src, func, versionID, options);
-  if (bitcode.empty())
-    return "";
-  
+  // std::string bitcode = generateIR(src, func, versionID, options);
+  // if (bitcode.empty())
+  //   return "";
+	std::string bitcode = "";
+	for (const auto &file : src) {
+		bitcode = bitcode + "\"" + file + "\"";
+	}
+
   // system call - command construction
   std::string binaryFile = Compiler::getSharedObjectFileName(versionID);
-  std::string command = llvmLinkerPath + " -fpic -shared -o \"" + binaryFile + "\" \"" + bitcode + "\"";
+  std::string command = llvmLinkerPath + " -fpic -shared -o \"" + binaryFile + "\" " + bitcode;
+	for (const auto& opt : options) {
+		command = command + " " + getOptionString(opt);
+	}
   log_exec(command);
   if (!exists(binaryFile))
     return "";
