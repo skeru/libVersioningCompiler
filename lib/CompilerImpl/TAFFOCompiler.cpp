@@ -198,7 +198,7 @@ std::string TAFFOCompiler::generateIR(
   // if (optOpts.size() > 0) {
     // conv_bitcode = Compiler::getBitcodeFileName(versionID + "_5_conv");
   // } else {
-    conv_bitcode = Compiler::getBitcodeFileName(versionID);
+    conv_bitcode = Compiler::getBitcodeFileName(versionID + "_5_conv");
   // }
   std::string conv_cmd = getInvocation(Conversion) + " -dce -S -o \"" + conv_bitcode + "\" \"" + dta_bitcode + "\"";
   Compiler::log_exec(conv_cmd);
@@ -208,7 +208,7 @@ std::string TAFFOCompiler::generateIR(
   //   return conv_bitcode;
 
   std::string end_bitcode = Compiler::getBitcodeFileName(versionID);
-  std::string end_cmd = llvmClangPath + " -c -emit-llvm -o \"" + end_bitcode + "\" \"" + conv_bitcode + "\"";
+  std::string end_cmd = llvmClangPath + " -c -S -emit-llvm -o \"" + end_bitcode + "\" \"" + conv_bitcode + "\"";
   for (auto &o : optOpts) {
     end_cmd = end_cmd + " " + getOptionString(o);
   }
