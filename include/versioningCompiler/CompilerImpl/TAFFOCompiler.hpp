@@ -83,14 +83,18 @@ public:
 
   void setRestrictiveFunctionCloning(bool rfc) { restrictFunClone = rfc; }
   bool getRestrictiveFunctionCloning() { return restrictFunClone; }
+
+  void setDisableTypeMerging(bool dtm) { noTypeMerge = dtm; }
+  bool setDisableTypeMerging() { return noTypeMerge; }
   
 private:
   std::string llvmOptPath;
   std::string llvmClangPath;
   std::string llvmLinkerPath;
   std::string taffoInstallPrefix;
-  bool noVRA;
-  bool restrictFunClone;
+  bool noVRA = false;
+  bool restrictFunClone = false;
+  bool noTypeMerge = false;
   
   struct Component
   {

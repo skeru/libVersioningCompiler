@@ -189,23 +189,18 @@ std::string TAFFOCompiler::generateIR(
   
   std::string dta_bitcode = Compiler::getBitcodeFileName(versionID + "_4_dta");
   std::string dta_cmd = getInvocation(DTA) + " -S -o \"" + dta_bitcode + "\" \"" + vra_bitcode + "\"";
+  if (noTypeMerge)
+    dta_cmd += " -notypemerge";
   Compiler::log_exec(dta_cmd);
   if (!exists(dta_bitcode))
     return "";
   
   std::string conv_bitcode;
-  /* skip final clang pass when there are no options to process */
-  // if (optOpts.size() > 0) {
-    // conv_bitcode = Compiler::getBitcodeFileName(versionID + "_5_conv");
-  // } else {
-    conv_bitcode = Compiler::getBitcodeFileName(versionID + "_5_conv");
-  // }
+  conv_bitcode = Compiler::getBitcodeFileName(versionID + "_5_conv");
   std::string conv_cmd = getInvocation(Conversion) + " -dce -S -o \"" + conv_bitcode + "\" \"" + dta_bitcode + "\"";
   Compiler::log_exec(conv_cmd);
   if (!exists(conv_bitcode))
     return "";
-  // if (optOpts.size() == 0)
-  //   return conv_bitcode;
 
   std::string end_bitcode = Compiler::getBitcodeFileName(versionID);
   std::string end_cmd = llvmClangPath + " -c -S -emit-llvm -o \"" + end_bitcode + "\" \"" + conv_bitcode + "\"";
