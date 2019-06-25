@@ -42,7 +42,8 @@ public:
     Language lang = C,
     const std::string &taffoInstallPrefix = "",
     const std::string &libWorkingDir = ".",
-    const std::string &log = "");
+    const std::string &log = "",
+    const std::string &annotationInserterPath = "");
 
   TAFFOCompiler(
     const std::string &compilerID,
@@ -51,7 +52,8 @@ public:
     const std::string &llvmLinkerPath,
     const std::string &taffoInstallPrefix = "",
     const std::string &libWorkingDir = ".",
-    const std::string &log = "");
+    const std::string &log = "",
+    const std::string &annotationInserterPath = "");
 
   inline virtual ~TAFFOCompiler() {}
 
@@ -92,6 +94,8 @@ private:
   std::string llvmClangPath;
   std::string llvmLinkerPath;
   std::string taffoInstallPrefix;
+  std::string annotationInserterPath;
+  std::string annotationFilePath;
   bool noVRA = false;
   bool restrictFunClone = false;
   bool noTypeMerge = false;
@@ -107,9 +111,12 @@ private:
   static Component DTA;
   static Component Conversion;
   
+  void insertAnnotations(const std::vector<std::string>& src, const opt_list_t& options, const opt_list_t& annotationOptions) const;
+  std::vector<std::string> copySources(const std::vector<std::string>& src, const std::string& versionID, const opt_list_t& options) const;
   std::string getLLVMLibExtension() const;
   std::string getInvocation(const Component& c) const;
   static void splitOptimizationOptions(const opt_list_t& in, opt_list_t& outOpt, opt_list_t& outRest);
+  static void splitAnnotationOptions(const opt_list_t& in, opt_list_t& outOpt, opt_list_t& outRest);
 };
 
 

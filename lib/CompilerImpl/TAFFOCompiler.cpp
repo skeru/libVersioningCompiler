@@ -34,10 +34,12 @@ TAFFOCompiler::TAFFOCompiler(
   const std::string &llvmLinkerPath,
   const std::string &taffoInstallPrefix,
   const std::string &libWorkingDir,
-  const std::string &log) :
+  const std::string &log,
+  const std::string &annotationInserterPath) :
   Compiler(compilerID, "", libWorkingDir, log, "", true),
   llvmOptPath(llvmOptPath), llvmClangPath(llvmClangPath),
-  llvmLinkerPath(llvmLinkerPath), taffoInstallPrefix(taffoInstallPrefix)
+  llvmLinkerPath(llvmLinkerPath), taffoInstallPrefix(taffoInstallPrefix),
+  annotationInserterPath(annotationInserterPath)
 {
   if (const char *e_llvmdir = getenv("LLVM_DIR")) {
     if (this->llvmOptPath.size() == 0)
@@ -56,9 +58,11 @@ TAFFOCompiler::TAFFOCompiler(
   Language lang,
   const std::string &taffoInstallPrefix,
   const std::string &libWorkingDir,
-  const std::string &log) :
+  const std::string &log,
+  const std::string &annotationInserterPath) :
   Compiler(compilerID, "", libWorkingDir, log, "", true),
-  taffoInstallPrefix(taffoInstallPrefix)
+  taffoInstallPrefix(taffoInstallPrefix),
+  annotationInserterPath(annotationInserterPath)
 {
   std::string llvmPfx;
   if (llvmInstallPrefix.empty()) {
@@ -143,6 +147,88 @@ void TAFFOCompiler::splitOptimizationOptions(const opt_list_t& in, opt_list_t& o
   }
 }
 
+void TAFFOCompiler::splitAnnotationOptions(const opt_list_t& in, opt_list_t& outOpt, opt_list_t& outRest)
+{
+  for (const auto opt: in) {
+    if (opt.getTag() == "AnnotationInserter")
+      outOpt.push_back(opt);
+    else
+      outRest.push_back(opt);
+  }
+}
+
+void TAFFOCompiler::insertAnnotations(
+		const std::vector<std::string>& src, 
+		const opt_list_t& options, 
+		const opt_list_t& annotationOptions) const
+{
+  if (annotationInserterPath.empty())
+    return;
+
+  std::string annotationFilePath("./annotations.json");
+  std::string annotationContent("");
+  std::string insertionExtraFlags("");
+  for (const auto opt : annotationOptions)
+  {
+    if (opt.getPrefix() == "annotationFile")
+	{
+		annotationFilePath = opt.getValue();
+		continue;
+	}
+
+	if (opt.getPrefix() == "annotationJSON")
+	{
+		annotationContent = opt.getValue();
+		continue;
+	}
+	insertionExtraFlags += " " + opt.getPrefix() + opt.getValue();
+  }
+
+  for (const auto &src_file : src) {
+
+    std::string raw_cmd = annotationInserterPath + " \""+ src_file +"\" -i ";
+
+	if (annotationContent.empty())
+		raw_cmd += "-f=" + annotationFilePath;
+	else 
+		raw_cmd += "-j=" + annotationContent;
+
+	raw_cmd += " -- ";
+
+    for (auto &o : options) 
+	  raw_cmd = raw_cmd + " " + getOptionString(o);
+
+	raw_cmd += insertionExtraFlags;	
+
+    Compiler::log_exec(raw_cmd);
+  }
+}
+
+std::vector<std::string> TAFFOCompiler::copySources(
+		const std::vector<std::string>& src, 
+		const std::string& versionID,
+		const opt_list_t& options) const
+{
+  std::vector<std::string> toReturn;
+  std::string opt;
+  for (auto &o : options) {
+    opt = opt + " " + getOptionString(o);
+  }
+
+  int i = 0;
+  for (auto& file : src)
+  {
+
+    std::string newFile = Compiler::generateTemporaryFileName(file, versionID, i);	
+    std::string command = llvmClangPath + " " + file + " -E -o \"" + newFile + "\" " + opt;
+	
+	toReturn.push_back(newFile);
+    log_exec(command);
+	i++;
+  }
+
+  return toReturn;
+}
 
 std::string TAFFOCompiler::generateIR(
   const std::vector<std::string> &src,
@@ -152,11 +238,17 @@ std::string TAFFOCompiler::generateIR(
 {
   opt_list_t optOpts;
   opt_list_t normalOpts;
-  splitOptimizationOptions(options, optOpts, normalOpts);
+  opt_list_t annotationOptions;
+  opt_list_t compilationOptions;
+  splitAnnotationOptions(options, annotationOptions, compilationOptions);
+  splitOptimizationOptions(compilationOptions, optOpts, normalOpts);
+
+  std::vector<std::string> copied = copySources(src, versionID, normalOpts);
+  insertAnnotations(copied, compilationOptions, annotationOptions);
   
   std::string raw_bitcode = Compiler::getBitcodeFileName(versionID + "_1_clang");
   std::string raw_cmd = llvmClangPath + " -c -S -emit-llvm -O0 -o \"" + raw_bitcode + "\" ";
-  for (const auto &src_file : src) {
+  for (const auto &src_file : copied) {
     raw_cmd = raw_cmd + " \"" + src_file + "\"";
   }
   for (auto &o : normalOpts) {

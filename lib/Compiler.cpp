@@ -202,6 +202,30 @@ std::string Compiler::getSharedObjectFileName(const std::string &versionID) cons
 }
 
 // ----------------------------------------------------------------------------
+// ------------------ get temporary name for file            ------------------
+// ----------------------------------------------------------------------------
+std::string Compiler::generateTemporaryFileName(
+		const std::string& original, 
+		const std::string &versionID,  
+		int incremental) const
+{
+
+  std::string extension = ".c";
+  std::string dir = "./";
+  if (original.find_last_of(".") != std::string::npos)
+    extension = original.substr(original.find_last_of(".") + 1);
+  if (original.find_last_of("/") != std::string::npos)
+    dir = original.substr(0, original.find_last_of("/") + 1);
+  const std::string filename = dir 
+							   + std::to_string(incremental)
+                               + "_"
+                               + versionID
+							   + "."
+                               + extension;
+  return filename;
+}
+
+// ----------------------------------------------------------------------------
 // --------------- notification of unsupported feature request ----------------
 // ----------------------------------------------------------------------------
 void Compiler::unsupported(const std::string &message) const
