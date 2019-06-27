@@ -53,7 +53,8 @@ public:
     const std::string &taffoInstallPrefix = "",
     const std::string &libWorkingDir = ".",
     const std::string &log = "",
-    const std::string &annotationInserterPath = "");
+    const std::string &annotationInserterPath = "",
+	const std::string &llvmLinkPath = "");
 
   inline virtual ~TAFFOCompiler() {}
 
@@ -93,6 +94,7 @@ private:
   std::string llvmOptPath;
   std::string llvmClangPath;
   std::string llvmLinkerPath;
+  std::string llvmLinkPath;
   std::string taffoInstallPrefix;
   std::string annotationInserterPath;
   std::string annotationFilePath;
