@@ -480,7 +480,7 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
   // If requested, run all passes again with the same pass manager to catch
   // bugs caused by persistent state in the passes
   if (RunTwice) {
-      std::unique_ptr<llvm::Module> module2(llvm::CloneModule(module.get()));
+      std::unique_ptr<llvm::Module> module2(llvm::CloneModule(*module));
       Passes.run(*module2);
       CompileTwiceBuffer = Buffer;
       Buffer.clear();

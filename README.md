@@ -18,8 +18,8 @@ libVersioningCompiler requires:
 external libraries:
  - dl
  - uuid-dev
- - (OPTIONAL) llvm-6.0-dev
- - (OPTIONAL) libclang-6.0-dev
+ - (OPTIONAL) llvm-8.0-dev
+ - (OPTIONAL) libclang-8.0-dev
 
 Compiling without the OPTIONAL dependencies will disable some features,
 like the Clang-as-a-library compiler implementation.

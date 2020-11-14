@@ -164,6 +164,10 @@ class Compiler
    */
   std::string getSharedObjectFileName(const std::string &versionID) const;
 
+  /** \brief Copies the file to a new location.
+   */
+  std::string generateTemporaryFileName(const std::string& original, const std::string &versionID, int incremental = 0) const;
+
   /** \brief Acquire the lock of the mutex related to logfileName. Blocking.
    */
   static void lockMutex(const std::string &logFileName);

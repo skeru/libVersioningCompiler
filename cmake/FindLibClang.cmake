@@ -98,7 +98,7 @@ if (CLANG_${_libname_}_LIB)
 endif (CLANG_${_libname_}_LIB)
 ENDMACRO(FIND_AND_ADD_CLANG_LIB)
 
-set (LIBCLANG_LIBRARIES ${LIBCLANG_LIBRARY})
+set (LIBCLANG_LIBRARIES)
 # Clang shared library provides just the limited C interface, so it
 # can not be used.  We look for the static libraries.
 FIND_AND_ADD_CLANG_LIB(clangFrontend)

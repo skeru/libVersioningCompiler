@@ -20,6 +20,8 @@
 
 cmake_minimum_required(VERSION 3.0.2)
 
+project(libVersioningCompiler)
+
 #----- Set the name of the Version Compiler library
 set (VC_LIB_NAME "VersioningCompiler")
 
@@ -60,7 +62,7 @@ if (HAVE_LLVM)
   link_directories(${LLVM_LIBRARY_DIR})
 endif (HAVE_LLVM)
 
-set (LLVM_VERSION_MIN_REQUIRED "6.0.0")
+set (LLVM_VERSION_MIN_REQUIRED "8.0.0")
 
 if ( HAVE_LLVM AND
      (NOT ( LLVM_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED )) AND
@@ -88,7 +90,7 @@ set (VC_LIB_DEPS ${DL_LIBRARY}
 if (ENABLE_CLANG_AS_LIB)
   set (VC_LIB_DEPS ${VC_LIB_DEPS}
                    ${LIBCLANG_LIBRARIES}
-                   ${LLVM_MODULE_LIBS}
+                   ${LLVM_MODULE_LIBFILES}
                    ${LLVM_SYSTEM}
                    )
 
@@ -106,9 +108,9 @@ if (NOT CMAKE_BUILD_TYPE)
   set ( CMAKE_BUILD_TYPE Release )
 endif()
 
-set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti" )
-set ( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVC_DEBUG" )
-set ( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -fPIC" )
+set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti -fvisibility-inlines-hidden" )
+set ( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVC_DEBUG -fvisibility-inlines-hidden" )
+set ( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -fPIC -fvisibility-inlines-hidden" )
 
 #----- Sources
 set ( SRC_PREFIX "lib" )
@@ -118,6 +120,7 @@ set ( VC_LIB_SRC
                 ${SRC_PREFIX}/Compiler.cpp
                 ${SRC_PREFIX}/CompilerImpl/SystemCompiler.cpp
                 ${SRC_PREFIX}/CompilerImpl/SystemCompilerOptimizer.cpp
+                ${SRC_PREFIX}/CompilerImpl/TAFFOCompiler.cpp
                 )
 
 #----- Headers
@@ -134,6 +137,7 @@ set ( VC_LIB_HDR_PREFIX2 ${CMAKE_CURRENT_SOURCE_DIR}/include/versioningCompiler/
 set ( VC_LIB_HDR2
                 ${VC_LIB_HDR_PREFIX2}/SystemCompiler.hpp
                 ${VC_LIB_HDR_PREFIX2}/SystemCompilerOptimizer.hpp
+                ${VC_LIB_HDR_PREFIX2}/TAFFOCompiler.hpp
                 )
 
 
@@ -215,7 +219,6 @@ endif (ENABLE_CLANG_AS_LIB)
 
 add_executable(${VC_EXE_NAME} ${VC_TEST_APP_SRC})
 
-link_directories(${LLVM_LIBRARY_DIR} ${LIBCLANG_LIBRARY_DIR} "${CMAKE_INSTALL_PREFIX}/lib")
 target_link_libraries(${VC_EXE_NAME} ${VC_LIB_NAME} ${VC_LIB_DEPS})
 
 
@@ -239,7 +242,6 @@ endif (ENABLE_CLANG_AS_LIB)
 
 add_executable(${VC_EXE2_NAME} ${VC_TEST2_APP_SRC})
 
-link_directories(${LLVM_LIBRARY_DIR} ${LIBCLANG_LIBRARY_DIR} "${CMAKE_INSTALL_PREFIX}/lib")
 target_link_libraries(${VC_EXE2_NAME} ${VC_LIB_NAME} ${VC_LIB_DEPS})
 
 ###############################################
