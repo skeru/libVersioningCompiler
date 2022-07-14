@@ -8,7 +8,10 @@
  *                Nicole Gervasoni
  *                Ms student, Politecnico di Milano
  *                <first_name>annamaria.<family_name>@mail.polimi.it
- *
+ *                Moreno Giussani
+ *                Ms student, Politecnico di Milano
+ *                <first_name>.<family_name>@mail.polimi.it
+ * 
  * This file is part of libVersioningCompiler
  *
  * libVersioningCompiler is free software: you can redistribute it and/or
@@ -47,7 +50,7 @@
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/ExecutionEngine/Orc/CompileUtils.h"
 #include "llvm/ExecutionEngine/Orc/IRCompileLayer.h"
-#include "llvm/ExecutionEngine/Orc/LambdaResolver.h"
+#include "llvm/ExecutionEngine/Orc/Core.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Mangler.h"
@@ -68,9 +71,12 @@ namespace vc {
         llvm::IntrusiveRefCntPtr<clang::DiagnosticsEngine> _diagEngine;
         std::shared_ptr<FileLogDiagnosticConsumer> _diagConsumer;
         std::shared_ptr<LLVMInstanceManager> _llvmManager;
-        std::unique_ptr<llvm::TargetMachine> _targetMachine;
+        std::unique_ptr<llvm::orc::ExecutionSession> _ES;
+        llvm::orc::JITTargetMachineBuilder _JTMB;
+        llvm::orc::ThreadSafeContext _tsctx;
+        llvm::orc::MangleAndInterner _mangle;
         llvm::DataLayout _dataLayout;
-        llvm::LLVMContext _opt_context;
+        llvm::orc::JITDylib &_mainJD;
 
 /** \brief mutex to regulate exclusive access to static command line options
  * during optimizer option parsing and processing.
@@ -79,13 +85,11 @@ namespace vc {
 
     public:
         // Set of maps used to keep a state of the various versions requesting for JIT functionalities.
-        using ModuleHandle = llvm::orc::IRCompileLayer<llvm::orc::RTDyldObjectLinkingLayer, llvm::orc::SimpleCompiler>::ModuleHandleT;
-
-        std::map<std::string, std::shared_ptr<llvm::Module>> _modules_map;
-        std::map<std::string, ModuleHandle> _handles_map;
+        std::map<std::string, std::string> _modules_map; // source string gets placed here rather than the module. If it is present, generate the module
+        std::map<std::string, llvm::orc::ResourceTrackerSP> _resource_tracker_map;
         std::map<std::string, bool> _isloaded_map;
-        std::map<std::string, std::unique_ptr<llvm::orc::IRCompileLayer<llvm::orc::RTDyldObjectLinkingLayer, llvm::orc::SimpleCompiler>>> _comp_map;
-        std::map<std::string, std::shared_ptr<llvm::orc::RTDyldObjectLinkingLayer>> _obj_map;
+        std::map<std::string, std::unique_ptr<llvm::orc::IRCompileLayer>> _layer_map;
+        std::map<std::string, std::unique_ptr<llvm::orc::RTDyldObjectLinkingLayer>> _obj_map;
 
 
     public:
@@ -93,8 +97,9 @@ namespace vc {
 
         JITCompiler(const std::string &compilerID,
                     const std::string &libWorkingDir,
-                    const std::string &log,
-                    llvm::TargetMachine &targetMachine);
+                    const std::string &log //,
+                    //llvm::orc::JITTargetMachineBuilder targetMachineBuilder
+                    );
 
         inline ~JITCompiler() {}
 
@@ -123,7 +128,7 @@ namespace vc {
         void releaseSymbol(void **handler)
         override;
 
-        std::vector<void*> loadSymbols(std::string &bin,
+        std::vector<void*> loadSymbols(const std::string &bin,
                                        const std::vector<std::string> &func,
                                        void ** handler) override;
 
@@ -131,9 +136,9 @@ namespace vc {
 
 
         // JIT specific methods
-        void addModule(std::shared_ptr<llvm::Module> M, const std::string &versionID);
+        void addModule(std::unique_ptr<llvm::Module> m, const std::string &versionID);
 
-        llvm::JITSymbol findSymbol(const std::string Name, const std::string &versionID);
+        llvm::Expected<llvm::JITEvaluatedSymbol> findSymbol(const std::string Name, const std::string &versionID);
 
 
     private:

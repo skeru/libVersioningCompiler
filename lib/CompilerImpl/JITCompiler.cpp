@@ -8,6 +8,9 @@
  *                Nicole Gervasoni
  *                Ms student, Politecnico di Milano
  *                <first_name>annamaria.<family_name>@mail.polimi.it
+ *                Moreno Giussani
+ *                Ms student, Politecnico di Milano
+ *                <first_name>.<family_name>@mail.polimi.it
  *
  * This file is part of libVersioningCompiler
  *
@@ -39,6 +42,10 @@
 #include "clang/Basic/DiagnosticOptions.h"
 #include "clang/Basic/Diagnostic.h"
 
+#include "llvm/ExecutionEngine/SectionMemoryManager.h"
+#include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
+#include "llvm/Support/Error.h"
+#include "llvm/Pass.h"
 // opt stuff
 #include "versioningCompiler/CompilerImpl/ClangLLVM/OptUtils.hpp"
 
@@ -57,8 +64,8 @@ std::mutex JITCompiler::opt_parse_mtx;
 JITCompiler::JITCompiler(
         const std::string &compilerID,
         const std::string &libWorkingDir,
-        const std::string &log,
-        llvm::TargetMachine &targetMachine
+        const std::string &log //,
+        //llvm::orc::JITTargetMachineBuilder targetMachineBuilder
 ) : Compiler(
         compilerID,
         "#", // compiler call string
@@ -67,8 +74,15 @@ JITCompiler::JITCompiler(
         "~", // install directory
         true // support IR
 ),
-    _targetMachine(llvm::EngineBuilder().selectTarget()),
-    _dataLayout(targetMachine.createDataLayout()) {
+    _ES(std::make_unique<llvm::orc::ExecutionSession>(std::move(*llvm::orc::SelfExecutorProcessControl::Create()))),
+    _JTMB(_ES->getExecutorProcessControl().getTargetTriple()),
+    _tsctx(std::make_unique<llvm::LLVMContext>()),
+    _mangle(*_ES, this->_dataLayout),
+    _dataLayout(*this->_JTMB.getDefaultDataLayoutForTarget()), _mainJD(_ES->createBareJITDylib("<main>")) {
+      this->_mainJD.addGenerator(
+        llvm::cantFail(llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(
+            this->_dataLayout.getGlobalPrefix())));
+    
   std::cout << "Constructing compiler object.." << std::endl;
   _llvmManager = LLVMInstanceManager::getInstance();
 
@@ -288,14 +302,14 @@ std::string JITCompiler::runOptimizer(const std::string &src_IR,
   llvm::Triple moduleTriple(module->getTargetTriple());
   std::string optCPUStr, optFeaturesStr;
   llvm::TargetMachine *optTMachine = nullptr;
-  const llvm::TargetOptions Options = InitTargetOptionsFromCodeGenFlags();
+  const llvm::TargetOptions Options = llvm::codegen::InitTargetOptionsFromCodeGenFlags(moduleTriple);
   // llvm static helper function
   std::string lookupError;
   if (moduleTriple.getArch()) {
-    optCPUStr = getCPUStr();            // llvm static helper function
-    optFeaturesStr = getFeaturesStr();  // llvm static helper function
+    optCPUStr = llvm::codegen::getCPUStr();            // llvm static helper function
+    optFeaturesStr = llvm::codegen::getFeaturesStr();  // llvm static helper function
   }
-  const llvm::Target *TheTarget = TargetRegistry::lookupTarget(MArch,
+  const llvm::Target *TheTarget = llvm::TargetRegistry::lookupTarget(llvm::codegen::getMArch(),
                                                                moduleTriple,
                                                                lookupError);
   // Some modules don't specify a triple, and this is okay.
@@ -306,14 +320,14 @@ std::string JITCompiler::runOptimizer(const std::string &src_IR,
                                                  optCPUStr,
                                                  optFeaturesStr,
                                                  Options,
-                                                 getRelocModel(),
-                                                 getCodeModel(),
+                                                 llvm::codegen::getRelocModel(),
+                                                 llvm::CodeModel::Small,// llvm::codegen::getCodeModel returns zero (casted to Tiny), which is wrong! Going with small which is the default model for majority of supported targets
                                                  GetCodeGenOptLevel());
   }
-  std::unique_ptr<TargetMachine> actualTM(optTMachine);
+  std::unique_ptr<llvm::TargetMachine> actualTM(optTMachine);
   // Override function attributes based on CPUStr, FeaturesStr,
   // and command line flags.
-  setFunctionAttributes(optCPUStr, optFeaturesStr, *module);
+  llvm::codegen::setFunctionAttributes(optCPUStr, optFeaturesStr, *module);
 
   // Create a PassManager to hold and optimize the collection of passes we are
   // about to build.
@@ -347,7 +361,7 @@ std::string JITCompiler::runOptimizer(const std::string &src_IR,
       OptLevelO3) {
     FPasses.reset(new llvm::legacy::FunctionPassManager(module.get()));
     FPasses->add(llvm::createTargetTransformInfoWrapperPass(
-            actualTM ? actualTM->getTargetIRAnalysis() : TargetIRAnalysis()));
+            actualTM ? actualTM->getTargetIRAnalysis() : llvm::TargetIRAnalysis()));
   }
 
   // Create a new optimization pass for each one specified on the command line
@@ -391,7 +405,7 @@ std::string JITCompiler::runOptimizer(const std::string &src_IR,
                    std::string(PassInf->getPassName()));
     }
     if (P) {
-      PassKind Kind = P->getPassKind();
+      auto Kind = P->getPassKind();
       addPass(Passes, P);
     }
   } // end for each pass in PassList
@@ -431,14 +445,14 @@ std::string JITCompiler::runOptimizer(const std::string &src_IR,
 
   // Check that the module is well formed on completion of optimization
   if (!NoVerify && !VerifyEach) {
-    Passes.add(createVerifierPass());
+    Passes.add(llvm::createVerifierPass());
   }
 
   std::error_code outFileCreationErrorCode;
   std::unique_ptr<llvm::ToolOutputFile> Out =
-          llvm::make_unique<llvm::ToolOutputFile>(optBCfilename,
+          std::make_unique<llvm::ToolOutputFile>(optBCfilename,
                                                   outFileCreationErrorCode,
-                                                  llvm::sys::fs::F_None);
+                                                  llvm::sys::fs::OF_None);
   if (!Out) {
     report_error("Could not create output file");
     return failureFileName;
@@ -455,7 +469,7 @@ std::string JITCompiler::runOptimizer(const std::string &src_IR,
   // Write bitcode or assembly to the output as the last step...
   OS = &Out->os();
   if (RunTwice) {
-    BOS = llvm::make_unique<llvm::raw_svector_ostream>(Buffer);
+    BOS = std::make_unique<llvm::raw_svector_ostream>(Buffer);
     OS = BOS.get();
   }
   if (OutputAssembly) {
@@ -484,7 +498,7 @@ std::string JITCompiler::runOptimizer(const std::string &src_IR,
   // If requested, run all passes again with the same pass manager to catch
   // bugs caused by persistent state in the passes
   if (RunTwice) {
-    std::unique_ptr<llvm::Module> module2(llvm::CloneModule(module.get()));
+    std::unique_ptr<llvm::Module> module2(llvm::CloneModule(*module));
     Passes.run(*module2);
     CompileTwiceBuffer = Buffer;
     Buffer.clear();
@@ -534,41 +548,27 @@ std::string JITCompiler::runOptimizer(const std::string &src_IR,
  * Makes the actual call to llvm CompileLayer addModule functions and saves the JIT compilation
  * results in the JITCompiler class state
  */
-void JITCompiler::addModule(std::shared_ptr<llvm::Module> M, const std::string &versionID) {
-  auto cm_iterator = _comp_map.find(versionID);
+void JITCompiler::addModule(std::unique_ptr<llvm::Module> m, const std::string &versionID) {
+  llvm::orc::ThreadSafeModule TSM(std::move(m),_tsctx);
+  auto cm_iterator = _layer_map.find(versionID);
 
-  if (cm_iterator == _comp_map.end()) {
+  if (cm_iterator == _layer_map.end()) {
     std::string error_string = "JITCompiler::addModule ";
     error_string = error_string + "compileLayer for " + versionID + " not found";
     Compiler::log_string(error_string);
     return;
   }
-  auto Resolver = llvm::orc::createLambdaResolver(
-          [&](const std::string &Name) {
-              if (auto Sym = _comp_map[versionID]->findSymbol(Name, false))
-                return Sym;
-              return llvm::JITSymbol(nullptr);
-          },
-          [](const std::string &Name) {
-              if (auto SymAddr =
-                      llvm::RTDyldMemoryManager::getSymbolAddressInProcess(Name))
-                return llvm::JITSymbol(SymAddr, llvm::JITSymbolFlags::Exported);
-              return llvm::JITSymbol(nullptr);
-          });
-
-  _handles_map[versionID] = llvm::cantFail(_comp_map[versionID]->addModule(std::move(M), std::move(Resolver)));
+  _resource_tracker_map[versionID] = _mainJD.createResourceTracker();
+  llvm::cantFail(cm_iterator->second->add(_resource_tracker_map[versionID],std::move(TSM)));
   return;
 }
 
 // ---------------------------------------------------------------------------
 // ------------------------------- findSymbol --------------------------------
 // ---------------------------------------------------------------------------
-llvm::JITSymbol JITCompiler::findSymbol(const std::string Name, const std::string &versionID) {
-  std::string MangledName;
-  llvm::raw_string_ostream MangledNameStream(MangledName);
-  llvm::Mangler::getNameWithPrefix(MangledNameStream, Name, _dataLayout);
-
-  return _comp_map[versionID]->findSymbol(MangledNameStream.str(), true);
+llvm::Expected<llvm::JITEvaluatedSymbol> JITCompiler::findSymbol(const std::string Name, const std::string &versionID) {
+  llvm::StringRef llvmName(Name);
+  return _ES->lookup({&_mainJD}, _mangle(llvmName.str()));
 }
 
 // ---------------------------------------------------------------------------
@@ -607,14 +607,14 @@ llvm::JITSymbol JITCompiler::findSymbol(const std::string Name, const std::strin
 //  }
 //  return symbols;
 
-std::vector<void*> JITCompiler::loadSymbols(std::string &bin,
+std::vector<void*> JITCompiler::loadSymbols(const std::string &bin,
                                const std::vector<std::string> &func,
                                void ** handler) {
 
   std::vector<void *> symbols = {};
 
-  // In JITCompiter implementation bin is used as a reference to our version ID
-  std::string versionID = bin;
+  // In JITCompiler implementation bin is used as a reference to our version ID
+  const std::string versionID = bin;
 
   auto mm_iterator = _modules_map.find(versionID);
   if (mm_iterator == _modules_map.end()) {
@@ -623,15 +623,24 @@ std::vector<void*> JITCompiler::loadSymbols(std::string &bin,
     Compiler::log_string(error_string);
     return symbols;
   }
-
-  *handler = &bin;
-  std::shared_ptr<llvm::Module> m = _modules_map[versionID];
-
+  *handler = new std::string(bin);
   // Calling a wrapper to the actual llvm addModule method
-  addModule(m, bin);
-
-  auto hm_iterator = _handles_map.find(versionID);
-  if (hm_iterator == _handles_map.end()) {
+    auto report_error = [&](const std::string message) {
+      std::string error_string = "JITCompiler::loadSymbols";
+      error_string = error_string + " ERROR during processing of version ";
+      error_string = error_string + versionID;
+      error_string = error_string + "\n\t";
+      error_string = error_string + message;
+      Compiler::log_string(error_string);
+      return;
+  };
+  llvm::SMDiagnostic parsing_input_error_code;
+  addModule(std::move(llvm::parseIRFile(mm_iterator->second,parsing_input_error_code, *(_tsctx.getContext()))), bin);
+  if (parsing_input_error_code.getMessage().size()>0){
+    report_error(parsing_input_error_code.getMessage().str());
+  }
+    auto hm_iterator = _resource_tracker_map.find(versionID);
+  if (hm_iterator == _resource_tracker_map.end()) {
     std::string error_string = "JITCompiler::loadSymbol ";
     error_string = error_string + "cannot load symbol from " + versionID + " - addModule call failed";
     Compiler::log_string(error_string);
@@ -640,15 +649,17 @@ std::vector<void*> JITCompiler::loadSymbols(std::string &bin,
 
   _isloaded_map[versionID] = true;
 
-      for (const std::string& f : func) {
-      void *symbol = (void *) llvm::cantFail(findSymbol(f, versionID).getAddress());
-      if (!symbol) {
-        std::string error_str = "cannot load symbol " + f + " from " + bin +
-        " : symbol not found";
-        log_string(error_str);
-      }
-      symbols.push_back(symbol);
-    } // end for
+  for (const std::string& f : func) {
+    auto findSym=findSymbol(f, versionID);
+    llvm::cantFail(findSym.takeError());
+    void *symbol = (void* )findSym->getAddress();
+    if (!symbol) {
+      std::string error_str = "cannot load symbol " + f + " from " + bin +
+      " : symbol not found";
+      Compiler::log_string(error_str);
+    }
+    symbols.push_back(symbol);
+  } // end for
 
   return symbols;
 
@@ -665,7 +676,7 @@ std::vector<void*> JITCompiler::loadSymbols(std::string &bin,
  */
 void JITCompiler::releaseSymbol(void **handler) {
 
-  std::string *id = static_cast<std::string *>(*handler);
+  std::string *id = static_cast< std::string *>(*handler);
 
   auto map_rows_iterator = _isloaded_map.find(*id);
   if (map_rows_iterator == _isloaded_map.end()) {
@@ -674,11 +685,11 @@ void JITCompiler::releaseSymbol(void **handler) {
     Compiler::log_string(error_string);
     return;
   } else {
-    llvm::cantFail(_comp_map[*id]->removeModule(_handles_map[*id]));
-    _handles_map.erase(*id);
+    llvm::cantFail(_resource_tracker_map[*id]->remove()); // release all resources linked to this ResourceTrackerSP
+    _resource_tracker_map.erase(*id);
     _isloaded_map.erase(*id);
   }
-
+  delete(id);
   *handler = nullptr;
   return;
 }
@@ -700,12 +711,12 @@ std::string JITCompiler::generateBin(const std::vector<std::string> &src,
   // The source IR file name to JIT compile
   std::string source = src[0]; // if contains IR then it's just one element, otherwise will generate it
 
-  _obj_map[versionID] = std::make_shared<llvm::orc::RTDyldObjectLinkingLayer>(
-          [this]() { return std::make_shared<llvm::SectionMemoryManager>(); });
-  _comp_map[versionID] = make_unique<llvm::orc::IRCompileLayer<llvm::orc::RTDyldObjectLinkingLayer, llvm::orc::SimpleCompiler>>(
-          llvm::orc::IRCompileLayer<llvm::orc::RTDyldObjectLinkingLayer, llvm::orc::SimpleCompiler>(
-                  *(_obj_map[versionID]), llvm::orc::SimpleCompiler(
-                          *_targetMachine)));
+  _obj_map[versionID] = std::make_unique<llvm::orc::RTDyldObjectLinkingLayer>(*this->_ES,
+                    []() { return std::make_unique<llvm::SectionMemoryManager>(); });
+  _layer_map[versionID] = std::make_unique<llvm::orc::IRCompileLayer>(
+          *this->_ES, 
+          *(_obj_map[versionID]),
+          std::make_unique<llvm::orc::ConcurrentIRCompiler>(std::move(this->_JTMB)));
 
   // IR filename
   const std::string llvmIRfileName = Compiler::getBitcodeFileName(versionID);
@@ -736,13 +747,14 @@ std::string JITCompiler::generateBin(const std::vector<std::string> &src,
   llvm::SMDiagnostic parsing_input_error_code;
   Compiler::log_string("Jitting IR file: " + source);
 
-  _modules_map[versionID] = move(llvm::parseIRFile(source, parsing_input_error_code, _opt_context));
-  std::shared_ptr<llvm::Module> m = _modules_map[versionID];
-  if (!m) {
-    report_error("Module was not generated");
+  _modules_map[versionID] = source; // this used to be std::move(llvm::parseIRFile(source, parsing_input_error_code, *(_tsctx.getContext())));
+  
+  auto m = std::move(llvm::parseIRFile(_modules_map[versionID], parsing_input_error_code, *(_tsctx.getContext())));
+  if (parsing_input_error_code.getMessage().str().length() > 0) {
+    report_error("Module was not generated: "+parsing_input_error_code.getMessage().str());
     return failureName;
   }
-  addModule(m, versionID);
+  addModule(std::move(m), versionID);
   return versionID;
 }
 
@@ -780,5 +792,3 @@ inline std::vector<std::string> JITCompiler::getArgV(
 }
 
 
-template
-class llvm::orc::IRCompileLayer<llvm::orc::RTDyldObjectLinkingLayer, llvm::orc::SimpleCompiler>;

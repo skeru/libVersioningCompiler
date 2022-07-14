@@ -64,7 +64,7 @@ public:
     const std::vector<std::string> &src,
     const std::vector<std::string> &func,
     const std::string &versionID,
-    const opt_list_t options) const override;
+    const opt_list_t options) const ;
 
   virtual std::string runOptimizer(
     const std::string &src_IR,
@@ -75,7 +75,7 @@ public:
     const std::vector<std::string> &src,
     const std::vector<std::string> &func,
     const std::string &versionID,
-    const opt_list_t options) const override;
+    const opt_list_t options) const;
 
   virtual std::string getOptionString(const Option &o) const override;
 

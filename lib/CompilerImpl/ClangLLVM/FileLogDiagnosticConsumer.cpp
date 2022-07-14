@@ -190,8 +190,13 @@ void FileLogDiagnosticConsumer::HandleDiagnostic(DiagnosticsEngine::Level Level,
     FileID FID = SM.getMainFileID();
     if (FID.isValid()) {
       const FileEntry *FE = SM.getFileEntryForID(FID);
+      #if LLVM_MAJOR_VERSION <15
       if (FE && FE->isValid())
-        MainFilename = FE->getName();
+        MainFilename = std::string(FE->getName());
+      #else
+      if (FE)
+        MainFilename = std::string(FE->getName());
+      #endif
     }
   }
 
@@ -223,8 +228,7 @@ void FileLogDiagnosticConsumer::HandleDiagnostic(DiagnosticsEngine::Level Level,
   // other infrastructure necessary when emitting more rich diagnostics.
   if (!Info.getLocation().isValid()) {
     TextDiagnostic::printDiagnosticLevel(stringBuffer, Level,
-                                         DiagOpts->ShowColors,
-                                         DiagOpts->CLFallbackMode);
+                                         DiagOpts->ShowColors);
     TextDiagnostic::printDiagnosticMessage(stringBuffer, Level,
                                            DiagMessageStream.str(),
                                            stringBuffer.tell() - StartOfLocationInfo,
@@ -234,7 +238,7 @@ void FileLogDiagnosticConsumer::HandleDiagnostic(DiagnosticsEngine::Level Level,
   }
 
   // store the string
-  Entries.push_back(stringBuffer.str());
+  Entries.push_back(stringBuffer.str().str());
 
   // Default implementation (Warnings/errors count).
   DiagnosticConsumer::HandleDiagnostic(Level, Info);

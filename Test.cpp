@@ -91,7 +91,7 @@ int main(int argc, char const *argv[])
                                           ".",
                                           "./test.log",
                                           "/usr/bin",
-                                          "/usr/lib/llvm/bin"
+                                          "/usr/bin"
                                         );
 #if HAVE_CLANG_AS_LIB
   vc::compiler_ptr_t clangAsLib = vc::make_compiler<vc::ClangLibCompiler>(
@@ -103,6 +103,7 @@ int main(int argc, char const *argv[])
   // ---------- End compilers initialization ----------
   // start configuring version v
   builder._compiler = cc;
+  builder._genIROptionList={vc::Option("fpic", "-fPIC")};
   // finalization of a version. no compilation has been called yet.
   vc::version_ptr_t v = builder.build();
   // end configuring version v

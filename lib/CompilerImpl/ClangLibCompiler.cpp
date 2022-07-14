@@ -2,6 +2,9 @@
  * Developed by : Stefano Cherubin
  *                PhD student, Politecnico di Milano
  *                <first_name>.<family_name>@polimi.it
+ *                Moreno Giussani
+ *                Ms student, Politecnico di Milano
+ *                <first_name>.<family_name>@mail.polimi.it
  *
  * This file is part of libVersioningCompiler
  *
@@ -282,32 +285,35 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
   llvm::Triple moduleTriple(module->getTargetTriple());
   std::string optCPUStr, optFeaturesStr;
   llvm::TargetMachine* optTMachine = nullptr;
-  const llvm::TargetOptions Options = InitTargetOptionsFromCodeGenFlags();
+  const llvm::TargetOptions Options = llvm::codegen::InitTargetOptionsFromCodeGenFlags(moduleTriple);
                                       // llvm static helper function
   std::string lookupError;
   if (moduleTriple.getArch()) {
-    optCPUStr = getCPUStr();            // llvm static helper function
-    optFeaturesStr = getFeaturesStr();  // llvm static helper function
+    optCPUStr = llvm::codegen::getCPUStr();            // llvm static helper function
+    optFeaturesStr = llvm::codegen::getFeaturesStr();  // llvm static helper function
   }
-  const llvm::Target *TheTarget = TargetRegistry::lookupTarget(MArch,
+
+  const llvm::Target *TheTarget = llvm::TargetRegistry::lookupTarget(llvm::codegen::getMArch(),
                                                                moduleTriple,
                                                                lookupError);
   // Some modules don't specify a triple, and this is okay.
   if (!TheTarget) {
+
     optTMachine = nullptr;
   } else {
     optTMachine = TheTarget->createTargetMachine(moduleTriple.getTriple(),
                                                  optCPUStr,
                                                  optFeaturesStr,
                                                  Options,
-                                                 getRelocModel(),
-                                                 getCodeModel(),
+                                                 llvm::codegen::getRelocModel(),
+                                                 llvm::CodeModel::Small,// llvm::codegen::getCodeModel returns zero (casted to Tiny), which is wrong! Going with small which is the default model for majority of supported targets
                                                  GetCodeGenOptLevel());
-  }
-  std::unique_ptr<TargetMachine> actualTM(optTMachine);
+    }
+
+  std::unique_ptr<llvm::TargetMachine> actualTM(optTMachine);
   // Override function attributes based on CPUStr, FeaturesStr,
   // and command line flags.
-  setFunctionAttributes(optCPUStr, optFeaturesStr, *module);
+  llvm::codegen::setFunctionAttributes(optCPUStr, optFeaturesStr, *module);
 
   // Create a PassManager to hold and optimize the collection of passes we are
   // about to build.
@@ -342,7 +348,7 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
   {
     FPasses.reset(new llvm::legacy::FunctionPassManager(module.get()));
     FPasses->add(llvm::createTargetTransformInfoWrapperPass(
-      actualTM ? actualTM->getTargetIRAnalysis() : TargetIRAnalysis()));
+      actualTM ? actualTM->getTargetIRAnalysis() : llvm::TargetIRAnalysis()));
   }
 
   // Create a new optimization pass for each one specified on the command line
@@ -387,7 +393,7 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
                    std::string(PassInf->getPassName()));
     }
     if (P) {
-      PassKind Kind = P->getPassKind();
+      llvm::PassKind Kind = P->getPassKind();
       addPass(Passes, P);
     }
   } // end for each pass in PassList
@@ -427,14 +433,14 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
 
   // Check that the module is well formed on completion of optimization
   if (!NoVerify && !VerifyEach) {
-    Passes.add(createVerifierPass());
+    Passes.add(llvm::createVerifierPass());
   }
 
   std::error_code outFileCreationErrorCode;
   std::unique_ptr<llvm::ToolOutputFile> Out =
-    llvm::make_unique<llvm::ToolOutputFile>(optBCfilename,
-                                            outFileCreationErrorCode,
-                                            llvm::sys::fs::F_None);
+    std::make_unique<llvm::ToolOutputFile>(optBCfilename,
+                                          outFileCreationErrorCode,
+                                          llvm::sys::fs::OF_None);
   if (!Out) {
     report_error("Could not create output file");
     return failureFileName;
@@ -451,7 +457,7 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
   // Write bitcode or assembly to the output as the last step...
   OS = &Out->os();
   if (RunTwice) {
-    BOS = llvm::make_unique<llvm::raw_svector_ostream>(Buffer);
+    BOS = std::make_unique<llvm::raw_svector_ostream>(Buffer);
     OS = BOS.get();
   }
   if (OutputAssembly) {

@@ -2,6 +2,9 @@
 # Developed by : Stefano Cherubin, Davide Gadioli
 #                PhD student, Politecnico di Milano
 #                <first_name>.<family_name>@polimi.it
+#                Moreno Giussani
+#                Ms student, Politecnico di Milano
+#                <first_name>.<family_name>@mail.polimi.it
 #
 # This file is part of libVersioningCompiler
 #
@@ -132,20 +135,19 @@ endif (UUID_INCLUDE_DIR-NOTFOUND)
 #  LLVM_LFLAGS      - llvm linker flags
 #  LLVM_MODULE_LIBS - list of llvm libs for working with modules.
 #  LLVM_FOUND       - True if llvm found.
-set (LIBCLANG_KNOWN_LLVM_VERSIONS 8.0.0 8.0 8
-  7.0.1 7.0.0 7.0 7
-  6.0.1 6.0.0 6.0 6
-  5.0.2 5.0.1 5.0.0 5.0 5
-  4.0.1 4.0.0 4.0 4
-  3.9.1 3.9.0 3.9
-  3.8.1 3.8.0 3.8
-  3.7.1 3.7.0 3.7
-  3.6.2 3.6.1 3.6.0 3.6
-  3.5.2 3.5.1 3.5.0 3.5
-  3.4.2 3.4.1 3.4
-  3.3
-  3.2
-  3.1)
+set (LIBCLANG_KNOWN_LLVM_VERSIONS 15.0.0
+        14.0.6
+        14.0.5
+        14.0.4
+        14.0.3
+        14.0.2
+        14.0.1
+        14.0.0
+        13.0.1
+        13.0.0
+        12.0.1
+        12.0.0
+)
 
 set (llvm_config_name)
 set (llvm_header_search_paths)
@@ -156,9 +158,11 @@ set (llvm_lib_search_paths
 
 foreach (version ${LIBCLANG_KNOWN_LLVM_VERSIONS})
   string(REPLACE "." "" undotted_version "${version}")
+  string(REPLACE ".0.0" "" stripped_version "${version}")
   list(APPEND llvm_header_search_paths
     # LLVM Debian/Ubuntu nightly packages: http://apt.llvm.org/
     "/usr/lib/llvm-${version}/include/"
+    "/usr/lib/llvm-${stripped_version}/include"
     # LLVM MacPorts
     "/opt/local/libexec/llvm-${version}/include"
     # LLVM Homebrew
@@ -169,17 +173,24 @@ foreach (version ${LIBCLANG_KNOWN_LLVM_VERSIONS})
     "/usr/local/llvm${undotted_version}/include"
     )
 
+if ( NOT DEFINED ENV{LLVM_CONFIG} )
   list(APPEND llvm_config_name
                               llvm-config-${version}
                               llvm-config${version}
                               llvm-config-${undotted_version}
                               llvm-config${undotted_version}
+                              llvm-config-${stripped_version}
+                              llvm-config${stripped_version}
                               llvm-config
-                            )
+                              )
+else( NOT DEFINED ENV{LLVM_CONFIG} )
+  list(APPEND llvm_config_name $ENV{LLVM_CONFIG} )
+endif( NOT DEFINED ENV{LLVM_CONFIG} )
 
   list(APPEND llvm_lib_search_paths
     # LLVM Debian/Ubuntu nightly packages: http://apt.llvm.org/
     "/usr/lib/llvm-${version}/lib/"
+    "/usr/lib/llvm-${stripped_version}/lib/"
     # LLVM MacPorts
     "/opt/local/libexec/llvm-${version}/lib"
     # LLVM Homebrew
@@ -197,16 +208,16 @@ find_program(LLVM_CONFIG_EXECUTABLE
 
 if (LLVM_CONFIG_EXECUTABLE)
   set (HAVE_LLVM TRUE)
-  if (NOT LibVersioningCompiler_FIND_QUIETLY)
+  if (LibVersioningCompiler_FIND_VERBOSE)
     message (STATUS "Found components for LLVM")
     message (STATUS "llvm-config ........ = ${LLVM_CONFIG_EXECUTABLE}")
-  endif (NOT LibVersioningCompiler_FIND_QUIETLY)
+  endif (LibVersioningCompiler_FIND_VERBOSE)
 else (LLVM_CONFIG_EXECUTABLE)
   set (HAVE_LLVM FALSE)
-  if (NOT LibVersioningCompiler_FIND_QUIETLY)
+  if (LibVersioningCompiler_FIND_VERBOSE)
     message (STATUS "Unable to find llvm-config executable")
     message (WARNING "Could NOT find LLVM config executable")
-  endif (NOT LibVersioningCompiler_FIND_QUIETLY)
+  endif (LibVersioningCompiler_FIND_VERBOSE)
 endif (LLVM_CONFIG_EXECUTABLE)
 
 execute_process(
@@ -222,7 +233,7 @@ execute_process(
 )
 
 execute_process(
-  COMMAND ${LLVM_CONFIG_EXECUTABLE} --cppflags
+  COMMAND ${LLVM_CONFIG_EXECUTABLE} --cxxflags
   OUTPUT_VARIABLE LLVM_CFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
@@ -264,30 +275,36 @@ set(LLVM_SYSTEM pthread z tinfo)
 
 # most recent versions come first
 # http://apt.llvm.org/
-set (LIBCLANG_KNOWN_LLVM_VERSIONS 8.0.0 8.0 8
-  7.0.1 7.0.0 7.0 7
-  6.0.1 6.0.0 6.0 6
-  5.0.2 5.0.1 5.0.0 5.0 5
-  4.0.1 4.0.0 4.0 4
-  3.9.1 3.9.0 3.9
-  3.8.1 3.8.0 3.8
-  3.7.1 3.7.0 3.7
-  3.6.2 3.6.1 3.6.0 3.6
-  3.5.2 3.5.1 3.5.0 3.5
-  3.4.2 3.4.1 3.4
-  3.3
-  3.2
-  3.1)
+set (LIBCLANG_KNOWN_LLVM_VERSIONS 15.0.0
+        14.0.6
+        14.0.5
+        14.0.4
+        14.0.3
+        14.0.2
+        14.0.1
+        14.0.0
+        13.0.1
+        13.0.0
+        12.0.1
+        12.0.0
+)
 
-set (libclang_llvm_header_search_paths)
+set (libclang_llvm_header_search_paths
+)
 set (libclang_llvm_lib_search_paths
                                   # LLVM Fedora
                                   /usr/lib/llvm
+                                  /usr/local/lib
+                                  # Archlinux
+                                  /usr/lib/
+                                  /usr/lib/clang/
                                 )
 
 foreach (version ${LIBCLANG_KNOWN_LLVM_VERSIONS})
   string(REPLACE "." "" undotted_version "${version}")
   list(APPEND libclang_llvm_header_search_paths
+    # git installation
+    "/usr/local/include/clang"
     # LLVM Debian/Ubuntu nightly packages: http://apt.llvm.org/
     "/usr/lib/llvm-${version}/include/"
     # LLVM MacPorts
@@ -298,11 +315,16 @@ foreach (version ${LIBCLANG_KNOWN_LLVM_VERSIONS})
     "/usr/local/lib/llvm-${version}/include"
     # FreeBSD ports versions
     "/usr/local/llvm${undotted_version}/include"
+    # Archlinux
+    "/usr/lib/clang/${version}/include"
     )
 
   list(APPEND libclang_llvm_lib_search_paths
+    # git installation
+    "/usr/local/lib"
     # LLVM Debian/Ubuntu nightly packages: http://apt.llvm.org/
     "/usr/lib/llvm-${version}/lib/"
+    "/usr/lib/llvm-${stripped_version}/lib/"
     # LLVM MacPorts
     "/opt/local/libexec/llvm-${version}/lib"
     # LLVM Homebrew
@@ -311,6 +333,8 @@ foreach (version ${LIBCLANG_KNOWN_LLVM_VERSIONS})
     "/usr/local/lib/llvm-${version}/lib"
     # FreeBSD ports versions
     "/usr/local/llvm${undotted_version}/lib"
+    # Archlinux
+    "/usr/lib/"
     )
 endforeach()
 
@@ -328,22 +352,22 @@ endif(LIBCLANG_INCLUDES)
 ## -----------------------------------------------------------------------------
 # Check LLVM version
 
-set (LLVM_VERSION_MIN_REQUIRED "4.0.0")
+set (LLVM_VERSION_MIN_REQUIRED "13.0.0")
 
 if ( HAVE_LLVM AND
      (NOT ( LLVM_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED )) AND
      HAVE_LIBCLANG )
   set ( ENABLE_CLANG_AS_LIB TRUE )
   if (NOT HAVE_CLANG_LIB_COMPILER AND
-      NOT LibVersioningCompiler_FIND_QUIETLY)
+      LibVersioningCompiler_FIND_VERBOSE)
     message( WARNING "Clang-as-a-library can be enabled\
  however it is not installed.\n\
  Please re-install libVersioningCompiler to enable it" )
   endif (NOT HAVE_CLANG_LIB_COMPILER AND
-         NOT LibVersioningCompiler_FIND_QUIETLY)
+         LibVersioningCompiler_FIND_VERBOSE)
 else()
   set ( ENABLE_CLANG_AS_LIB FALSE )
-  if (NOT LibVersioningCompiler_FIND_QUIETLY)
+  if (LibVersioningCompiler_FIND_VERBOSE)
     if (NOT HAVE_LLVM)
       message( WARNING "LLVM not detected" )
     else(NOT HAVE_LLVM)
@@ -356,7 +380,7 @@ else()
       endif (LLVM_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED)
     endif (NOT HAVE_LLVM)
     message( WARNING "Clang-as-a-library disabled" )
-  endif (NOT LibVersioningCompiler_FIND_QUIETLY)
+  endif (LibVersioningCompiler_FIND_VERBOSE)
 endif()
 
 # Make variable coherent
@@ -498,6 +522,7 @@ if (ENABLE_CLANG_AS_LIB)
   set( LIBVC_LIBRARIES ${LIBVC_LIBRARIES}
                        ${LIBCLANG_LIBRARIES}
                        ${LLVM_MODULE_LIBS}
+                       ${LLVM_MODULE_LIBFILES}
                        ${LLVM_SYSTEM}
                      )
 endif(ENABLE_CLANG_AS_LIB)
@@ -513,29 +538,29 @@ list( REMOVE_DUPLICATES LIBVC_LIBRARIES )
 if ( LIBVC_INCLUDES AND LIBVC_LIBRARIES )
   set ( HAVE_LIBVC TRUE )
 else ( LIBVC_INCLUDES AND LIBVC_LIBRARIES )
-  if ( NOT LibVersioningCompiler_FIND_QUIETLY )
+  if ( LibVersioningCompiler_FIND_VERBOSE )
     if ( NOT LIBVC_INCLUDES )
       message (STATUS "Unable to find libVC header files!")
     endif ( NOT LIBVC_INCLUDES )
     if ( NOT LIBVC_LIBRARIES )
       message (STATUS "Unable to find libVC library files!")
     endif ( NOT LIBVC_LIBRARIES )
-  endif ( NOT LibVersioningCompiler_FIND_QUIETLY )
+  endif ( LibVersioningCompiler_FIND_VERBOSE )
 endif ( LIBVC_INCLUDES AND LIBVC_LIBRARIES )
 
 if ( HAVE_LIBVC )
-  if ( NOT LibVersioningCompiler_FIND_QUIETLY )
+  if ( LibVersioningCompiler_FIND_VERBOSE )
     message (STATUS "Found components for libVersioningCompiler")
     message (STATUS "LIBVC_INCLUDES .... = ${LIBVC_INCLUDES}")
     message (STATUS "LIBVC_LIBRARIES ... = ${LIBVC_LIBRARIES}")
-  endif ( NOT LibVersioningCompiler_FIND_QUIETLY )
+  endif ( LibVersioningCompiler_FIND_VERBOSE )
 else ( HAVE_LIBVC )
   if ( LibVersioningCompiler_FIND_REQUIRED )
     message (FATAL_ERROR "Could not find libVersioningCompiler!")
   else ( LibVersioningCompiler_FIND_REQUIRED )
-    if ( LibVersioningCompiler_FIND_QUIETLY )
+    if ( NOT LibVersioningCompiler_FIND_VERBOSE )
       message (WARNING "Could not find libVersioningCompiler!")
-    endif ( LibVersioningCompiler_FIND_QUIETLY )
+    endif ( NOT LibVersioningCompiler_FIND_VERBOSE )
   endif ( LibVersioningCompiler_FIND_REQUIRED )
 endif ( HAVE_LIBVC )
 

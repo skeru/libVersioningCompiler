@@ -82,10 +82,10 @@ namespace vc {
         std::cout << "Setting up builder.." << std::endl;
         Version::Builder builder;
         builder._compiler = _libVC_jit_compiler;
-        builder._fileName_src = src;
-        builder._functionName = fn;
+        builder._fileName_src = {src};
+        builder._functionName = {fn};
         builder._optionList = options;
-        builder.addFunctionFlag();
+        // builder.addFunctionFlag();
         builder._autoremoveFilesEnable = true;
         return builder.build();
     }

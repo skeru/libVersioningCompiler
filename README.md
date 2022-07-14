@@ -11,15 +11,15 @@ An introductory video is available on [YouTube](https://www.youtube.com/watch?v=
 
 ## Dependencies
 libVersioningCompiler requires:
- - Ubuntu 16.04 or greater
- - any compiler compliant to the C++11 standard
- - cmake 3.0.2 or greater
+ - Ubuntu 20.04 LTS or greater
+ - any compiler compliant to the C++14 standard
+ - cmake 3.9.4 or greater
 
 external libraries:
- - dl
+ - libz-dev
  - uuid-dev
- - (OPTIONAL) llvm-8.0-dev
- - (OPTIONAL) libclang-8.0-dev
+ - (OPTIONAL) LLVM 13 or greater (up to LLVM 15)
+ - (OPTIONAL) libclang-13-dev up to libclang-15-dev
 
 Compiling without the OPTIONAL dependencies will disable some features,
 like the Clang-as-a-library compiler implementation.
@@ -28,7 +28,17 @@ like the Clang-as-a-library compiler implementation.
 
 libVersioningCompiler uses the cmake build system.
 If you want to install libVersioningCompiler
+install the dependencies with LLVM version `${LLVM_V}`:
 
+```bash
+wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+[sudo] ./llvm.sh ${LLVM_V} all
+[sudo] apt-get install -y git cmake uuid-dev g++-10 libz-dev
+[optional][sudo] update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${LLVM_V} 100
+[optional][sudo] update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${LLVM_V} 100
+[optional][sudo] update-alternatives --install /usr/bin/opt opt /usr/bin/opt-${LLVM_V} 100
+```
 clone the repository to `${LIBVC_ROOT}`
 
 ```
@@ -37,6 +47,9 @@ mkdir build
 cd build
 cmake .. [-DCMAKE_INSTALL_PREFIX="/path/to/your/custom/install/folder/"]
 make
+./libVC_testUtils
+./libVC_test
+./libVC_testJit 
 [sudo] make install
 ```
 

@@ -39,7 +39,7 @@ class Option
    * \param optionPrefix string to prepend the option value.
    * This string should include also separators such as " ", "=".
    * Examples of optionPrefix are:
-   * "-O" for `-O2`, "--std=" for `--std=c++11`, "--emit-llvm" for `--emit-llvm`
+   * "-O" for `-O2`, "--std=" for `--std=c++14`, "--emit-llvm" for `--emit-llvm`
    *
    * \param val option value.
    * Examples are "2" for `-O2`, "3" for `-O3`.

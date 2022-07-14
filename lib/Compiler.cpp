@@ -122,7 +122,7 @@ void Compiler::releaseSymbol(void ** handler)
 // ---------------------------------------------------------------------------
 // ------------------------------- loadSymbol --------------------------------
 // ---------------------------------------------------------------------------
-std::vector<void*> Compiler::loadSymbols(std::string &bin,
+std::vector<void*> Compiler::loadSymbols(const std::string &bin,
                                          const std::vector<std::string> &func,
                                          void ** handler)
 {

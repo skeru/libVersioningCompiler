@@ -2,7 +2,10 @@
  * Developed by : Stefano Cherubin
  *                PhD student, Politecnico di Milano
  *                <first_name>.<family_name>@polimi.it
- *
+ *                Moreno Giussani
+ *                Ms student, Politecnico di Milano
+ *                <first_name>.<family_name>@mail.polimi.it
+ * 
  * This file is part of libVersioningCompiler
  *
  * libVersioningCompiler is free software: you can redistribute it and/or
@@ -30,9 +33,20 @@
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Program.h"
 #include "llvm/Support/raw_os_ostream.h"
+#if LLVM_MAJOR_VERSION >= 14
+#include "llvm/MC/TargetRegistry.h"
+#else
 #include "llvm/Support/TargetRegistry.h"
+#endif
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Target/TargetMachine.h"
+#include "llvm/Support/Host.h"
+#include "llvm/PassRegistry.h"
+#include "llvm/IR/PassManager.h"
+#include "llvm/InitializePasses.h"
+#include "llvm/Support/ManagedStatic.h"
+#include "llvm/ADT/APInt.h"
+#include "llvm/Support/Program.h"
 
 #include <string>
 /** LLVMInstanceManager is a lazy-initialized singleton.

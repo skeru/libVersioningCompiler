@@ -8,6 +8,9 @@
  *                Nicole Gervasoni
  *                Ms student, Politecnico di Milano
  *                <first_name>annamaria.<family_name>@mail.polimi.it
+ *                Moreno Giussani
+ *                Ms student, Politecnico di Milano
+ *                <first_name>.<family_name>@mail.polimi.it
  *
  * This file is part of libVersioningCompiler
  *
@@ -24,31 +27,30 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
-#include "versioningCompiler/Version.hpp"
-#include "versioningCompiler/CompilerImpl/SystemCompiler.hpp"
-#include "versioningCompiler/CompilerImpl/SystemCompilerOptimizer.hpp"
-#include <string>
-#include <vector>
 #include <iostream>
 #include <stdlib.h>
-
+#include <string>
+#include <vector>
+#include "versioningCompiler/CompilerImpl/JITCompiler.hpp"
+#include "versioningCompiler/CompilerImpl/SystemCompiler.hpp"
+#include "versioningCompiler/CompilerImpl/SystemCompilerOptimizer.hpp"
+#include "versioningCompiler/Version.hpp"
 
 
 // ----------------------------------------------------------------------
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/ExecutionEngine/JITSymbol.h"
+#include "llvm/Support/TargetSelect.h"
 #include "llvm/ExecutionEngine/RTDyldMemoryManager.h"
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/ExecutionEngine/Orc/CompileUtils.h"
 #include "llvm/ExecutionEngine/Orc/IRCompileLayer.h"
-#include "llvm/ExecutionEngine/Orc/LambdaResolver.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Mangler.h"
 #include "llvm/Support/DynamicLibrary.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Target/TargetMachine.h"
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -56,13 +58,9 @@
 // ----------------------------------------------------------------
 
 
-
-#if HAVE_CLANG_AS_LIB
-
 #include "versioningCompiler/CompilerImpl/ClangLibCompiler.hpp"
-#include <versioningCompiler/CompilerImpl/JITCompiler.hpp>
+#include "versioningCompiler/CompilerImpl/JITCompiler.hpp"
 
-#endif
 
 #ifndef FORCED_PATH_TO_TEST
 #define FORCED_PATH_TO_TEST "../libVersioningCompiler/test_code"
@@ -94,20 +92,16 @@ int main(int argc, char const *argv[]) {
   builder._fileName_src.push_back(PATH_TO_C_TEST_CODE);
   builder.addFunctionFlag(TEST_FUNCTION_LBL);
 
-  InitializeNativeTarget();
-  InitializeNativeTargetAsmPrinter();
-  InitializeNativeTargetAsmParser();
-
-  std::cout << "Setting up target machine.." << std::endl;
-  auto targetMachine = EngineBuilder().selectTarget();
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+  llvm::InitializeNativeTargetAsmParser();
 
   // ---------- Compiler initialization ---------
   std::cout << "Setting up compiler.." << std::endl;
   vc::compiler_ptr_t jitCompiler = vc::make_compiler<vc::JITCompiler>(
           "jitCompiler",
           ".",
-          "./test_jit.log",
-          *targetMachine
+          "./test_jit.log"
   );
 
 

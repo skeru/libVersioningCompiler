@@ -99,17 +99,18 @@ class Compiler
                                   const std::string &versionID,
                                   const opt_list_t options) = 0;
 
-     /** \brief Opens the binary shared object, stores in *handler the reference to
+/** \brief Opens the binary shared object, stores in *handler the reference to
  * the open shared object, and loads the symbol relative to the given function.
  *
  * Returns the loaded function pointer on success. nullptr otherwise.
  * Output of this method is supposed to reinterpreted by the caller.
  */
- virtual std::vector<void*> loadSymbols(std::string &bin,
+ virtual std::vector<void*> loadSymbols(const std::string &bin,
                                  const std::vector<std::string> &func,
                                  void ** handler);
 
-    virtual /** \brief Closes the binary shared object, set *handler to nullptr, and
+    virtual 
+    /** \brief Closes the binary shared object, set *handler to nullptr, and
  * invalidates the symbol relative to the given function.
  *
  * Returns the loaded function pointer on success. nullptr otherwise.

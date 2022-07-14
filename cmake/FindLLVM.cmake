@@ -8,20 +8,17 @@
 #  LLVM_MODULE_LIBS - list of llvm libs for working with modules.
 #  LLVM_VERSION     - Installed version.
 
-set (LIBCLANG_KNOWN_LLVM_VERSIONS 8.0.0 8.0 8
-  7.0.1 7.0.0 7.0 7
-  6.0.1 6.0.0 6.0 6
-  5.0.2 5.0.1 5.0.0 5.0 5
-  4.0.1 4.0.0 4.0
-  3.9.1 3.9.0 3.9
-  3.8.1 3.8.0 3.8
-  3.7.1 3.7.0 3.7
-  3.6.2 3.6.1 3.6.0 3.6
-  3.5.2 3.5.1 3.5.0 3.5
-  3.4.2 3.4.1 3.4
-  3.3
-  3.2
-  3.1)
+set (LIBCLANG_KNOWN_LLVM_VERSIONS 15.0.0
+        14.0.6
+        14.0.5
+        14.0.4
+        14.0.3
+        14.0.2
+        14.0.1
+        14.0.0
+        13.0.1
+        13.0.0
+)
 
 set (llvm_config_name)
 set (llvm_header_search_paths)
@@ -32,11 +29,13 @@ set (llvm_lib_search_paths
 
 foreach (version ${LIBCLANG_KNOWN_LLVM_VERSIONS})
   string(REPLACE "." "" undotted_version "${version}")
+  string(REPLACE ".0.0" "" stripped_version "${version}")
   list(APPEND llvm_header_search_paths
     # git installation
     "/usr/local/include/llvm"
     # LLVM Debian/Ubuntu nightly packages: http://apt.llvm.org/
     "/usr/lib/llvm-${version}/include/"
+    "/usr/lib/llvm-${stripped_version}/include/"
     # LLVM MacPorts
     "/opt/local/libexec/llvm-${version}/include"
     # LLVM Homebrew
@@ -47,19 +46,27 @@ foreach (version ${LIBCLANG_KNOWN_LLVM_VERSIONS})
     "/usr/local/llvm${undotted_version}/include"
     )
 
-  list(APPEND llvm_config_name
-                              llvm-config-${version}
-                              llvm-config${version}
-                              llvm-config-${undotted_version}
-                              llvm-config${undotted_version}
-                              llvm-config
-                            )
+  if ( NOT DEFINED ENV{LLVM_CONFIG} )
+    list(APPEND llvm_config_name
+                                llvm-config-${version}
+                                llvm-config${version}
+                                llvm-config-${undotted_version}
+                                llvm-config${undotted_version}
+                                llvm-config-${stripped_version}
+                                llvm-config${stripped_version}
+                                llvm-config
+                                )
+  else( NOT DEFINED ENV{LLVM_CONFIG} )
+    list(APPEND llvm_config_name $ENV{LLVM_CONFIG} )
+  endif( NOT DEFINED ENV{LLVM_CONFIG} )
 
   list(APPEND llvm_lib_search_paths
     # git installation
     "/usr/local/lib"
     # LLVM Debian/Ubuntu nightly packages: http://apt.llvm.org/
     "/usr/lib/llvm-${version}/lib/"
+    "/usr/lib/llvm-${stripped_version}/lib/"
+    "/usr/local/llvm-${undotted_version}/lib"
     # LLVM MacPorts
     "/opt/local/libexec/llvm-${version}/lib"
     # LLVM Homebrew
@@ -96,7 +103,7 @@ execute_process(
 )
 
 execute_process(
-  COMMAND ${LLVM_CONFIG_EXECUTABLE} --cppflags
+  COMMAND ${LLVM_CONFIG_EXECUTABLE} --cxxflags
   OUTPUT_VARIABLE LLVM_CFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
@@ -126,12 +133,26 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+if (LLVM_VERSION MATCHES "^([0-9]+)(\\.[0-9]+)*$")
+  set (LLVM_MAJOR_VERSION ${CMAKE_MATCH_1})
+else()
+  message (WARNING "LLVM_MAJOR_VERSION NOT DETECTED!")
+  set (LLVM_MAJOR_VERSION LLVM_VERSION)
+endif()
+
+execute_process(
+  COMMAND ${LLVM_CONFIG_EXECUTABLE} --shared-mode
+  OUTPUT_VARIABLE LLVM_LINKING_MODE
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
 
 set(LLVM_SYSTEM  z pthread tinfo)
 
-if (NOT LLVM_FIND_QUIETLY)
+if (LLVM_FIND_VERBOSE)
   if (LLVM_VERSION)
     message (STATUS "LLVM_VERSION ....... = ${LLVM_VERSION}")
+    message (STATUS "LLVM_MAJOR_VERSION . = ${LLVM_MAJOR_VERSION}")
   else(LLVM_VERSION)
     message (STATUS "LLVM_VERSION ....... = NOT FOUND")
   endif (LLVM_VERSION)
@@ -146,6 +167,7 @@ if (NOT LLVM_FIND_QUIETLY)
     message (STATUS "LLVM_LIBRARY_DIR ... = NOT FOUND")
   endif (LLVM_LIBRARY_DIR)
   if (LLVM_FIND_VERBOSE)
+    message(STATUS "LLVM_LINKING_MODE ...... = ${LLVM_LINKING_MODE}")
     if (LLVM_CFLAGS)
       message (STATUS "LLVM_CFLAGS ........ = ${LLVM_CFLAGS}")
     else(LLVM_CFLAGS)
@@ -167,8 +189,10 @@ if (NOT LLVM_FIND_QUIETLY)
       message (STATUS "LLVM_SYSTEM_LIBS ... = NOT FOUND")
     endif (LLVM_SYSTEM)
   endif (LLVM_FIND_VERBOSE)
-endif (NOT LLVM_FIND_QUIETLY)
+endif (LLVM_FIND_VERBOSE)
 
+# Required to adjust imports based on the llvm major version
+add_definitions(-DLLVM_MAJOR_VERSION=${LLVM_MAJOR_VERSION})
 mark_as_advanced(
   HAVE_LLVM
   LLVM_INCLUDE_DIR
@@ -178,4 +202,5 @@ mark_as_advanced(
   LLVM_MODULE_LIBS
   LLVM_SYSTEM
   LLVM_VERSION
+  LLVM_LINKING_MODE
 )

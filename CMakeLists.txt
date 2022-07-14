@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
 
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.9.4)
 
 project(libVersioningCompiler)
 
@@ -62,7 +62,7 @@ if (HAVE_LLVM)
   link_directories(${LLVM_LIBRARY_DIR})
 endif (HAVE_LLVM)
 
-set (LLVM_VERSION_MIN_REQUIRED "8.0.0")
+set (LLVM_VERSION_MIN_REQUIRED "13.0.0")
 
 if ( HAVE_LLVM AND
      (NOT ( LLVM_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED )) AND
@@ -85,6 +85,7 @@ endif()
 
 set (VC_LIB_DEPS ${DL_LIBRARY}
                  ${UUID_LIBRARY}
+                 stdc++
                 )
 
 if (ENABLE_CLANG_AS_LIB)
@@ -107,10 +108,22 @@ if (NOT CMAKE_BUILD_TYPE)
   message ("No build type detected. Build type set to Release by default")
   set ( CMAKE_BUILD_TYPE Release )
 endif()
+set ( CMAKE_CXX_STANDARD 14 )
+set ( CMAKE_CXX_STANDARD_REQUIRED ON )
+set ( CMAKE_CXX_EXTENSIONS OFF )
+set ( CMAKE_VISIBILITY_INLINES_HIDDEN ON )
+set ( CMAKE_POSITION_INDEPENDENT_CODE ON )
 
-set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -ldl -fno-use-cxa-atexit" )
-set ( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVC_DEBUG -fno-rtti -fno-use-cxa-atexit" )
-set ( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -fPIC -fno-rtti -fno-use-cxa-atexit" )
+# https://gcc.gnu.org/wiki/Visibility#line-14 - Much lower chance of symbol collision.
+set ( CMAKE_CXX_VISIBILITY_INLINES_HIDDEN ON )
+
+# CMAKE_INTERPROCEDURAL_OPTIMIZATION applies different optimizations depending on the compiler. It breaks cross compiler compatibility (e.g. g++ with clang)
+# Disabling link time optimization.
+# set ( CMAKE_INTERPROCEDURAL_OPTIMIZATION ON) 
+set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-use-cxa-atexit -fno-rtti" )
+if (CMAKE_COMPILER_IS_GNUC OR CMAKE_COMPILER_IS_GNUCXX)
+ set ( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3" )
+endif(CMAKE_COMPILER_IS_GNUC OR CMAKE_COMPILER_IS_GNUCXX)
 
 #----- Sources
 set ( SRC_PREFIX "lib" )
@@ -176,7 +189,7 @@ set (VC_LIB_HDR ${VC_LIB_HDR1} ${VC_LIB_HDR2} ${VC_LIB_HDR3} )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/include )
 
 add_library( ${VC_LIB_NAME} STATIC ${VC_LIB_SRC} ${VC_LIB_HDR} )
-target_link_libraries( ${VC_LIB_NAME} ${VC_LIB_DEPS} z pthread tinfo)
+target_link_libraries( ${VC_LIB_NAME} ${VC_LIB_DEPS} )
 
 ###############################################
 ##               CONFIGURE                   ##
@@ -208,25 +221,28 @@ endif (ENABLE_CLANG_AS_LIB)
 ## TestJit.cpp
 #----- Sources
 
-set (VC_TESTJIT_APP_SRC TestJit.cpp)
-
-set (VC_EXE_NAME libVC_testJit)
-
+# It does make no sense building it if there is no LLVM, given that the JIT implementation relies on LLVM. 
 if (ENABLE_CLANG_AS_LIB)
-  set_source_files_properties(${VC_TESTJIT_APP_SRC} PROPERTIES
-          COMPILE_FLAGS "-fno-use-cxa-atexit -flto -DHAVE_CLANG_AS_LIB -DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
-          )
-else (ENABLE_CLANG_AS_LIB)
-  set_source_files_properties(${VC_TESTJIT_APP_SRC} PROPERTIES
-          COMPILE_FLAGS "-fno-use-cxa-atexit -flto -DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
-          )
+  set (VC_TESTJIT_APP_SRC TestJit.cpp)
+
+  set (VC_EXE_NAME libVC_testJit)
+
+  if ( CMAKE_BUILD_TYPE MATCHES DEBUG )
+    set_source_files_properties(${VC_TESTJIT_APP_SRC} PROPERTIES
+              COMPILE_FLAGS "-DVC_DEBUG -DHAVE_CLANG_AS_LIB -DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
+  )
+  else( CMAKE_BUILD_TYPE MATCHES DEBUG )
+    set_source_files_properties(${VC_TESTJIT_APP_SRC} PROPERTIES
+              COMPILE_FLAGS "-DHAVE_CLANG_AS_LIB -DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
+    )
+  endif( CMAKE_BUILD_TYPE MATCHES DEBUG )
+
+
+  add_executable(${VC_EXE_NAME} ${VC_TESTJIT_APP_SRC})
+
+  link_directories(${LLVM_LIBRARY_DIR} ${LIBCLANG_LIBRARY_DIR} "${CMAKE_INSTALL_PREFIX}/lib")
+  target_link_libraries(${VC_EXE_NAME} ${VC_LIB_NAME} ${VC_LIB_DEPS})
 endif (ENABLE_CLANG_AS_LIB)
-
-add_executable(${VC_EXE_NAME} ${VC_TESTJIT_APP_SRC})
-
-link_directories(${LLVM_LIBRARY_DIR} ${LIBCLANG_LIBRARY_DIR} "${CMAKE_INSTALL_PREFIX}/lib")
-target_link_libraries(${VC_EXE_NAME} ${VC_LIB_NAME} ${VC_LIB_DEPS})
-
 
 ## Test.cpp
 #----- Sources
@@ -235,13 +251,25 @@ set ( VC_TEST_APP_SRC Test.cpp )
 set ( VC_EXE_NAME libVC_test )
 
 if (ENABLE_CLANG_AS_LIB)
-  set_source_files_properties(${VC_TEST_APP_SRC} PROPERTIES
-                              COMPILE_FLAGS "-flto -DHAVE_CLANG_AS_LIB -DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
-                              )
+  if ( CMAKE_BUILD_TYPE MATCHES DEBUG )
+    set_source_files_properties(${VC_TEST_APP_SRC} PROPERTIES
+                                COMPILE_FLAGS "-DVC_DEBUG -DHAVE_CLANG_AS_LIB -DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
+                                )
+  else ( CMAKE_BUILD_TYPE MATCHES DEBUG )
+    set_source_files_properties(${VC_TEST_APP_SRC} PROPERTIES
+                                COMPILE_FLAGS "-DHAVE_CLANG_AS_LIB -DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
+                                )
+  endif ( CMAKE_BUILD_TYPE MATCHES DEBUG )
 else (ENABLE_CLANG_AS_LIB)
-  set_source_files_properties(${VC_TEST_APP_SRC} PROPERTIES
-                              COMPILE_FLAGS "-flto -DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
-                              )
+  if ( CMAKE_BUILD_TYPE MATCHES DEBUG )
+    set_source_files_properties(${VC_TEST_APP_SRC} PROPERTIES
+                                COMPILE_FLAGS "-DVC_DEBUG -DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
+                                )
+  else ( CMAKE_BUILD_TYPE MATCHES DEBUG )
+    set_source_files_properties(${VC_TEST_APP_SRC} PROPERTIES
+                                COMPILE_FLAGS "-DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
+                                )
+  endif ( CMAKE_BUILD_TYPE MATCHES DEBUG )
 endif (ENABLE_CLANG_AS_LIB)
 
 add_executable(${VC_EXE_NAME} ${VC_TEST_APP_SRC})
@@ -258,13 +286,25 @@ set ( VC_EXE2_NAME libVC_testUtils )
 
 
 if (ENABLE_CLANG_AS_LIB)
-  set_source_files_properties(${VC_TEST2_APP_SRC} PROPERTIES
-                              COMPILE_FLAGS "-flto -DHAVE_CLANG_AS_LIB -DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
-                              )
+  if ( CMAKE_BUILD_TYPE MATCHES DEBUG )
+    set_source_files_properties(${VC_TEST2_APP_SRC} PROPERTIES
+                                COMPILE_FLAGS "-DVC_DEBUG -DHAVE_CLANG_AS_LIB -DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
+                                )
+  else ( CMAKE_BUILD_TYPE MATCHES DEBUG )
+    set_source_files_properties(${VC_TEST2_APP_SRC} PROPERTIES
+                                COMPILE_FLAGS "-DHAVE_CLANG_AS_LIB -DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
+                                )
+  endif ( CMAKE_BUILD_TYPE MATCHES DEBUG )
 else (ENABLE_CLANG_AS_LIB)
-  set_source_files_properties(${VC_TEST2_APP_SRC} PROPERTIES
-                              COMPILE_FLAGS "-flto -DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
-                              )
+  if ( CMAKE_BUILD_TYPE MATCHES DEBUG )
+    set_source_files_properties(${VC_TEST2_APP_SRC} PROPERTIES
+                                COMPILE_FLAGS "-DVC_DEBUG -DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
+                                )
+  else ( CMAKE_BUILD_TYPE MATCHES DEBUG )
+    set_source_files_properties(${VC_TEST2_APP_SRC} PROPERTIES
+                                COMPILE_FLAGS "-DFORCED_PATH_TO_TEST=\\\"${CMAKE_CURRENT_SOURCE_DIR}/test_code\\\""
+                                )
+  endif ( CMAKE_BUILD_TYPE MATCHES DEBUG )
 endif (ENABLE_CLANG_AS_LIB)
 
 add_executable(${VC_EXE2_NAME} ${VC_TEST2_APP_SRC})

@@ -2,6 +2,9 @@
  * Developed by : Stefano Cherubin
  *                PhD student, Politecnico di Milano
  *                <first_name>.<family_name>@polimi.it
+ *                Moreno Giussani
+ *                Ms student, Politecnico di Milano
+ *                <first_name>.<family_name>@mail.polimi.it
  *
  * This file is part of libVersioningCompiler
  *
@@ -77,7 +80,9 @@ void LLVMInstanceManager::initializeLLVM()
   // Initialize passes
   llvm::PassRegistry& passRegistry = *llvm::PassRegistry::getPassRegistry();
   llvm::initializeCore(passRegistry);
+  #if LLVM_MAJOR_VERSION <15
   llvm::initializeCoroutines(passRegistry);
+  #endif
   llvm::initializeScalarOpts(passRegistry);
   llvm::initializeObjCARCOpts(passRegistry);
   llvm::initializeVectorization(passRegistry);
@@ -93,21 +98,23 @@ void LLVMInstanceManager::initializeLLVM()
   llvm::initializeAtomicExpandPass(passRegistry);
   llvm::initializeRewriteSymbolsLegacyPassPass(passRegistry);
   llvm::initializeWinEHPreparePass(passRegistry);
-  llvm::initializeDwarfEHPreparePass(passRegistry);
+  llvm::initializeDwarfEHPrepareLegacyPassPass(passRegistry);
   llvm::initializeSafeStackLegacyPassPass(passRegistry);
   llvm::initializeSjLjEHPreparePass(passRegistry);
   llvm::initializePreISelIntrinsicLoweringLegacyPassPass(passRegistry);
   llvm::initializeGlobalMergePass(passRegistry);
   llvm::initializeInterleavedAccessPass(passRegistry);
+  #if LLVM_MAJOR_VERSION <15
   llvm::initializeEntryExitInstrumenterPass(passRegistry);
   llvm::initializePostInlineEntryExitInstrumenterPass(passRegistry);
+  #endif
   llvm::initializeUnreachableBlockElimLegacyPassPass(passRegistry);
 
-  // remember default target triple
+  // remember default target triple , not suitable for cross compiling https://reviews.llvm.org/D34446
   auto tripleStr = llvm::sys::getProcessTriple();
   triple = std::make_shared<llvm::Triple>(tripleStr);
 
-  auto clangPath = llvm::sys::findProgramByName("clang");
+  auto clangPath = llvm::sys::findProgramByName(llvm::StringRef("clang"));
   if (clangPath) {
       clangExeStr = std::string(*clangPath);
   }
