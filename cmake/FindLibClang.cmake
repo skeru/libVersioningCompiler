@@ -99,14 +99,17 @@ if(NOT LLVM_CONFIG_EXECUTABLE)
     PATHS ${LLVM_TOOLS_BINARY_DIR})
 endif(NOT LLVM_CONFIG_EXECUTABLE)
 
-# If there is a single library (Archlinux), go with it
+# Some distros name libclang as .so.version
+list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES ".so.${LLVM_VERSION_MAJOR}")
 find_library(
   is_there_clang-cpp
   NAMES clang-cpp
   PATHS ${LLVM_LIBRARY_DIR})
 if(is_there_clang-cpp)
   find_and_add_clang_lib(clang-cpp)
+  list(REMOVE_DUPLICATES LIBCLANG_LIBRARY_DIR)
 else()
+  message(WARNING "Cannot find library libclang! Attempting to find the single libraries!")
   find_and_add_clang_lib(clang-cpp)
   find_and_add_clang_lib(clang NAMES clang libclang)
   # Clang shared library provides just the limited C interface, so it
@@ -124,6 +127,7 @@ else()
   find_and_add_clang_lib(clangBasic)
   list (REMOVE_DUPLICATES LIBCLANG_LIBRARY_DIR)
 endif()
+list(REMOVE_ITEM CMAKE_FIND_LIBRARY_SUFFIXES ".so.${LLVM_VERSION_MAJOR}")
 # -----------------------------------------------------------------------------
 # Actions taken when all components have been found
 

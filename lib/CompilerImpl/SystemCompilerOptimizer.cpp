@@ -41,12 +41,12 @@ SystemCompilerOptimizer::SystemCompilerOptimizer() :
 // ----------------------------------------------------------------------------
 SystemCompilerOptimizer::SystemCompilerOptimizer(
                          const std::string compilerID,
-                         const std::string compilerCallString,
-                         const std::string optimizerCallString,
-                         const std::string libWorkingDir,
-                         const std::string log,
-                         const std::string installDir,
-                         const std::string optimizerInstallDir
+                         const std::filesystem::path compilerCallString,
+                         const std::filesystem::path optimizerCallString,
+                         const std::filesystem::path libWorkingDir,
+                         const std::filesystem::path log,
+                         const std::filesystem::path installDir,
+                         const std::filesystem::path optimizerInstallDir
                        ) : SystemCompiler(
                                           compilerID,
                                           compilerCallString,
@@ -69,17 +69,17 @@ bool SystemCompilerOptimizer::hasOptimizer() const
 // ----------------------------------------------------------------------------
 // ----------------------------- run IR optimizer -----------------------------
 // ----------------------------------------------------------------------------
-std::string SystemCompilerOptimizer::runOptimizer(const std::string &src_IR,
+std::filesystem::path SystemCompilerOptimizer::runOptimizer(const std::filesystem::path &src_IR,
                                                   const std::string &versionID,
                                                   const opt_list_t options) const
 {
   std::string commandString;
-  commandString = optInstallDirectory + "/" + optCallString;
-  std::string optimizedFileName = Compiler::getOptBitcodeFileName(versionID);
+  commandString = ( optInstallDirectory/ optCallString).string();
+  std::filesystem::path optimizedFileName = Compiler::getOptBitcodeFileName(versionID);
   for (auto &o : options) {
     commandString  = commandString + " " + getOptionString(o);
   }
-  commandString = commandString + " -o " + optimizedFileName + " " + src_IR;
+  commandString = commandString + " -o " + optimizedFileName.string() + " " + src_IR.string();
   Compiler::log_exec(commandString);
   if (exists(optimizedFileName)) {
     return optimizedFileName;

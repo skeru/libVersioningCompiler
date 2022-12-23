@@ -37,10 +37,10 @@ SystemCompiler::SystemCompiler() : SystemCompiler(
 // --------------------------- detailed constructor ---------------------------
 // ----------------------------------------------------------------------------
 SystemCompiler::SystemCompiler(const std::string &compilerID,
-                               const std::string &compilerCallString,
-                               const std::string &libWorkingDir,
-                               const std::string &mylogfile,
-                               const std::string &installDir,
+                               const std::filesystem::path &compilerCallString,
+                               const std::filesystem::path &libWorkingDir,
+                               const std::filesystem::path &mylogfile,
+                               const std::filesystem::path &installDir,
                                bool supportsIR
                              ) : Compiler(
                                           compilerID,
@@ -62,7 +62,7 @@ bool SystemCompiler::hasOptimizer() const
 // ----------------------------------------------------------------------------
 // ------------------------------- generate IR --------------------------------
 // ----------------------------------------------------------------------------
-std::string SystemCompiler::generateIR(const std::vector<std::string> &src,
+std::filesystem::path SystemCompiler::generateIR(const std::vector<std::filesystem::path> &src,
                                        const std::vector<std::string> &func,
                                        const std::string &versionID,
                                        const opt_list_t options)
@@ -70,7 +70,7 @@ std::string SystemCompiler::generateIR(const std::vector<std::string> &src,
   // NO LLVM-IR support enabled by default
   if (hasIRSupport()) {
     // system call - command construction
-    std::string command = installDirectory + "/" + callString;
+    std::string command = (installDirectory / callString).string();
     std::string IRFile = Compiler::getBitcodeFileName(versionID);
     command = command + " -c -emit-llvm -o " + IRFile;
     // does not work with gcc
@@ -78,7 +78,7 @@ std::string SystemCompiler::generateIR(const std::vector<std::string> &src,
       command = command + " " + getOptionString(o);
     }
     for (const auto & src_file : src) {
-      command = command + " " + src_file;
+      command = command + " " + src_file.string();
     }
     Compiler::log_exec(command);
     if (exists(IRFile)) {
@@ -92,7 +92,7 @@ std::string SystemCompiler::generateIR(const std::vector<std::string> &src,
 // ----------------------------------------------------------------------------
 // ----------------------------- run IR optimizer -----------------------------
 // ----------------------------------------------------------------------------
-std::string SystemCompiler::runOptimizer(const std::string &src_IR,
+std::filesystem::path SystemCompiler::runOptimizer(const std::filesystem::path &src_IR,
                                          const std::string &versionID,
                                          const opt_list_t options) const
 {
@@ -105,20 +105,20 @@ std::string SystemCompiler::runOptimizer(const std::string &src_IR,
 // ----------------------------------------------------------------------------
 // ------------------------------- generate bin -------------------------------
 // ----------------------------------------------------------------------------
-std::string SystemCompiler::generateBin(const std::vector<std::string> &src,
+std::filesystem::path SystemCompiler::generateBin(const std::vector<std::filesystem::path> &src,
                                         const std::vector<std::string> &func,
                                         const std::string &versionID,
                                         const opt_list_t options)
 {
   // system call - command construction
-  std::string command = installDirectory + "/" + callString;
-  std::string binaryFile = Compiler::getSharedObjectFileName(versionID);
-  command = command + " -fpic -shared -o " + binaryFile;
+  std::string command = (installDirectory / callString).string();
+  std::filesystem::path binaryFile = Compiler::getSharedObjectFileName(versionID);
+  command = command + " -fpic -shared -o " + binaryFile.string();
   for (const auto &o : options) {
     command = command + " " + getOptionString(o);
   }
   for (const auto & src_file : src) {
-    command = command + " " + src_file;
+    command = command + " " + src_file.string();
   }
   log_exec(command);
   if (exists(binaryFile)) {

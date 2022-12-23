@@ -49,7 +49,7 @@ LLVMInstanceManager::~LLVMInstanceManager()
 // ---------------------------------------------------------------------------
 // --------------------------- get clang exe path ----------------------------
 // ---------------------------------------------------------------------------
-std::string LLVMInstanceManager::getClangExePath() const
+std::filesystem::path LLVMInstanceManager::getClangExePath() const
 {
   return clangExeStr;
 }
@@ -116,6 +116,6 @@ void LLVMInstanceManager::initializeLLVM()
   auto tripleStr = llvm::sys::getProcessTriple();
   triple = std::make_shared<llvm::Triple>(tripleStr);
 
-  clangExeStr = CLANG_EXE_FULLPATH;
+  clangExeStr = std::filesystem::u8path(CLANG_EXE_FULLPATH);
   return;
 }

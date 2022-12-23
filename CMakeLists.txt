@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
 
-cmake_minimum_required(VERSION 3.13.4)
+cmake_minimum_required(VERSION 3.20)
 
 project(
   libVersioningCompiler

@@ -55,6 +55,7 @@
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Mangler.h"
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -96,8 +97,8 @@ namespace vc {
         JITCompiler();
 
         JITCompiler(const std::string &compilerID,
-                    const std::string &libWorkingDir,
-                    const std::string &log //,
+                    const std::filesystem::path &libWorkingDir,
+                    const std::filesystem::path &log //,
                     //llvm::orc::JITTargetMachineBuilder targetMachineBuilder
                     );
 
@@ -105,19 +106,19 @@ namespace vc {
 
         bool hasOptimizer() const override;
 
-        std::string generateIR(const std::vector<std::string> &src,
+        std::filesystem::path generateIR(const std::vector<std::filesystem::path> &src,
                                const std::vector<std::string> &func,
                                const std::string &versionID,
                                const opt_list_t options)
 
         override;
 
-        std::string runOptimizer(const std::string &src_IR,
+        std::filesystem::path runOptimizer(const std::filesystem::path &src_IR,
                                  const std::string &versionID,
                                  const opt_list_t options) const
         override;
 
-        std::string generateBin(const std::vector<std::string> &src,
+        std::filesystem::path generateBin(const std::vector<std::filesystem::path> &src,
                                 const std::vector<std::string> &func,
                                 const std::string &versionID,
                                 const opt_list_t options)
@@ -127,7 +128,7 @@ namespace vc {
         void releaseSymbol(void **handler)
         override;
 
-        std::vector<void*> loadSymbols(const std::string &bin,
+        std::vector<void*> loadSymbols(const std::filesystem::path &bin,
                                        const std::vector<std::string> &func,
                                        void ** handler) override;
 

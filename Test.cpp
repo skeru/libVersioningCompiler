@@ -80,7 +80,7 @@ int main(int argc, char const *argv[])
   // ---------- Initialize the compiler to be used. ----------
   // Should be done just once.
   // Compiler is stateless from all points of view but logging:
-  // if required (i.e. log_filename != "") it keeps a continous log of commands
+  // if required (i.e. !log_filename.empty()) it keeps a continous log of commands
   // and errors.
   // Right now only Compilers called via a system call are available. That's
   // why they are called SystemCompilers.
@@ -98,11 +98,11 @@ int main(int argc, char const *argv[])
   // ANS: Here it is an example of how to handle that case.
   vc::compiler_ptr_t clang = vc::make_compiler<vc::SystemCompilerOptimizer>(
                                           "llvm/clang",
-                                          CLANG_EXE_NAME,
-                                          OPT_EXE_FULLPATH,
+                                          std::filesystem::u8path(CLANG_EXE_NAME),
+                                          std::filesystem::u8path(OPT_EXE_FULLPATH),
                                           ".",
                                           "./test.log", 
-                                          LLVM_TOOLS_BINARY_DIR,
+                                          std::filesystem::u8path(LLVM_TOOLS_BINARY_DIR),
                                           "/"
                                         );
 #if HAVE_CLANG_AS_LIB

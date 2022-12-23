@@ -34,6 +34,7 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Target/TargetMachine.h"
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -47,25 +48,25 @@ public:
   ClangLibCompiler();
 
   ClangLibCompiler(const std::string &compilerID,
-                   const std::string &libWorkingDir,
-                   const std::string &log = "");
+                   const std::filesystem::path &libWorkingDir,
+                   const std::filesystem::path &log = "");
 
   inline virtual ~ClangLibCompiler() {}
 
   virtual bool hasOptimizer() const override;
 
-  virtual std::string generateIR(const std::vector<std::string> &src,
+  virtual std::filesystem::path generateIR(const std::vector<std::filesystem::path> &src,
                                  const std::vector<std::string> &func,
                                  const std::string &versionID,
                                  const opt_list_t options)
   override;
 
-  virtual std::string runOptimizer(const std::string &src_IR,
+  virtual std::filesystem::path runOptimizer(const std::filesystem::path &src_IR,
                                    const std::string &versionID,
                                    const opt_list_t options) const
   override;
 
-  virtual std::string generateBin(const std::vector<std::string> &src,
+  virtual std::filesystem::path generateBin(const std::vector<std::filesystem::path> &src,
                                   const std::vector<std::string> &func,
                                   const std::string &versionID,
                                   const opt_list_t options)

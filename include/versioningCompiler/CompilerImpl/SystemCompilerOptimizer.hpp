@@ -35,25 +35,25 @@ class SystemCompilerOptimizer : public SystemCompiler
   SystemCompilerOptimizer();
 
   SystemCompilerOptimizer(const std::string compilerID,
-                          const std::string compilerCallString,
-                          const std::string optimizerCallString,
-                          const std::string libWorkingDir,
-                          const std::string log = "",
-                          const std::string installDir = "/usr/bin",
-                          const std::string optimizerInstallDir = "/usr/bin");
+                          const std::filesystem::path compilerCallString,
+                          const std::filesystem::path optimizerCallString,
+                          const std::filesystem::path libWorkingDir,
+                          const std::filesystem::path log = "",
+                          const std::filesystem::path installDir = "/usr/bin",
+                          const std::filesystem::path optimizerInstallDir = "/usr/bin");
 
   inline virtual ~SystemCompilerOptimizer() {}
 
   virtual bool hasOptimizer() const override;
 
-  virtual std::string runOptimizer(const std::string &src_IR,
+  virtual std::filesystem::path runOptimizer(const std::filesystem::path &src_IR,
                                    const std::string &versionID,
                                    const opt_list_t options) const
   override;
 
  protected:
-  std::string optInstallDirectory;
-  std::string optCallString;
+  std::filesystem::path optInstallDirectory;
+  std::filesystem::path optCallString;
 };
 
 } // end namespace vc

@@ -59,8 +59,8 @@ ClangLibCompiler::ClangLibCompiler()
 // ----------------------------------------------------------------------------
 ClangLibCompiler::ClangLibCompiler(
                                    const std::string &compilerID,
-                                   const std::string &libWorkingDir,
-                                   const std::string &log
+                                   const std::filesystem::path &libWorkingDir,
+                                   const std::filesystem::path &log
                                   ) : Compiler(
                                                compilerID,
                                                "#", // compiler call string
@@ -94,15 +94,15 @@ ClangLibCompiler::ClangLibCompiler(
  * This implementation exploits the clang driver to handle all the stages of
  * the compilation process.
  */
-std::string ClangLibCompiler::generateIR(const std::vector<std::string> &src,
+std::filesystem::path ClangLibCompiler::generateIR(const std::vector<std::filesystem::path> &src,
                                          const std::vector<std::string> &func,
                                          const std::string &versionID,
                                          const opt_list_t options)
 {
   // What we want to generate
-  const std::string &llvmIRfileName = Compiler::getBitcodeFileName(versionID);
+  const std::filesystem::path &llvmIRfileName = Compiler::getBitcodeFileName(versionID);
   // what we return when generateIR fails
-  const std::string &failureFileName = "";
+  const std::filesystem::path &failureFileName = "";
   std::string log_str = "";
 
   auto report_error = [&](const std::string message) {
@@ -115,7 +115,7 @@ std::string ClangLibCompiler::generateIR(const std::vector<std::string> &src,
     return;
   };
 
-  const std::string &command_filename = _llvmManager->getClangExePath();
+  const std::filesystem::path &command_filename = _llvmManager->getClangExePath();
 
   // clang++ <options> -fpic -shared src -olibFileName -Wno-return-type-c-linkage
   std::vector<const char *> cmd_str;
@@ -125,7 +125,7 @@ std::string ClangLibCompiler::generateIR(const std::vector<std::string> &src,
   cmd_str.push_back(std::move("-emit-llvm"));
   cmd_str.push_back(std::move("-fpic"));
   cmd_str.push_back(std::move("-Wno-return-type-c-linkage"));
-  const std::string outputArgument = "-o" + llvmIRfileName;
+  const std::string outputArgument = "-o" + llvmIRfileName.string();
   cmd_str.push_back(std::move(outputArgument).c_str());
 
   // create a local copy of option strings
@@ -148,7 +148,7 @@ std::string ClangLibCompiler::generateIR(const std::vector<std::string> &src,
   }
   Compiler::log_string(log_str);
 
-  driver::Driver NikiLauda(_llvmManager->getClangExePath(),
+  driver::Driver NikiLauda(_llvmManager->getClangExePath().string(),
                            _llvmManager->getDefaultTriple()->str(),
                            *_diagEngine);
   NikiLauda.setTitle("clang as a library");
@@ -201,19 +201,19 @@ std::string ClangLibCompiler::generateIR(const std::vector<std::string> &src,
  * management.
  * It is a constraint for this method to generate a well-formed output file.
  * If this method is not able to generate a well-formed optimized output file,
- * it will return an empty string as generated failureFileName.
+ * it will return an empty path string as generated failureFileName.
  *
  * This method only supports the legacy pass manager.
  */
-std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
+std::filesystem::path ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
                                            const std::string &versionID,
                                            const opt_list_t options) const
 {
   // What we want to generate
-  const std::string optBCfilename = Compiler::getOptBitcodeFileName(versionID);
+  const std::filesystem::path optBCfilename = Compiler::getOptBitcodeFileName(versionID);
 
   // what we return when generateIR fails
-  const std::string failureFileName = "";
+  const std::filesystem::path failureFileName = "";
 
   auto report_error = [&](const std::string message) {
     std::string error_string = "ClangLibCompiler::runOptimizer";
@@ -229,10 +229,10 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
   const std::vector<std::string>& argv_owner = getArgV(options);
   const size_t argc = argv_owner.size() + 1; // opt <options>
   std::vector<const char*> argv;
-  std::string log_str =OPT_EXE_FULLPATH; // "opt(-version) "...
+  std::string log_str =std::filesystem::u8path(OPT_EXE_FULLPATH).c_str(); // "opt(-version) "...
   log_str+=" ";
   argv.reserve(argc);
-  argv.push_back(std::move(OPT_EXE_FULLPATH));
+  argv.push_back(std::move(std::filesystem::u8path(OPT_EXE_FULLPATH).c_str()));
   for (const auto& arg : argv_owner) {
     argv.push_back(arg.c_str());
     log_str = log_str + arg + " ";
@@ -254,14 +254,14 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
 
   // load llvm::Module
   llvm::SMDiagnostic parsingInputErrorCode;
-  auto module = llvm::parseIRFile(src_IR, parsingInputErrorCode, optContext);
+  auto module = llvm::parseIRFile(src_IR.string(), parsingInputErrorCode, optContext);
   if (!module) {
     std::string parsing_error_str;
     llvm::raw_string_ostream s_ostream(parsing_error_str);
     parsingInputErrorCode.print(argv[0], s_ostream);
     report_error("Unable to load module from source file\n" + s_ostream.str());
     if (!Compiler::exists(src_IR)) {
-      report_error("Cannot find source file " + src_IR);
+      report_error("Cannot find source file " + src_IR.string());
     }
     return failureFileName;
   }
@@ -440,7 +440,7 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
 
   std::error_code outFileCreationErrorCode;
   std::unique_ptr<llvm::ToolOutputFile> Out =
-    std::make_unique<llvm::ToolOutputFile>(optBCfilename,
+    std::make_unique<llvm::ToolOutputFile>(optBCfilename.c_str(),
                                           outFileCreationErrorCode,
                                           llvm::sys::fs::OF_None);
   if (!Out) {
@@ -471,7 +471,7 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
     }
     Passes.add(createPrintModulePass(*OS, "", PreserveAssemblyUseListOrder));
   } else if (OutputThinLTOBC) {
-    Passes.add(createWriteThinLTOBitcodePass(*OS));
+    Passes.add(createWriteThinLTOBitcodePass(*OS)); // TODO not sure if this is what causes the optimization errors
   } else {
     Passes.add(createBitcodeWriterPass(*OS,
                                        PreserveBitcodeUseListOrder,
@@ -504,12 +504,12 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
                 CompileTwiceBuffer.data(),
                 Buffer.size()) != 0)) {
       // running twice the same passes generated diverging bitcode versions
-      const std::string error_messsage =
+      const std::string error_message =
         "Running the pass manager twice changed the output.\n"
         "Writing the result of the second run to the specified output.\n"
         "To generate the one-run comparison binary, just run without\n"
         "the compile-twice option\n";
-      report_error(error_messsage);
+      report_error(error_message);
       Out->os() << BOS->str();
       Out->keep();
       if (Compiler::exists(optBCfilename)) {
@@ -538,15 +538,15 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
  * This implementation exploits the clang driver to handle all the stages of
  * the compilation and linking process.
  */
-std::string ClangLibCompiler::generateBin(const std::vector<std::string> &src,
+std::filesystem::path ClangLibCompiler::generateBin(const std::vector<std::filesystem::path> &src,
                                           const std::vector<std::string> &func,
                                           const std::string &versionID,
                                           const opt_list_t options)
 {
   // What we want to generate
-  const std::string libFileName = Compiler::getSharedObjectFileName(versionID);
+  const std::filesystem::path libFileName = Compiler::getSharedObjectFileName(versionID);
   // what we return when generateIR fails
-  const std::string failureFileName = "";
+  const std::filesystem::path failureFileName = "";
   std::string log_str = "";
 
   auto report_error = [&](const std::string message) {
@@ -566,7 +566,7 @@ std::string ClangLibCompiler::generateBin(const std::vector<std::string> &src,
   cmd_str.push_back(std::move("-fpic"));
   cmd_str.push_back(std::move("-shared"));
   cmd_str.push_back(std::move("-Wno-return-type-c-linkage"));
-  const std::string outputArgument = "-o" + libFileName;
+  const std::string outputArgument = "-o" + libFileName.string();
   cmd_str.push_back(std::move(outputArgument).c_str());
 
   // create a local copy of option strings
@@ -589,7 +589,7 @@ std::string ClangLibCompiler::generateBin(const std::vector<std::string> &src,
   }
   Compiler::log_string(log_str);
 
-  driver::Driver NikiLauda(_llvmManager->getClangExePath(),
+  driver::Driver NikiLauda(_llvmManager->getClangExePath().string(),
                            _llvmManager->getDefaultTriple()->str(),
                            *_diagEngine);
   NikiLauda.setTitle("clang as a library");

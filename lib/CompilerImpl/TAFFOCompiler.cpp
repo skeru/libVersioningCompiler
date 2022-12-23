@@ -29,48 +29,49 @@ TAFFOCompiler::Component TAFFOCompiler::Conversion = {"LLVMFloatToFixed", "-fltt
 
 TAFFOCompiler::TAFFOCompiler(
   const std::string &compilerID,
-  const std::string &llvmOptPath,
-  const std::string &llvmClangPath,
-  const std::string &llvmLinkerPath,
-  const std::string &taffoInstallPrefix,
-  const std::string &libWorkingDir,
-  const std::string &log,
-  const std::string &annotationInserterPath,
-  const std::string &llvmLinkPath) :
+  const std::filesystem::path &llvmOptPath,
+  const std::filesystem::path &llvmClangPath,
+  const std::filesystem::path &llvmLinkerPath,
+  const std::filesystem::path &taffoInstallPrefix,
+  const std::filesystem::path &libWorkingDir,
+  const std::filesystem::path &log,
+  const std::filesystem::path &annotationInserterPath,
+  const std::filesystem::path &llvmLinkPath) :
   Compiler(compilerID, "", libWorkingDir, log, "", true),
   llvmOptPath(llvmOptPath), llvmClangPath(llvmClangPath),
   llvmLinkerPath(llvmLinkerPath), llvmLinkPath(llvmLinkPath),
   taffoInstallPrefix(taffoInstallPrefix), annotationInserterPath(annotationInserterPath)
 {
   if (const char *e_llvmdir = getenv("LLVM_DIR")) {
-    if (this->llvmOptPath.size() == 0)
-      this->llvmOptPath = std::string(e_llvmdir) + "/bin/opt";
-    if (this->llvmClangPath.size() == 0)
-      this->llvmClangPath = std::string(e_llvmdir) + "/bin/clang";
-    if (this->llvmLinkerPath.size() == 0)
-      this->llvmLinkerPath = std::string(e_llvmdir) + "/bin/clang";
-    if (this->llvmLinkerPath.size() == 0)
-      this->llvmLinkPath = std::string(e_llvmdir) + "/bin/link";
+    const std::filesystem::path e_llvmdir_path= std::filesystem::u8path(e_llvmdir);
+    if (this->llvmOptPath.empty())
+      this->llvmOptPath = e_llvmdir_path / std::filesystem::u8path("/bin/opt");
+    if (this->llvmClangPath.empty())
+      this->llvmClangPath = e_llvmdir_path / std::filesystem::u8path("/bin/clang");
+    if (this->llvmLinkerPath.empty())
+      this->llvmLinkerPath = e_llvmdir_path / std::filesystem::u8path("/bin/clang");
+    if (this->llvmLinkerPath.empty())
+      this->llvmLinkPath = e_llvmdir_path / std::filesystem::u8path("/bin/link");
   }
 }
 
 
 TAFFOCompiler::TAFFOCompiler(
   const std::string &compilerID,
-  const std::string &llvmInstallPrefix,
+  const std::filesystem::path &llvmInstallPrefix,
   Language lang,
-  const std::string &taffoInstallPrefix,
-  const std::string &libWorkingDir,
-  const std::string &log,
-  const std::string &annotationInserterPath) :
+  const std::filesystem::path &taffoInstallPrefix,
+  const std::filesystem::path &libWorkingDir,
+  const std::filesystem::path &log,
+  const std::filesystem::path &annotationInserterPath) :
   Compiler(compilerID, "", libWorkingDir, log, "", true),
   taffoInstallPrefix(taffoInstallPrefix),
   annotationInserterPath(annotationInserterPath)
 {
-  std::string llvmPfx;
+  std::filesystem::path llvmPfx;
   if (llvmInstallPrefix.empty()) {
     if (const char *e_llvmdir = getenv("LLVM_DIR")) {
-      llvmPfx = e_llvmdir;
+      llvmPfx = std::filesystem::u8path(e_llvmdir);
     } else {
       llvmPfx = "/usr";
     }
@@ -81,20 +82,20 @@ TAFFOCompiler::TAFFOCompiler(
   switch (lang) {
     case C:
       if (const char *e_clang = getenv("CLANG")) 
-        llvmClangPath = e_clang;
+        llvmClangPath = std::filesystem::u8path(e_clang);
       else
-        llvmClangPath = llvmPfx + "/bin/clang";
+        llvmClangPath = llvmPfx / std::filesystem::path("/bin/clang");
       break;
     case CXX:
       if (const char *e_clangxx = getenv("CLANGXX")) 
-        llvmClangPath = e_clangxx;
+        llvmClangPath = std::filesystem::u8path(e_clangxx);
       else
-        llvmClangPath = llvmPfx + "/bin/clang++";
+        llvmClangPath = llvmPfx / std::filesystem::path("/bin/clang++");
       break;
   }
 
-  llvmOptPath = llvmPfx + "/bin/opt";
-  llvmLinkPath = llvmPfx + "/bin/llvm-link";
+  llvmOptPath = llvmPfx / std::filesystem::path("/bin/opt");
+  llvmLinkPath = llvmPfx / std::filesystem::path("/bin/llvm-link");
   llvmLinkerPath = llvmClangPath;
 }
 
@@ -129,14 +130,14 @@ std::string TAFFOCompiler::getLLVMLibExtension() const
 
 std::string TAFFOCompiler::getInvocation(const TAFFOCompiler::Component &c) const
 {
-  std::string path;
-  if (taffoInstallPrefix.size() > 0) {
-    path = taffoInstallPrefix + "/lib/" + c.libName + "." + getLLVMLibExtension();
+  std::filesystem::path path;
+  if (!taffoInstallPrefix.empty()) {
+    path = taffoInstallPrefix / std::filesystem::path("lib") /  std::filesystem::path(c.libName + "." + getLLVMLibExtension());
   } else if (const char *envpath = getenv(c.envName.c_str())){
-    path = envpath;
+    path = std::filesystem::u8path(envpath);
   }
   if (exists(path))
-    return llvmOptPath + " -load " + path + " " + c.optParamName;
+    return llvmOptPath.string() + " -load " + path.string() + " " + c.optParamName;
   return "";
 }
 
@@ -162,21 +163,21 @@ void TAFFOCompiler::splitAnnotationOptions(const opt_list_t& in, opt_list_t& out
 }
 
 void TAFFOCompiler::insertAnnotations(
-		const std::vector<std::string>& src, 
+		const std::vector<std::filesystem::path>& src, 
 		const opt_list_t& options, 
 		const opt_list_t& annotationOptions) const
 {
   if (annotationInserterPath.empty())
     return;
 
-  std::string annotationFilePath("./annotations.json");
+  std::filesystem::path annotationFilePath("./annotations.json");
   std::string annotationContent("");
   std::string insertionExtraFlags("");
   for (const auto opt : annotationOptions)
   {
     if (opt.getPrefix() == "annotationFile")
 	{
-		annotationFilePath = opt.getValue();
+		annotationFilePath = std::filesystem::u8path(opt.getValue());
 		continue;
 	}
 
@@ -190,10 +191,10 @@ void TAFFOCompiler::insertAnnotations(
 
   for (const auto &src_file : src) {
 
-    std::string raw_cmd = annotationInserterPath + " \""+ src_file +"\" -i ";
+    std::string raw_cmd = annotationInserterPath.string() + " \"" + src_file.string() + "\" -i ";
 
 	if (annotationContent.empty())
-		raw_cmd += "-f=" + annotationFilePath;
+		raw_cmd += "-f=" + annotationFilePath.string();
 	else 
 		raw_cmd += "-j=" + annotationContent;
 
@@ -208,12 +209,12 @@ void TAFFOCompiler::insertAnnotations(
   }
 }
 
-std::vector<std::string> TAFFOCompiler::copySources(
-		const std::vector<std::string>& src, 
+std::vector<std::filesystem::path> TAFFOCompiler::copySources(
+		const std::vector<std::filesystem::path>& src, 
 		const std::string& versionID,
 		const opt_list_t& options) const
 {
-  std::vector<std::string> toReturn;
+  std::vector<std::filesystem::path> toReturn;
   std::string opt;
   for (auto &o : options) {
     opt = opt + " " + getOptionString(o);
@@ -223,8 +224,8 @@ std::vector<std::string> TAFFOCompiler::copySources(
   for (auto& file : src)
   {
 
-    std::string newFile = Compiler::generateTemporaryFileName(file, versionID, i);	
-    std::string command = llvmClangPath + " " + file + " -E -o \"" + newFile + "\" " + opt;
+    std::filesystem::path newFile = Compiler::generateTemporaryFileName(file, versionID, i);	
+    std::string command = llvmClangPath.string() + " " + file.string() + " -E -o \"" + newFile.string() + "\" " + opt;
 	
 	toReturn.push_back(newFile);
     log_exec(command);
@@ -234,8 +235,8 @@ std::vector<std::string> TAFFOCompiler::copySources(
   return toReturn;
 }
 
-std::string TAFFOCompiler::generateIR(
-  const std::vector<std::string> &src,
+std::filesystem::path TAFFOCompiler::generateIR(
+  const std::vector<std::filesystem::path> &src,
   const std::vector<std::string> &func,
   const std::string &versionID,
   const opt_list_t options) const
@@ -247,7 +248,7 @@ std::string TAFFOCompiler::generateIR(
   splitAnnotationOptions(options, annotationOptions, compilationOptions);
   splitOptimizationOptions(compilationOptions, optOpts, normalOpts);
 
-  std::vector<std::string> copied = copySources(src, versionID, normalOpts);
+  std::vector<std::filesystem::path> copied = copySources(src, versionID, normalOpts);
   insertAnnotations(copied, compilationOptions, annotationOptions);
   
 
@@ -257,15 +258,15 @@ std::string TAFFOCompiler::generateIR(
 
 
   for (const auto &src_file : copied) {
-    std::string raw_cmd = llvmClangPath + " -c -S -emit-llvm -O0 -o \"" + src_file + "_0_clang" + "\" " + " \"" + src_file + "\"" + compileOptions;
+    std::string raw_cmd = llvmClangPath.string() + " -c -S -emit-llvm -O0 -o \"" + src_file.string() + "_0_clang" + "\" " + " \"" + src_file.string() + "\"" + compileOptions;
 	Compiler::log_exec(raw_cmd);
   }
 
   std::string raw_bitcode = Compiler::getBitcodeFileName(versionID + "_1_clang");
-  std::string llvm_link_command = llvmLinkPath + " -o \"" + raw_bitcode + "\" ";
+  std::string llvm_link_command = llvmLinkPath.string() + " -o \"" + raw_bitcode + "\" ";
 
   for (const auto &src_file : copied)
-	  llvm_link_command += "\"" + src_file + "_0_clang" + "\" ";
+	  llvm_link_command += "\"" + src_file.string() + "_0_clang" + "\" ";
 
   Compiler::log_exec(llvm_link_command);
   if (!exists(raw_bitcode))
@@ -308,7 +309,7 @@ std::string TAFFOCompiler::generateIR(
     return "";
 
   std::string end_bitcode = Compiler::getBitcodeFileName(versionID);
-  std::string end_cmd = llvmClangPath + " -c -S -emit-llvm -o \"" + end_bitcode + "\" \"" + conv_bitcode + "\"";
+  std::string end_cmd = llvmClangPath.string() + " -c -S -emit-llvm -o \"" + end_bitcode + "\" \"" + conv_bitcode + "\"";
   for (auto &o : optOpts) {
     end_cmd = end_cmd + " " + getOptionString(o);
   }
@@ -320,8 +321,8 @@ std::string TAFFOCompiler::generateIR(
 }
 
 
-std::string TAFFOCompiler::runOptimizer(
-  const std::string &src_IR,
+std::filesystem::path TAFFOCompiler::runOptimizer(
+  const std::filesystem::path &src_IR,
   const std::string &versionID,
   const opt_list_t options) const
 {
@@ -332,8 +333,8 @@ std::string TAFFOCompiler::runOptimizer(
 }
 
 
-std::string TAFFOCompiler::generateBin(
-  const std::vector<std::string> &src,
+std::filesystem::path TAFFOCompiler::generateBin(
+  const std::vector<std::filesystem::path> &src,
   const std::vector<std::string> &func,
   const std::string &versionID,
   const opt_list_t options) const
@@ -343,12 +344,12 @@ std::string TAFFOCompiler::generateBin(
   //   return "";
 	std::string bitcode = "";
 	for (const auto &file : src) {
-		bitcode = bitcode + "\"" + file + "\" ";
+		bitcode = bitcode + "\"" + file.string() + "\" ";
 	}
 
   // system call - command construction
-  std::string binaryFile = Compiler::getSharedObjectFileName(versionID);
-  std::string command = llvmLinkerPath + " -fPIC -shared -o \"" + binaryFile + "\" " + bitcode;
+  std::filesystem::path binaryFile = Compiler::getSharedObjectFileName(versionID);
+  std::string command = llvmLinkerPath.string() + " -fPIC -shared -o \"" + binaryFile.string() + "\" " + bitcode;
 	for (const auto& opt : options) {
 		command = command + " " + getOptionString(opt);
 	}

@@ -31,11 +31,11 @@ using namespace vc;
 // --------------------------- detailed constructor ---------------------------
 // ----------------------------------------------------------------------------
 FileLogDiagnosticConsumer::FileLogDiagnosticConsumer(
-  llvm::StringRef LogFileName,
+  std::filesystem::path LogFileName,
   DiagnosticOptions *diags)
                             : LangOpts(nullptr),
                               DiagOpts(diags),
-                              _logFileName(LogFileName.str()),
+                              _logFileName(LogFileName.string()),
                               _log() { }
 
 // ----------------------------------------------------------------------------
@@ -159,7 +159,7 @@ void FileLogDiagnosticConsumer::EndSourceFile()
     return;
   }
 
-  if (!_log.is_open() && _logFileName != "") {
+  if (!_log.is_open() && !_logFileName.empty()) {
     _log.open(_logFileName,
               std::fstream::in | std::fstream::out | std::fstream::app);
   }

@@ -49,6 +49,7 @@
 #include "llvm/Support/Program.h"
 
 #include <string>
+#include <filesystem>
 /** LLVMInstanceManager is a lazy-initialized singleton.
  *
  * It performs LLVM initialization at the first request and calls
@@ -74,7 +75,7 @@ private:
 public:
   ~LLVMInstanceManager();
 
-  std::string getClangExePath() const;
+  std::filesystem::path getClangExePath() const;
 
   std::shared_ptr<llvm::Triple> getDefaultTriple() const;
 
@@ -85,7 +86,7 @@ public:
 private:
   inline void initializeLLVM();
 
-  std::string clangExeStr;
+  std::filesystem::path clangExeStr;
 
   std::shared_ptr<llvm::Triple> triple;
 

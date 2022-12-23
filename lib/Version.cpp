@@ -81,7 +81,7 @@ std::vector<std::string> Version::getTags() const
 // ----------------------------------------------------------------------------
 bool Version::hasGeneratedIR() const
 {
-  return (fileName_IR != "");
+  return (!fileName_IR.empty());
 }
 
 // ----------------------------------------------------------------------------
@@ -89,7 +89,7 @@ bool Version::hasGeneratedIR() const
 // ----------------------------------------------------------------------------
 bool Version::hasOptimizedIR() const
 {
-  return (fileName_IR_opt != "");
+  return (!fileName_IR_opt.empty());
 }
 
 // ----------------------------------------------------------------------------
@@ -97,7 +97,7 @@ bool Version::hasOptimizedIR() const
 // ----------------------------------------------------------------------------
 bool Version::hasGeneratedBin() const
 {
-  return (fileName_bin != "");
+  return (!fileName_bin.empty());
 }
 
 // ----------------------------------------------------------------------------
@@ -211,11 +211,11 @@ bool Version::compile()
     return true;
   }
   if (! hasGeneratedBin()) {
-    std::vector<std::string> src;
-    if (fileName_IR_opt != "") {
+    std::vector<std::filesystem::path> src;
+    if (!fileName_IR_opt.empty()) {
       src.clear();
       src.push_back(fileName_IR_opt);
-    } else if (fileName_IR != "") {
+    } else if (!fileName_IR.empty()) {
       src.clear();
       src.push_back(fileName_IR);
     } else {
@@ -286,7 +286,7 @@ std::vector<std::string> Version::getFunctionNames() const
 // ----------------------------------------------------------------------------
 // --------------------------- get source filename ----------------------------
 // ----------------------------------------------------------------------------
-std::string Version::getFileName_src() const
+std::filesystem::path Version::getFileName_src() const
 {
   return fileName_src.at(0);
 }
@@ -294,7 +294,7 @@ std::string Version::getFileName_src() const
 // ----------------------------------------------------------------------------
 // --------------------------- get source filename ----------------------------
 // ----------------------------------------------------------------------------
-std::string Version::getFileName_src(const int index) const
+std::filesystem::path Version::getFileName_src(const int index) const
 {
   return fileName_src.at(index);
 }
@@ -302,7 +302,7 @@ std::string Version::getFileName_src(const int index) const
 // ----------------------------------------------------------------------------
 // --------------------------- get source filename ----------------------------
 // ----------------------------------------------------------------------------
-std::vector<std::string> Version::getFileNames_src() const
+std::vector<std::filesystem::path> Version::getFileNames_src() const
 {
   return fileName_src;
 }
@@ -310,7 +310,7 @@ std::vector<std::string> Version::getFileNames_src() const
 // ----------------------------------------------------------------------------
 // ------------------------ get intermediate filename -------------------------
 // ----------------------------------------------------------------------------
-std::string Version::getFileName_IR() const
+std::filesystem::path Version::getFileName_IR() const
 {
   return fileName_IR;
 }
@@ -318,7 +318,7 @@ std::string Version::getFileName_IR() const
 // ----------------------------------------------------------------------------
 // ------------------------- get optimized filename ---------------------------
 // ----------------------------------------------------------------------------
-std::string Version::getFileName_IR_opt() const
+std::filesystem::path Version::getFileName_IR_opt() const
 {
   return fileName_IR_opt;
 }
@@ -326,7 +326,7 @@ std::string Version::getFileName_IR_opt() const
 // ----------------------------------------------------------------------------
 // --------------------------- get binary filename ----------------------------
 // ----------------------------------------------------------------------------
-std::string Version::getFileName_bin() const
+std::filesystem::path Version::getFileName_bin() const
 {
   return fileName_bin;
 }
@@ -334,9 +334,9 @@ std::string Version::getFileName_bin() const
 // ----------------------------------------------------------------------------
 // ------------------------------ remove file ---------------------------------
 // ----------------------------------------------------------------------------
-bool Version::removeFile(const std::string &fileName)
+bool Version::removeFile(const std::filesystem::path &fileName)
 {
-  if (fileName == "") {
+  if (fileName.empty()) {
     return true;
   }
   return remove(fileName.c_str()) != 0;
@@ -378,7 +378,7 @@ Version::Builder::Builder(const version_ptr_t v)
 // ----------------------------------------------------------------------------
 // ------------- constructor populating only mandatory parameters -------------
 // ----------------------------------------------------------------------------
-Version::Builder::Builder(const std::string &fileName,
+Version::Builder::Builder(const std::filesystem::path &fileName,
                           const std::string &functionName,
                           const compiler_ptr_t &compiler)
 {
@@ -390,7 +390,7 @@ Version::Builder::Builder(const std::string &fileName,
 // ----------------------------------------------------------------------------
 // ------------- constructor populating only mandatory parameters -------------
 // ----------------------------------------------------------------------------
-Version::Builder::Builder(const std::vector<std::string> &fileNames,
+Version::Builder::Builder(const std::vector<std::filesystem::path> &fileNames,
                           const std::vector<std::string> &functionNames,
                           const compiler_ptr_t &compiler)
 {
@@ -450,7 +450,7 @@ void Version::Builder::reset()
 // ----------------------------------------------------------------------------
 // ----------------------------- add source file ------------------------------
 // ----------------------------------------------------------------------------
-void Version::Builder::addSourceFile(const std::string &src)
+void Version::Builder::addSourceFile(const std::filesystem::path &src)
 {
   _fileName_src.push_back(src);
   return;
@@ -468,19 +468,19 @@ void Version::Builder::addTag(const std::string &tag)
 // ----------------------------------------------------------------------------
 // --------------------------- add include directory --------------------------
 // ----------------------------------------------------------------------------
-void Version::Builder::addIncludeDir(const std::string &path)
+void Version::Builder::addIncludeDir(const std::filesystem::path &path)
 {
-  _genIROptionList.push_back(Option("includeDir", "-I", path));
-  _optionList.push_back(Option("includeDir", "-I", path));
+  _genIROptionList.push_back(Option("includeDir", "-I", path.string()));
+  _optionList.push_back(Option("includeDir", "-I", path.string()));
   return;
 }
 
 // ----------------------------------------------------------------------------
 // ---------------------------- add link directory ----------------------------
 // ----------------------------------------------------------------------------
-void Version::Builder::addLinkingDir(const std::string &path)
+void Version::Builder::addLinkingDir(const std::filesystem::path &path)
 {
-  _optionList.push_back(Option("linkDir", "-L", path));
+  _optionList.push_back(Option("linkDir", "-L", path.string()));
   return;
 }
 
@@ -555,7 +555,7 @@ void Version::Builder::addFunctionFlag(const std::string &flag)
 // ----------------------------------------------------------------------------
 // --------------- create version from shared object file name ----------------
 // ----------------------------------------------------------------------------
-version_ptr_t Version::Builder::createFromSO(const std::string &sharedObject,
+version_ptr_t Version::Builder::createFromSO(const std::filesystem::path &sharedObject,
                                              const std::string &functionName,
                                              const compiler_ptr_t &compiler,
                                              bool autoremoveFilesEnable,
@@ -574,7 +574,7 @@ version_ptr_t Version::Builder::createFromSO(const std::string &sharedObject,
 // ----------------------------------------------------------------------------
 // --------------- create version from shared object file name ----------------
 // ----------------------------------------------------------------------------
-version_ptr_t Version::Builder::createFromSO(const std::string &sharedObject,
+version_ptr_t Version::Builder::createFromSO(const std::filesystem::path &sharedObject,
                                              const std::vector<std::string> &functionNames,
                                              const compiler_ptr_t &compiler,
                                              bool autoremoveFilesEnable,

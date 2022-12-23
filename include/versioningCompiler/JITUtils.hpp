@@ -29,6 +29,7 @@
 
 /** C-like simplified interface to libVC */
 
+#include <filesystem>
 #include <iostream>
 #include "versioningCompiler/Version.hpp"
 #include "versioningCompiler/CompilerImpl/JITCompiler.hpp"
@@ -46,7 +47,7 @@ namespace vc {
 
 
 /** Create a Version using default parameters */
-    version_ptr_t createVersion(const std::string &src,
+    version_ptr_t createVersion(const std::filesystem::path &src,
                                 const std::string &fn,
                                 const opt_list_t &options);
 
@@ -75,7 +76,7 @@ namespace vc {
         );
     }
 
-    version_ptr_t createVersion(const std::string &src,
+    version_ptr_t createVersion(const std::filesystem::path &src,
                                 const std::string &fn,
                                 const opt_list_t &options) {
 

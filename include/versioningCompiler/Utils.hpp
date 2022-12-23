@@ -35,12 +35,12 @@ compiler_ptr_t libVC_default_compiler;
 void vc_utils_init();
 
 /** Create a Version using default parameters */
-version_ptr_t createVersion(const std::vector<std::string> &src,
+version_ptr_t createVersion(const std::vector<std::filesystem::path> &src,
                             const std::vector<std::string> &fn,
                             const opt_list_t &options);
 
 /** Create a Version using default parameters */
-version_ptr_t createVersion(const std::string &src,
+version_ptr_t createVersion(const std::filesystem::path &src,
                             const std::string &fn,
                             const opt_list_t &options);
 
@@ -54,7 +54,7 @@ void vc_utils_init() {
   return;
 }
 
-version_ptr_t createVersion(const std::string &src,
+version_ptr_t createVersion(const std::filesystem::path &src,
                             const std::string &fn,
                             const opt_list_t &options) {
   Version::Builder builder;
@@ -65,7 +65,7 @@ version_ptr_t createVersion(const std::string &src,
   return builder.build();
 }
 
-version_ptr_t createVersion(const std::vector<std::string> &src,
+version_ptr_t createVersion(const std::vector<std::filesystem::path> &src,
                             const std::vector<std::string> &fn,
                             const opt_list_t &options) {
   Version::Builder builder;
