@@ -40,13 +40,15 @@ set(LIBVC_BINARY_PATH @PROJECT_BINARY_DIR@)
 set(LIBVC_INSTALL_PATH @CMAKE_INSTALL_PREFIX@)
 
 # check for the header of the monitor module
-find_path(LIBVC_INCLUDE_DIRS versioningCompiler/Version.hpp PATHS
-                    ${LIBVC_INSTALL_PATH}/include
-                    ${LIBVC_SOURCE_PATH}/include
-                    /usr/local/include
-                    /usr/include
-                    ${CMAKE_EXTRA_INCLUDES}
-          )
+find_path(
+  LIBVC_INCLUDE_DIRS versioningCompiler/Version.hpp PATHS 
+                   ${LIBVC_INSTALL_PATH}/include
+                   ${LIBVC_SOURCE_PATH}/include
+                   /usr/local/include
+                   /usr/include
+                   ${CMAKE_EXTRA_INCLUDES}
+                   NO_DEFAULT_PATH
+              )
 
 if (LIBVC_INCLUDE_DIRS-NOTFOUND)
   set (LIBVC_FOUND FALSE)
@@ -164,48 +166,86 @@ if(NOT LLVM_CONFIG_EXECUTABLE)
     LLVM_CONFIG_EXECUTABLE
     NAMES "llvm-config-${LLVM_VERSION_MAJOR}" "llvm-config"
     DOC "llvm-config executable"
-    PATHS ${LLVM_TOOLS_BINARY_DIR})
+    PATHS ${LLVM_TOOLS_BINARY_DIR}
+    NO_DEFAULT_PATH)
 endif(NOT LLVM_CONFIG_EXECUTABLE)
 
 if(LLVM_CONFIG_EXECUTABLE)
-  message(STATUS "Found components for LLVM")
   message(STATUS "llvm-config ........ = ${LLVM_CONFIG_EXECUTABLE}")
 else(LLVM_CONFIG_EXECUTABLE)
   message(STATUS "llvm-config ........ = NOT FOUND")
   message(WARNING "Could NOT find LLVM config executable")
 endif(LLVM_CONFIG_EXECUTABLE)
 
-execute_process(
-  COMMAND ${LLVM_CONFIG_EXECUTABLE} --cxxflags
-  OUTPUT_VARIABLE LLVM_CFLAGS
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+if(NOT LLVM_SHARED_MODE)
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --shared-mode
+    OUTPUT_VARIABLE LLVM_SHARED_MODE
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif(NOT LLVM_SHARED_MODE)
 
-execute_process(
-  COMMAND ${LLVM_CONFIG_EXECUTABLE} --ldflags
-  OUTPUT_VARIABLE LLVM_LFLAGS
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+if(LLVM_SHARED_MODE STREQUAL "shared")
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --link-shared
+    OUTPUT_VARIABLE LLVM_LINK_SHARED_OUTPUT
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if(LLVM_LINK_SHARED_OUTPUT STREQUAL "")
+    message(STATUS "Setting link mode to shared...= OK")
+  else(LLVM_LINK_SHARED_OUTPUT STREQUAL "")
+    message(
+      WARNING "Setting link mode to shared... = ${LLVM_LINK_SHARED_OUTPUT}")
+  endif(LLVM_LINK_SHARED_OUTPUT STREQUAL "")
+endif(LLVM_SHARED_MODE STREQUAL "shared")
 
-execute_process(
-  COMMAND ${LLVM_CONFIG_EXECUTABLE} --libs
-  OUTPUT_VARIABLE LLVM_MODULE_LIBS
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+if(LLVM_SHARED_MODE STREQUAL "static")
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --link-static
+    OUTPUT_VARIABLE LLVM_LINK_STATIC_OUTPUT
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if(LLVM_LINK_STATIC_OUTPUT STREQUAL "")
+    message(STATUS "Setting link mode to static...= OK")
+  else(LLVM_LINK_STATIC_OUTPUT STREQUAL "")
+    message(
+      WARNING "Setting link mode to static... = ${LLVM_LINK_STATIC_OUTPUT}")
+  endif(LLVM_LINK_STATIC_OUTPUT STREQUAL "")
+endif(LLVM_SHARED_MODE STREQUAL "static")
 
-execute_process(
-  COMMAND ${LLVM_CONFIG_EXECUTABLE} --libfiles
-  OUTPUT_VARIABLE LLVM_MODULE_LIBFILES
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-separate_arguments(LLVM_MODULE_LIBFILES)
+if(NOT LLVM_CFLAGS)
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --cxxflags
+    OUTPUT_VARIABLE LLVM_CFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif(NOT LLVM_CFLAGS)
 
-execute_process(
-  COMMAND ${LLVM_CONFIG_EXECUTABLE} --system-libs
-  OUTPUT_VARIABLE LLVM_SYSTEM
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
-separate_arguments(LLVM_SYSTEM)
+if(NOT LLVM_LFLAGS)
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --ldflags
+    OUTPUT_VARIABLE LLVM_LFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif(NOT LLVM_LFLAGS)
 
+if(NOT LLVM_MODULE_LIBS)
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --libs
+    OUTPUT_VARIABLE LLVM_MODULE_LIBS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif(NOT LLVM_MODULE_LIBS)
+
+if(NOT LLVM_MODULE_LIBFILES)
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --libfiles
+    OUTPUT_VARIABLE LLVM_MODULE_LIBFILES
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  separate_arguments(LLVM_MODULE_LIBFILES)
+endif(NOT LLVM_MODULE_LIBFILES)
+
+if(NOT LLVM_SYSTEM)
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --system-libs
+    OUTPUT_VARIABLE LLVM_SYSTEM
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  separate_arguments(LLVM_SYSTEM)
+endif(NOT LLVM_SYSTEM)
 # This should never happen
 if(NOT LLVM_TOOLS_BINARY_DIR)
   execute_process(
@@ -220,7 +260,8 @@ if(NOT CLANG_EXE_NAME)
     CLANG_EXE_FULLPATH
     NAMES "clang-${LLVM_VERSION_MAJOR}" "clang"
     DOC "clang executable"
-    PATHS ${LLVM_TOOLS_BINARY_DIR})
+    PATHS ${LLVM_TOOLS_BINARY_DIR}
+    NO_DEFAULT_PATH)
   get_filename_component(CLANG_EXE_NAME ${CLANG_EXE_FULLPATH} NAME)
 endif(NOT CLANG_EXE_NAME)
 if(NOT OPT_EXE_NAME)
@@ -228,38 +269,10 @@ if(NOT OPT_EXE_NAME)
     OPT_EXE_FULLPATH
     NAMES "opt-${LLVM_VERSION_MAJOR}" "opt"
     DOC "opt executable"
-    PATHS ${LLVM_TOOLS_BINARY_DIR})
+    PATHS ${LLVM_TOOLS_BINARY_DIR}
+    NO_DEFAULT_PATH)
   get_filename_component(OPT_EXE_NAME ${OPT_EXE_FULLPATH} NAME)
 endif(NOT OPT_EXE_NAME)
-
-
-# -----------------------------------------------------------------------------
-# Try to find libclang
-#
-# Once done this will define:
-# - LIBCLANG_FOUND
-#               System has libclang.
-# - LIBCLANG_INCLUDE_DIRS
-#               The libclang include directories.
-# - LIBCLANG_LIBRARIES
-#               The libraries needed to use libclang.
-# - LIBCLANG_LIBRARY_DIR
-#               The path to the directory containing libclang.
-# - LIBCLANG_KNOWN_LLVM_VERSIONS
-#               Known LLVM release numbers.
-
-find_path(
-  LIBCLANG_INCLUDE_DIRS clang-c/Index.h
-  PATHS ${LLVM_INCLUDE_DIR}
-  PATH_SUFFIXES LLVM/include #Windows package from http://llvm.org/releases/
-  DOC "The path to the directory that contains clang-c/Index.h")
-
-if(LIBCLANG_INCLUDE_DIRS)
-  set(LIBCLANG_FOUND TRUE)
-else(LIBCLANG_INCLUDE_DIRS)
-  set(LIBCLANG_FOUND FALSE)
-endif(LIBCLANG_INCLUDE_DIRS)
-
 # -----------------------------------------------------------------------------
 # Check LLVM version
 
@@ -292,6 +305,68 @@ else()
   endif (LibVersioningCompiler_FIND_VERBOSE)
 endif()
 
+# -----------------------------------------------------------------------------
+# Try to find libclang
+#
+# Once done this will define:
+# - LIBCLANG_FOUND
+#               System has libclang.
+# - LIBCLANG_INCLUDE_DIRS
+#               The libclang include directories.
+# - LIBCLANG_LIBRARIES
+#               The libraries needed to use libclang.
+# - LIBCLANG_LIBRARY_DIR
+#               The path to the directory containing libclang.
+# - LIBCLANG_KNOWN_LLVM_VERSIONS
+#               Known LLVM release numbers.
+
+find_path(
+  LIBCLANG_INCLUDE_DIRS clang-c/Index.h
+  PATHS ${LLVM_INCLUDE_DIR}
+  NO_DEFAULT_PATH
+  PATH_SUFFIXES LLVM/include #Windows package from http://llvm.org/releases/
+  DOC "The path to the directory that contains clang-c/Index.h")
+
+if(LIBCLANG_INCLUDE_DIRS)
+  set(LIBCLANG_FOUND TRUE)
+else(LIBCLANG_INCLUDE_DIRS)
+  set(LIBCLANG_FOUND FALSE)
+endif(LIBCLANG_INCLUDE_DIRS)
+
+# Find libclang library
+
+# On Windows with MSVC, the import library uses the ".imp" file extension
+# instead of the common ".lib"
+if(MSVC)
+  find_file(
+    LIBCLANG_LIBRARY libclang.imp libclang.lib libclang.dll
+    PATH_SUFFIXES LLVM/lib
+    DOC "The file that corresponds to the libclang library.")
+else(MSVC)
+  if(LLVM_SHARED_MODE STREQUAL "shared")
+    find_library(
+      LIBCLANG_LIBRARY
+      NAMES libclang clang
+      PATHS ${LLVM_LIBRARY_DIR}
+      NO_DEFAULT_PATH
+      DOC "The file that corresponds to the libclang library.")
+  else(LLVM_SHARED_MODE STREQUAL "shared")
+    # Look for libclang library, giving higher priority to statically linked libraries (.a,.lib)
+    find_library(
+      LIBCLANG_LIBRARY
+      NAMES libclang.a libclang.lib libclang.imp libclang clang
+      PATHS ${LLVM_LIBRARY_DIR}
+      NO_DEFAULT_PATH
+      DOC "The file that corresponds to the libclang library.")
+  endif(LLVM_SHARED_MODE STREQUAL "shared")
+endif(MSVC)
+set(LIBCLANG_LIBRARIES ${LIBCLANG_LIBRARY} ${LIBCLANG_LIBRARIES})
+if(NOT LIBCLANG_LIBRARY)
+  message(STATUS "LibClang library ... = NOT FOUND")
+else()
+  message(STATUS "LibClang library ... = ${LIBCLANG_LIBRARY}")
+endif()
+
 # Make variable coherent
 if (HAVE_CLANG_LIB_COMPILER AND NOT ENABLE_CLANG_AS_LIB)
   set (HAVE_CLANG_LIB_COMPILER FALSE)
@@ -317,60 +392,6 @@ endif(ENABLE_CLANG_AS_LIB)
 list(REMOVE_DUPLICATES LIBVC_INCLUDE_DIRS)
 
 # -----------------------------------------------------------------------------
-# -----------------------------------------------------------------------------
-# Check for the libraries
-
-# On Windows with MSVC, the import library uses the ".imp" file extension
-# instead of the comon ".lib"
-if(MSVC)
-  find_file (LIBCLANG_LIBRARY libclang.imp
-    PATH_SUFFIXES LLVM/lib
-    DOC "The file that corresponds to the libclang library.")
-endif(MSVC)
-
-find_library (LIBCLANG_LIBRARY NAMES libclang.imp libclang clang
-  PATHS ${LLVM_LIBRARY_DIR}
-  PATH_SUFFIXES LLVM/lib #Windows package from http://llvm.org/releases/
-  DOC "The file that corresponds to the libclang library.")
-
-get_filename_component(LIBCLANG_LIBRARY_DIR ${LIBCLANG_LIBRARY} PATH)
-list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES ".so.${LLVM_VERSION_MAJOR}")
-macro(FIND_AND_ADD_CLANG_LIB _libname_)
-  find_library(
-    CLANG_${_libname_}_LIB
-    NAMES ${_libname_}
-    PATHS ${LLVM_LIBRARY_DIR})
-  if(CLANG_${_libname_}_LIB)
-    set(LIBCLANG_LIBRARIES ${LIBCLANG_LIBRARIES} ${CLANG_${_libname_}_LIB})
-    get_filename_component(LIBCLANG_${_libname_}_LIBRARY_DIR
-                           ${LIBCLANG_LIBRARY} PATH)
-    set(LIBCLANG_LIBRARY_DIR ${LIBCLANG_LIBRARY_DIR}
-                             ${LIBCLANG_${_libname_}_LIBRARY_DIR})
-  endif(CLANG_${_libname_}_LIB)
-endmacro(FIND_AND_ADD_CLANG_LIB)
-
-set (LIBCLANG_LIBRARIES ${LIBCLANG_LIBRARY})
-find_and_add_clang_lib(clang-cpp)
-# Clang shared library provides just the limited C interface, so it
-# can not be used.  We look for the static libraries.
-find_and_add_clang_lib(clangFrontend)
-find_and_add_clang_lib(clangSerialization)
-find_and_add_clang_lib(clangDriver)
-find_and_add_clang_lib(clangCodeGen)
-find_and_add_clang_lib(clangParse)
-find_and_add_clang_lib(clangSema)
-find_and_add_clang_lib(clangAnalysis)
-find_and_add_clang_lib(clangAST)
-find_and_add_clang_lib(clangEdit)
-find_and_add_clang_lib(clangLex)
-find_and_add_clang_lib(clangBasic)
-list(REMOVE_ITEM CMAKE_FIND_LIBRARY_SUFFIXES ".so.${LLVM_VERSION_MAJOR}")
-
-list (REMOVE_DUPLICATES LIBCLANG_LIBRARY_DIR)
-
-set(LIBCLANG_LIBRARIES ${LIBCLANG_LIBRARY} ${LIBCLANG_LIBRARIES})
-
-# -----------------------------------------------------------------------------
 # Check for the uuid library
 
 find_library (UUID_LIBRARY
@@ -390,14 +411,11 @@ get_filename_component (UUID_LIBRARY_DIR ${UUID_LIBRARY} PATH)
 
 # -----------------------------------------------------------------------------
 # check for the libVersioningCompiler library
-find_library(LIBVC_LIBRARY VersioningCompiler PATHS
-                ${LIBVC_INSTALL_PATH}/lib
-                ${LIBVC_BINARY_PATH}
-                /usr/local/lib
-                /usr/lib
-                /lib
-                ${CMAKE_EXTRA_LIBRARIES}
-  )
+find_library(
+  LIBVC_LIBRARY VersioningCompiler
+  PATHS ${LIBVC_INSTALL_PATH}/lib ${LIBVC_BINARY_PATH} /usr/local/lib /usr/lib
+        /lib ${CMAKE_EXTRA_LIBRARIES}
+  NO_DEFAULT_PATH)
 
 get_filename_component (LIBVC_LIBRARY_DIR ${LIBVC_LIBRARY} PATH)
 

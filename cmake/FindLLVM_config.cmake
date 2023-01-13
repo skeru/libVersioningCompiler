@@ -73,44 +73,86 @@ if(NOT LLVM_CONFIG_EXECUTABLE)
     LLVM_CONFIG_EXECUTABLE
     NAMES "llvm-config-${LLVM_VERSION_MAJOR}" "llvm-config"
     DOC "llvm-config executable"
-    PATHS ${LLVM_TOOLS_BINARY_DIR})
+    PATHS ${LLVM_TOOLS_BINARY_DIR}
+    NO_DEFAULT_PATH)
 endif(NOT LLVM_CONFIG_EXECUTABLE)
 
 if(LLVM_CONFIG_EXECUTABLE)
-  message(STATUS "Found components for LLVM")
   message(STATUS "llvm-config ........ = ${LLVM_CONFIG_EXECUTABLE}")
 else(LLVM_CONFIG_EXECUTABLE)
   message(STATUS "llvm-config ........ = NOT FOUND")
   message(WARNING "Could NOT find LLVM config executable")
 endif(LLVM_CONFIG_EXECUTABLE)
 
-execute_process(
-  COMMAND ${LLVM_CONFIG_EXECUTABLE} --cxxflags
-  OUTPUT_VARIABLE LLVM_CFLAGS
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(NOT LLVM_SHARED_MODE)
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --shared-mode
+    OUTPUT_VARIABLE LLVM_SHARED_MODE
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif(NOT LLVM_SHARED_MODE)
 
-execute_process(
-  COMMAND ${LLVM_CONFIG_EXECUTABLE} --ldflags
-  OUTPUT_VARIABLE LLVM_LFLAGS
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(LLVM_SHARED_MODE STREQUAL "shared")
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --link-shared
+    OUTPUT_VARIABLE LLVM_LINK_SHARED_OUTPUT
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if(LLVM_LINK_SHARED_OUTPUT STREQUAL "")
+    message(STATUS "Setting link mode to shared...= OK")
+  else(LLVM_LINK_SHARED_OUTPUT STREQUAL "")
+    message(
+      WARNING "Setting link mode to shared... = ${LLVM_LINK_SHARED_OUTPUT}")
+  endif(LLVM_LINK_SHARED_OUTPUT STREQUAL "")
+endif(LLVM_SHARED_MODE STREQUAL "shared")
 
-execute_process(
-  COMMAND ${LLVM_CONFIG_EXECUTABLE} --libs
-  OUTPUT_VARIABLE LLVM_MODULE_LIBS
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(LLVM_SHARED_MODE STREQUAL "static")
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --link-static
+    OUTPUT_VARIABLE LLVM_LINK_STATIC_OUTPUT
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if(LLVM_LINK_STATIC_OUTPUT STREQUAL "")
+    message(STATUS "Setting link mode to static...= OK")
+  else(LLVM_LINK_STATIC_OUTPUT STREQUAL "")
+    message(
+      WARNING "Setting link mode to static... = ${LLVM_LINK_STATIC_OUTPUT}")
+  endif(LLVM_LINK_STATIC_OUTPUT STREQUAL "")
+endif(LLVM_SHARED_MODE STREQUAL "static")
 
-execute_process(
-  COMMAND ${LLVM_CONFIG_EXECUTABLE} --libfiles
-  OUTPUT_VARIABLE LLVM_MODULE_LIBFILES
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
-separate_arguments(LLVM_MODULE_LIBFILES)
+if(NOT LLVM_CFLAGS)
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --cxxflags
+    OUTPUT_VARIABLE LLVM_CFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif(NOT LLVM_CFLAGS)
 
-execute_process(
-  COMMAND ${LLVM_CONFIG_EXECUTABLE} --system-libs
-  OUTPUT_VARIABLE LLVM_SYSTEM
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
-separate_arguments(LLVM_SYSTEM)
+if(NOT LLVM_LFLAGS)
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --ldflags
+    OUTPUT_VARIABLE LLVM_LFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif(NOT LLVM_LFLAGS)
 
+if(NOT LLVM_MODULE_LIBS)
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --libs
+    OUTPUT_VARIABLE LLVM_MODULE_LIBS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif(NOT LLVM_MODULE_LIBS)
+
+if(NOT LLVM_MODULE_LIBFILES)
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --libfiles
+    OUTPUT_VARIABLE LLVM_MODULE_LIBFILES
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  separate_arguments(LLVM_MODULE_LIBFILES)
+endif(NOT LLVM_MODULE_LIBFILES)
+
+if(NOT LLVM_SYSTEM)
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --system-libs
+    OUTPUT_VARIABLE LLVM_SYSTEM
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  separate_arguments(LLVM_SYSTEM)
+endif(NOT LLVM_SYSTEM)
 # This should never happen
 if(NOT LLVM_TOOLS_BINARY_DIR)
   execute_process(
@@ -124,7 +166,8 @@ if(NOT CLANG_EXE_NAME)
     CLANG_EXE_FULLPATH
     NAMES "clang-${LLVM_VERSION_MAJOR}" "clang"
     DOC "clang executable"
-    PATHS ${LLVM_TOOLS_BINARY_DIR})
+    PATHS ${LLVM_TOOLS_BINARY_DIR}
+    NO_DEFAULT_PATH)
   get_filename_component(CLANG_EXE_NAME ${CLANG_EXE_FULLPATH} NAME)
 endif(NOT CLANG_EXE_NAME)
 if(NOT OPT_EXE_NAME)
@@ -132,11 +175,10 @@ if(NOT OPT_EXE_NAME)
     OPT_EXE_FULLPATH
     NAMES "opt-${LLVM_VERSION_MAJOR}" "opt"
     DOC "opt executable"
-    PATHS ${LLVM_TOOLS_BINARY_DIR})
+    PATHS ${LLVM_TOOLS_BINARY_DIR}
+    NO_DEFAULT_PATH)
   get_filename_component(OPT_EXE_NAME ${OPT_EXE_FULLPATH} NAME)
 endif(NOT OPT_EXE_NAME)
-
-set(LLVM_SYSTEM pthread z tinfo)
 
 if(LLVM_FIND_VERBOSE)
   if(LLVM_PACKAGE_VERSION)
@@ -182,12 +224,17 @@ if(LLVM_FIND_VERBOSE)
     else(LLVM_TOOLS_BINARY_DIR)
       message(STATUS "LLVM_TOOLS_BINARY_DIR= NOT FOUND")
     endif(LLVM_TOOLS_BINARY_DIR)
+    if(LLVM_SHARED_MODE)
+      message(STATUS "LLVM_SHARED_MODE.... = ${LLVM_SHARED_MODE}")
+    else(LLVM_SHARED_MODE)
+      message(STATUS "LLVM_SHARED_MODE.... = UNKNOWN!")
+    endif(LLVM_SHARED_MODE)
   endif(LLVM_FIND_VERBOSE)
 endif(LLVM_FIND_VERBOSE)
 
 # Required to adjust imports based on the llvm major version
 add_definitions(-DLLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR})
-# Required to adjust paths without having runtime penalties
+# Required to adjust paths without having runtime penalties for string composition
 add_definitions(-DCLANG_EXE_FULLPATH="${CLANG_EXE_FULLPATH}")
 add_definitions(-DOPT_EXE_FULLPATH="${OPT_EXE_FULLPATH}")
 add_definitions(-DCLANG_EXE_NAME="${CLANG_EXE_NAME}")
@@ -202,4 +249,5 @@ mark_as_advanced(
   LLVM_MODULE_LIBS
   LLVM_SYSTEM
   LLVM_VERSION
-  LLVM_TOOLS_BINARY_DIR)
+  LLVM_TOOLS_BINARY_DIR
+  LLVM_SHARED_MODE)
