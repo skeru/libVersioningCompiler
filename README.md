@@ -96,9 +96,9 @@ The above-mentioned cmake module will export also cmake variables which are
 useful to build an application that uses libVersioningCompiler, including
 
 ```
-$LIBVC_INCLUDE_DIRS   = Include path for the header files of libVersioningCompiler
-$LIBVC_LIBRARIES  = Link these libraries to use libVersioningCompiler
-$LIBVC_LIB_DIR     = Extra libraries directories
+$LIBVC_INCLUDE_DIRS      = Include path for the header files of libVersioningCompiler
+$LIBVC_LIBRARIES         = Link these libraries to use libVersioningCompiler
+$LIBVC_LIB_DIR           = Extra libraries directories
 $HAVE_CLANG_LIB_COMPILER = Set to true if libVersioningCompiler can have Clang as a library enabled
 ```
 

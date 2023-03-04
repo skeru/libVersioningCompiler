@@ -191,7 +191,7 @@ protected:
  private:
   /** \brief compiler unique identifier.
    *
-   * It is user-defied at instatiation time.
+   * It is user-defined at instantiation time.
    */
   std::string id;
 
