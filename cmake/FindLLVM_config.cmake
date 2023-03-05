@@ -38,6 +38,8 @@
 
 if(NOT LLVM_FOUND)
   set(LLVM_KNOWN_MAJOR_VERSIONS
+      17
+      16
       15
       14
       13
@@ -233,12 +235,23 @@ if(LLVM_FIND_VERBOSE)
 endif(LLVM_FIND_VERBOSE)
 
 # Required to adjust imports based on the llvm major version
-add_definitions(-DLLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR})
-# Required to adjust paths without having runtime penalties for string composition
-add_definitions(-DCLANG_EXE_FULLPATH="${CLANG_EXE_FULLPATH}")
-add_definitions(-DOPT_EXE_FULLPATH="${OPT_EXE_FULLPATH}")
-add_definitions(-DCLANG_EXE_NAME="${CLANG_EXE_NAME}")
-add_definitions(-DOPT_EXE_NAME="${OPT_EXE_NAME}")
+if(LLVM_VERSION_MAJOR)
+  add_definitions(-DLLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR})
+endif(LLVM_VERSION_MAJOR)
+# Required to adjust paths without having runtime penalties for string
+# composition
+if(NOT CLANG_EXE_FULLPATH-NOTFOUND)
+  add_definitions(-DCLANG_EXE_FULLPATH="${CLANG_EXE_FULLPATH}")
+endif(NOT CLANG_EXE_FULLPATH-NOTFOUND)
+if(NOT OPT_EXE_FULLPATH-NOTFOUND)
+  add_definitions(-DOPT_EXE_FULLPATH="${OPT_EXE_FULLPATH}")
+endif(NOT OPT_EXE_FULLPATH-NOTFOUND)
+if(NOT CLANG_EXE_NAME-NOTFOUND)
+  add_definitions(-DCLANG_EXE_NAME="${CLANG_EXE_NAME}")
+endif(NOT CLANG_EXE_NAME-NOTFOUND)
+if(NOT OPT_EXE_NAME-NOTFOUND)
+  add_definitions(-DOPT_EXE_NAME="${OPT_EXE_NAME}")
+endif(NOT OPT_EXE_NAME-NOTFOUND)
 
 mark_as_advanced(
   LLVM_FOUND

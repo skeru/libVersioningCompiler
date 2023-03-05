@@ -371,11 +371,18 @@ static void AddOptimizationPasses(legacy::PassManagerBase &MPM,
   Builder.LoopVectorize = OptLevel > 1 && SizeLevel < 2;
   // When #pragma vectorize is on for SLP, do the same as above
   Builder.SLPVectorize = OptLevel > 1 && SizeLevel < 2;
+// See https://github.com/llvm/llvm-project/commit/99c47d9e3113a917ea2f84f27e57f2ea3da4fc8c
+// Since opt no longer supports to run default (O0/O1/O2/O3/Os/Oz)
+// pipelines using the legacy PM, there are no in-tree uses of
+// TargetMachine::adjustPassManager remaining. This patch removes the
+// no longer used adjustPassManager functions.
 
   // Add target-specific passes that need to run as early as possible.
+#if LLVM_VERSION_MAJOR < 16
   if (TM) {
     TM->adjustPassManager(Builder);
   }
+#endif
 #if LLVM_VERSION_MAJOR < 15
   if (Coroutines) {
     addCoroutinePassesToExtensionPoints(Builder);

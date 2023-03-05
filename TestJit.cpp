@@ -102,10 +102,16 @@ int main(int argc, char const *argv[]) {
 
   builder.setCompiler(jitCompiler);
   // builder._autoremoveFilesEnable = false; // uncomment this to keep intermediate files
+#if LLVM_VERSION_MAJOR < 16
   builder.setOptOptions({
           vc::Option("mem2reg", "-mem2reg"),
           vc::Option("o", "-O", "3"),
   });
+#else
+   builder.setOptOptions({
+      vc::Option("mem2reg", "-passes='defaultO3,mem2reg'"),
+  });
+#endif
   std::cout << "Building version.." << std::endl;
   vc::version_ptr_t myversion = builder.build();
 

@@ -86,13 +86,17 @@ void LLVMInstanceManager::initializeLLVM()
   llvm::initializeCoroutines(passRegistry);
   #endif
   llvm::initializeScalarOpts(passRegistry);
+#if LLVM_VERSION_MAJOR < 16
   llvm::initializeObjCARCOpts(passRegistry);
+#endif
   llvm::initializeVectorization(passRegistry);
   llvm::initializeIPO(passRegistry);
   llvm::initializeAnalysis(passRegistry);
   llvm::initializeTransformUtils(passRegistry);
   llvm::initializeInstCombine(passRegistry);
+#if LLVM_VERSION_MAJOR < 16
   llvm::initializeInstrumentation(passRegistry);
+#endif
   llvm::initializeTarget(passRegistry);
   // For codegen passes, only passes that do IR to IR transformation are
   // supported.

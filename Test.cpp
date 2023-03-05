@@ -60,6 +60,10 @@
 #define OPT_EXE_FULLPATH "/usr/bin/opt"
 #endif
 
+#ifndef LLVM_VERSION_MAJOR
+#define LLVM_VERSION_MAJOR 0
+#endif
+
 // someone should provide the signature of the function now versioning
 // in the form of function pointer type.
 typedef int (*signature_t)(int);
@@ -138,9 +142,14 @@ int main(int argc, char const *argv[])
   // another way to clone a version: construct a builder by cloning v2
   another_builder = vc::Version::Builder(v2);
   another_builder.setCompiler(clang);
+#if LLVM_VERSION_MAJOR < 16
   another_builder.setOptOptions({vc::Option("fp-contract", "-fp-contract=", "fast"),
                                  vc::Option("inline", "-inline"), vc::Option("unroll", "-loop-unroll"),
                                  vc::Option("mem2reg", "-mem2reg")});
+#else
+  another_builder.setOptOptions({vc::Option("Optimization Passes", "-passes=", "'inline,loop-unroll,mem2reg'"),
+                                 vc::Option("fp-contract", "--fp-contract=", "fast")});
+#endif
   vc::version_ptr_t v3 = another_builder.build();
   // end configuring version v3
 
@@ -149,10 +158,16 @@ int main(int argc, char const *argv[])
   builder.setCompiler(clangAsLib);
 #endif
   builder._autoremoveFilesEnable = true;
+#if LLVM_VERSION_MAJOR < 16
   builder.setOptOptions({
       vc::Option("mem2reg", "-mem2reg"),
       vc::Option("o", "-O", "3"),
   });
+#else
+  builder.setOptOptions({
+      vc::Option("mem2reg", "-passes='defaultO3,mem2reg'"),
+  });
+#endif
   vc::version_ptr_t v4 = builder.build();
   // end configuring version v4
 

@@ -481,9 +481,13 @@ std::filesystem::path JITCompiler::runOptimizer(const std::filesystem::path &src
       report_error("Text output is incompatible with -module-hash");
     }
     Passes.add(createPrintModulePass(*OS, "", PreserveAssemblyUseListOrder));
-  } else if (OutputThinLTOBC) {
+  } 
+#if LLVM_VERSION_MAJOR < 16
+  else if (OutputThinLTOBC) {
     Passes.add(createWriteThinLTOBitcodePass(*OS));
-  } else {
+  } 
+#endif
+  else {
     Passes.add(createBitcodeWriterPass(*OS,
                                        PreserveBitcodeUseListOrder,
                                        EmitSummaryIndex,

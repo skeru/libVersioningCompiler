@@ -281,6 +281,42 @@ test-llvm15:
     - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
   script:
     - cd build && chmod +x libVC_test libVC_testUtils libVC_testJit && ./libVC_testUtils && ./libVC_test && ./libVC_testJit
+build-llvm16-jammy:
+  stage: build
+  image: ubuntu:jammy
+  variables:
+    CLANG_VN: "16"
+  before_script:
+    - *setup_script_jammy
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
+  script:
+    - mkdir build && cmake -D LLVM_FIND_VERBOSE=1 -D LIBCLANG_FIND_VERBOSE=1 -D CMAKE_VERBOSE_MAKEFILE=1 -S . -B build && cmake --build build -v
+  cache:
+    key: $CI_COMMIT_SHA-llvm$CLANG_VN-cache
+    policy: push
+    paths:
+      - build
+  artifacts:
+    paths:
+      - build
+    expire_in: 1 month
+
+test-llvm16-jammy:
+  stage: test
+  image: ubuntu:jammy
+  needs: [build-llvm16-jammy]
+  variables:
+    CLANG_VN: "16"
+  cache:
+      key: $CI_COMMIT_SHA-llvm$CLANG_VN-cache
+      policy: pull
+      paths:
+        - build
+  before_script:
+    - *setup_script_jammy
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
+  script:
+    - cd build && chmod +x libVC_test libVC_testUtils libVC_testJit && ./libVC_testUtils && ./libVC_test && ./libVC_testJit
 
 ## Extra tests for bugs
 

@@ -132,6 +132,8 @@ endif (UUID_INCLUDE_DIR-NOTFOUND)
 
 if(NOT LLVM_FOUND)
   set(LLVM_KNOWN_MAJOR_VERSIONS
+      17
+      16
       15
       14
       13

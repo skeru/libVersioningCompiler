@@ -13,6 +13,8 @@
 # Find the latest llvm version, unless LLVM_FOUND is yet set
 if(NOT LLVM_FOUND)
   set(LLVM_KNOWN_MAJOR_VERSIONS
+      17
+      16
       15
       14
       13
@@ -71,15 +73,27 @@ endif(NOT LLVM_SHARED_MODE)
 
 # On Windows with MSVC, the import library uses the ".imp" file extension
 # instead of the common ".lib"
-if (MSVC)
-  find_file (LIBCLANG_LIBRARY libclang.imp libclang.lib libclang.dll
+if(MSVC)
+  find_file(
+    LIBCLANG_LIBRARY
+    libclang-${LLVM_VERSION}.imp
+    libclang-${LLVM_VERSION_MAJOR}.imp
+    libclang.imp
+    libclang-${LLVM_VERSION}.lib
+    libclang-${LLVM_VERSION_MAJOR}.lib
+    libclang.lib
+    libclang-${LLVM_VERSION}.dll
+    libclang-${LLVM_VERSION_MAJOR}.dll
+    libclang.dll
     PATH_SUFFIXES LLVM/lib
     DOC "The file that corresponds to the libclang library.")
 else(MSVC)
   if(LLVM_SHARED_MODE STREQUAL "shared")
     find_library(
       LIBCLANG_LIBRARY
-      NAMES libclang clang
+      NAMES libclang-${LLVM_VERSION}.so.1 libclang-${LLVM_VERSION_MAJOR}.so.1
+            libclang-${LLVM_VERSION}.so libclang-${LLVM_VERSION_MAJOR}.so
+            libclang clang
       PATHS ${LLVM_LIBRARY_DIR}
       NO_DEFAULT_PATH
       DOC "The file that corresponds to the libclang library.")

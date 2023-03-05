@@ -468,9 +468,13 @@ std::filesystem::path ClangLibCompiler::runOptimizer(const std::filesystem::path
       report_error("Text output is incompatible with -module-hash");
     }
     Passes.add(createPrintModulePass(*OS, "", PreserveAssemblyUseListOrder));
-  } else if (OutputThinLTOBC) {
+  } 
+#if LLVM_VERSION_MAJOR < 16
+  else if (OutputThinLTOBC) {
     Passes.add(createWriteThinLTOBitcodePass(*OS)); 
-  } else {
+  } 
+#endif
+  else {
     Passes.add(createBitcodeWriterPass(*OS,
                                        PreserveBitcodeUseListOrder,
                                        EmitSummaryIndex,
