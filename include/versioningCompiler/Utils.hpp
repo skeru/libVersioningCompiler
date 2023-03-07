@@ -78,7 +78,9 @@ version_ptr_t createVersion(const std::vector<std::filesystem::path> &src,
 
 void* compileAndGetSymbol(version_ptr_t& v) {
   v->compile();
-  return v->getSymbol();
+  if (v->hasLoadedSymbol())
+    return v->getSymbol();
+  return nullptr;
 }
 
 } // end namespace vc
