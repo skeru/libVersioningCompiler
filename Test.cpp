@@ -30,11 +30,10 @@
 #include <string>
 #include <vector>
 
-
 #ifndef FORCED_PATH_TO_TEST
 #define FORCED_PATH_TO_TEST "../libVersioningCompiler/test_code"
 #endif
-#define PATH_TO_C_TEST_CODE FORCED_PATH_TO_TEST"/test_code.c"
+#define PATH_TO_C_TEST_CODE FORCED_PATH_TO_TEST "/test_code.c"
 
 #ifndef TEST_FUNCTION
 #define TEST_FUNCTION "test_function"
@@ -68,8 +67,7 @@
 // in the form of function pointer type.
 typedef int (*signature_t)(int);
 
-int main(int argc, char const *argv[])
-{
+int main(int argc, char const *argv[]) {
   // At least one builder is needed. A builder will provide the immutable
   // object Verison, which identifies a function version configuration.
   // There are more that one builder just to show different constructors.
@@ -82,7 +80,8 @@ int main(int argc, char const *argv[])
   auto t_fun_index = builder.addFunctionName(TEST_FUNCTION); // This returns 0
   if (t_fun_index == -1)
     std::cerr << "Error: TEST_FUNCTION name not added correctly" << std::endl;
-  auto second_fun_index = builder.addFunctionName(SECOND_FUNCTION); // This returns 1
+  auto second_fun_index =
+      builder.addFunctionName(SECOND_FUNCTION); // This returns 1
   if (second_fun_index == -1)
     std::cerr << "Error: SECOND_FUNCTION name not added correctly" << std::endl;
   builder.addSourceFile(PATH_TO_C_TEST_CODE);
@@ -90,11 +89,10 @@ int main(int argc, char const *argv[])
   // ---------- Initialize the compiler to be used. ----------
   // Should be done just once.
   // Compiler is stateless from all points of view but logging:
-  // if required (i.e. !log_filename.empty()) it keeps a continous log of commands
-  // and errors.
-  // Right now only Compilers called via a system call are available. That's
-  // why they are called SystemCompilers.
-  // Support for Compiler-as-a-library will be added soon.
+  // if required (i.e. !log_filename.empty()) it keeps a continous log of
+  // commands and errors. Right now only Compilers called via a system call are
+  // available. That's why they are called SystemCompilers. Support for
+  // Compiler-as-a-library will be added soon.
   vc::compiler_ptr_t cc = vc::make_compiler<vc::SystemCompiler>();
 
   // WARNING: on linux, paths starting with / are assumed to be absolute paths!
@@ -131,7 +129,8 @@ int main(int argc, char const *argv[])
   // want to reuse the same parameters as Version v. Use the same builder.
   // just modify the compiler...
   builder._compiler = gcc;
-  // builder._autoremoveFilesEnable = false; // uncomment this to keep the intermediate files
+  // builder._autoremoveFilesEnable = false; // uncomment this to keep the
+  // intermediate files
   // ...and the option list
   builder.options({vc::Option("o", "-O", "2")});
   // Version v2 is finalized as v, with the above mentioned changes.
@@ -143,12 +142,15 @@ int main(int argc, char const *argv[])
   another_builder = vc::Version::Builder(v2);
   another_builder.setCompiler(clang);
 #if LLVM_VERSION_MAJOR < 16
-  another_builder.setOptOptions({vc::Option("fp-contract", "-fp-contract=", "fast"),
-                                 vc::Option("inline", "-inline"), vc::Option("unroll", "-loop-unroll"),
-                                 vc::Option("mem2reg", "-mem2reg")});
+  another_builder.setOptOptions(
+      {vc::Option("fp-contract", "-fp-contract=", "fast"),
+       vc::Option("inline", "-inline"), vc::Option("unroll", "-loop-unroll"),
+       vc::Option("mem2reg", "-mem2reg")});
 #else
-  another_builder.setOptOptions({vc::Option("Optimization Passes", "-passes=", "'inline,loop-unroll,mem2reg'"),
-                                 vc::Option("fp-contract", "--fp-contract=", "fast")});
+  another_builder.setOptOptions(
+      {vc::Option("Optimization Passes",
+                  "-passes=", "'inline,loop-unroll,mem2reg'"),
+       vc::Option("fp-contract", "--fp-contract=", "fast")});
 #endif
   vc::version_ptr_t v3 = another_builder.build();
   // end configuring version v3
@@ -173,8 +175,8 @@ int main(int argc, char const *argv[])
 
   // actually compile v.
   bool ok = v->compile();
-  if (! ok) { // something during the compilation went wrong
-    if (! v->hasGeneratedBin()) {
+  if (!ok) { // something during the compilation went wrong
+    if (!v->hasGeneratedBin()) {
       std::cerr << "Error: compilation failed." << std::endl;
     } else {
       std::cerr << "Error: symbol not loaded" << std::endl;
@@ -184,8 +186,8 @@ int main(int argc, char const *argv[])
   // same for v2
   std::cerr << "Notify: v compiled. Going for v2" << std::endl;
   ok = v2->compile();
-  if (! ok) {
-    if (! v2->hasGeneratedBin()) {
+  if (!ok) {
+    if (!v2->hasGeneratedBin()) {
       std::cerr << "Error: compilation 2 failed." << std::endl;
     } else {
       std::cerr << "Error: symbol 2 not loaded" << std::endl;
@@ -196,21 +198,24 @@ int main(int argc, char const *argv[])
   // prepare LLVM-IR file (generate IR and run optimizer, if available)
   std::cerr << "Notify: v2 compiled. Going for v3 prepareIR" << std::endl;
   ok = v3->prepareIR();
-  if (! ok) {
-    if (! clang->hasIRSupport()) {
-      std::cerr << "Error: something went wrong with the compiler." << std::endl;
-    } else if (! v3->hasGeneratedIR()) {
+  if (!ok) {
+    if (!clang->hasIRSupport()) {
+      std::cerr << "Error: something went wrong with the compiler."
+                << std::endl;
+    } else if (!v3->hasGeneratedIR()) {
       std::cerr << "Error: generation of IR v3 failed." << std::endl;
     } else {
       std::cerr << "Error: optimization of IR v3 failed." << std::endl;
     }
-    std::cerr << "\tPlease check the compiler/optimizer install path in Test.cpp source file" << std::endl;
+    std::cerr << "\tPlease check the compiler/optimizer install path in "
+                 "Test.cpp source file"
+              << std::endl;
   }
   std::cerr << "Notify: v3 IR prepared. Going for v3 compilation" << std::endl;
   // compiles from optimized version, if available
   ok = v3->compile();
-  if (! ok) {
-    if (! v3->hasGeneratedBin()) {
+  if (!ok) {
+    if (!v3->hasGeneratedBin()) {
       std::cerr << "Error: compilation 3 failed." << std::endl;
     } else {
       std::cerr << "Error: symbol 3 not loaded" << std::endl;
@@ -219,21 +224,24 @@ int main(int argc, char const *argv[])
   }
   std::cerr << "Notify: v3 compiled. Going for v4" << std::endl;
   ok = v4->prepareIR();
-  if (! ok) {
-    if (! clang->hasIRSupport()) {
-      std::cerr << "Error: something went wrong with the compiler." << std::endl;
-    } else if (! v3->hasGeneratedIR()) {
+  if (!ok) {
+    if (!clang->hasIRSupport()) {
+      std::cerr << "Error: something went wrong with the compiler."
+                << std::endl;
+    } else if (!v3->hasGeneratedIR()) {
       std::cerr << "Error: generation of IR v4 failed." << std::endl;
     } else {
       std::cerr << "Error: optimization of IR v4 failed." << std::endl;
     }
-    std::cerr << "\tPlease check the compiler/optimizer install path" << std::endl;
+    std::cerr << "\tPlease check the compiler/optimizer install path"
+              << std::endl;
   }
   std::cout << "Notify: v4 IR prepared. Going for v4 compilation" << std::endl;
   ok = v4->compile();
   if (!ok) {
     if (v4->hasGeneratedBin()) {
-      std::cerr << "v4 has generated binary "<< v4->getFileName_bin() << std::endl;
+      std::cerr << "v4 has generated binary " << v4->getFileName_bin()
+                << std::endl;
     }
     if (v4->hasLoadedSymbol()) {
       std::cerr << "v4 has loaded symbol" << std::endl;
@@ -243,13 +251,10 @@ int main(int argc, char const *argv[])
   }
   std::cout << "Notify: v4 compiled." << std::endl;
 
-  vc::version_ptr_t v5 =
-    vc::Version::Builder::createFromSO(v4->getFileName_bin(),
-                                       TEST_FUNCTION,
-                                       gcc,
-                                       false,
-                                       {"version created from shared object"});
-  if (! v5->compile()) {
+  vc::version_ptr_t v5 = vc::Version::Builder::createFromSO(
+      v4->getFileName_bin(), TEST_FUNCTION, gcc, false,
+      {"version created from shared object"});
+  if (!v5->compile()) {
     if (v5->hasGeneratedBin()) {
       std::cerr << "v5 has binary " << v5->getFileName_bin() << std::endl;
     }
@@ -265,8 +270,10 @@ int main(int argc, char const *argv[])
   f.push_back((signature_t)v->getSymbol(second_fun_index));
   f.push_back((signature_t)v2->getSymbol(t_fun_index));
   f.push_back((signature_t)v3->getSymbol(t_fun_index));
-  f.push_back((signature_t)v4->getSymbol());                 // equivalent to v4->getSymbol(0) or v4->getSymbol(t_fun_index)
-  f.push_back((signature_t)v2->getSymbol(second_fun_index)); // equivalent to v5->getSymbol(1).
+  f.push_back((signature_t)v4->getSymbol()); // equivalent to v4->getSymbol(0)
+                                             // or v4->getSymbol(t_fun_index)
+  f.push_back((signature_t)v2->getSymbol(
+      second_fun_index)); // equivalent to v5->getSymbol(1).
   f.push_back((signature_t)v5->getSymbol());
   if (f[0]) {
     std::cout << "Expected: 42**2 = 1764" << std::endl;
@@ -301,11 +308,15 @@ int main(int argc, char const *argv[])
   v5->fold();
   std::cout << "Version folded, reloading it." << std::endl;
   v3->reload();
-  signature_t reloaded = (signature_t)v3->getSymbol();   // equivalent to v3->getSymbol(t_fun_index)
-  signature_t reloaded2 = (signature_t)v3->getSymbol(1); // equivalent to v3->getSymbol(second_fun_index)
+  signature_t reloaded =
+      (signature_t)v3->getSymbol(); // equivalent to v3->getSymbol(t_fun_index)
+  signature_t reloaded2 = (signature_t)v3->getSymbol(
+      1); // equivalent to v3->getSymbol(second_fun_index)
   if (reloaded) {
     std::cout << "Expected: -1" << std::endl;
-    reloaded2(0); // v3's global variable was set to 9. After folding, the version is reset to its initial state so v3's global value is -1.
+    reloaded2(
+        0); // v3's global variable was set to 9. After folding, the version is
+            // reset to its initial state so v3's global value is -1.
     std::cout << "Expected: 15**2 = 225" << std::endl;
     reloaded(15);
     std::cout << "Expected: 225" << std::endl;

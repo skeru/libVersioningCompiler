@@ -35,39 +35,27 @@ Compiler::Compiler(const std::string &compilerID,
                    const std::filesystem::path &compilerCallString,
                    const std::filesystem::path &libWorkingDir,
                    const std::filesystem::path &log,
-                   const std::filesystem::path &installDir,
-                   bool supportIR) :
-                                    id(compilerID),
-                                    callString(compilerCallString),
-                                    logFile(log),
-                                    libWorkingDirectory(libWorkingDir),
-                                    installDirectory(installDir),
-                                    hasSupportIR(supportIR)
-{
+                   const std::filesystem::path &installDir, bool supportIR)
+    : id(compilerID), callString(compilerCallString), logFile(log),
+      libWorkingDirectory(libWorkingDir), installDirectory(installDir),
+      hasSupportIR(supportIR) {
   addReferenceToLogFile(logFile);
 }
 
 // ----------------------------------------------------------------------------
 // ------------------------- get compiler identifier --------------------------
 // ----------------------------------------------------------------------------
-std::string Compiler::getId() const
-{
-  return id;
-}
+std::string Compiler::getId() const { return id; }
 
 // ----------------------------------------------------------------------------
 // ------------------- check if compiler supports LLVM-IR ---------------------
 // ----------------------------------------------------------------------------
-bool Compiler::hasIRSupport() const
-{
-  return hasSupportIR;
-}
+bool Compiler::hasIRSupport() const { return hasSupportIR; }
 
 // ----------------------------------------------------------------------------
 // --------------- print a command to log file and execute it -----------------
 // ----------------------------------------------------------------------------
-void Compiler::log_exec(const std::string &command) const
-{
+void Compiler::log_exec(const std::string &command) const {
   FILE *output;
   std::ofstream logstream;
   std::string _command = command;
@@ -94,8 +82,7 @@ void Compiler::log_exec(const std::string &command) const
 // ----------------------------------------------------------------------------
 // ----------------------- print a string to log file -------------------------
 // ----------------------------------------------------------------------------
-void Compiler::log_string(const std::string &command) const
-{
+void Compiler::log_string(const std::string &command) const {
   std::ofstream logstream;
   if (!logFile.empty()) {
     lockMutex(logFile);
@@ -110,10 +97,9 @@ void Compiler::log_string(const std::string &command) const
 // ---------------------------------------------------------------------------
 // ----------------------------- releaseSymbol -------------------------------
 // ---------------------------------------------------------------------------
-void Compiler::releaseSymbol(void ** handler)
-{
+void Compiler::releaseSymbol(void **handler) {
   if (dlclose(*handler)) {
-    char* error = dlerror();
+    char *error = dlerror();
     std::string error_str(error);
     log_string(error_str);
   }
@@ -124,31 +110,30 @@ void Compiler::releaseSymbol(void ** handler)
 // ---------------------------------------------------------------------------
 // ------------------------------- loadSymbol --------------------------------
 // ---------------------------------------------------------------------------
-std::vector<void*> Compiler::loadSymbols(const std::filesystem::path &bin,
-                                         const std::vector<std::string> &func,
-                                         void ** handler)
-{
+std::vector<void *> Compiler::loadSymbols(const std::filesystem::path &bin,
+                                          const std::vector<std::string> &func,
+                                          void **handler) {
   std::vector<void *> symbols = {};
   if (exists(bin)) {
     *handler = dlopen(bin.c_str(), RTLD_NOW);
   } else {
-    std::string error_str = "cannot load symbol from " + bin.string() +
-                            " : file not found";
+    std::string error_str =
+        "cannot load symbol from " + bin.string() + " : file not found";
     log_string(error_str);
     return symbols;
   }
   if (*handler) {
-    for (const std::string& f : func) {
+    for (const std::string &f : func) {
       void *symbol = dlsym(*handler, f.c_str());
       if (!symbol) {
-        std::string error_str = "cannot load symbol " + f + " from " + bin.string() +
-        " : symbol not found";
+        std::string error_str = "cannot load symbol " + f + " from " +
+                                bin.string() + " : symbol not found";
         log_string(error_str);
       }
       symbols.push_back(symbol);
     } // end for
   } else {
-    char* error = dlerror();
+    char *error = dlerror();
     std::string error_str(error);
     log_string(error_str);
   }
@@ -158,8 +143,7 @@ std::vector<void*> Compiler::loadSymbols(const std::filesystem::path &bin,
 // ----------------------------------------------------------------------------
 // -------------------------- check file existence ----------------------------
 // ----------------------------------------------------------------------------
-bool Compiler::exists(const std::filesystem::path &name)
-{
+bool Compiler::exists(const std::filesystem::path &name) {
   struct stat buffer;
   return (stat(name.c_str(), &buffer) == 0);
 }
@@ -167,41 +151,41 @@ bool Compiler::exists(const std::filesystem::path &name)
 // ----------------------------------------------------------------------------
 // ---------------------- compose intermediate file name ----------------------
 // ----------------------------------------------------------------------------
-std::filesystem::path Compiler::getBitcodeFileName(const std::string &versionID) const
-{
-  std::filesystem::path filename = libWorkingDirectory / std::filesystem::u8path("IR_"+ versionID+ ".bc");
+std::filesystem::path
+Compiler::getBitcodeFileName(const std::string &versionID) const {
+  std::filesystem::path filename =
+      libWorkingDirectory / std::filesystem::u8path("IR_" + versionID + ".bc");
   return filename;
 }
 
 // ----------------------------------------------------------------------------
 // ----------------- compose optimized intermediate file name -----------------
 // ----------------------------------------------------------------------------
-std::filesystem::path Compiler::getOptBitcodeFileName(const std::string &versionID) const
-{
-  const std::filesystem::path filename = libWorkingDirectory / std::filesystem::path("opt_IR_" + versionID + ".bc");
+std::filesystem::path
+Compiler::getOptBitcodeFileName(const std::string &versionID) const {
+  const std::filesystem::path filename =
+      libWorkingDirectory /
+      std::filesystem::path("opt_IR_" + versionID + ".bc");
   return filename;
 }
 
 // ----------------------------------------------------------------------------
 // ------------------ compose binary shared object file name ------------------
 // ----------------------------------------------------------------------------
-std::filesystem::path Compiler::getSharedObjectFileName(const std::string &versionID) const
-{
-  const std::filesystem::path filename = libWorkingDirectory /
-                               std::filesystem::path ("lib"
-                               + versionID
-                               + ".so");
+std::filesystem::path
+Compiler::getSharedObjectFileName(const std::string &versionID) const {
+  const std::filesystem::path filename =
+      libWorkingDirectory / std::filesystem::path("lib" + versionID + ".so");
   return filename;
 }
 
 // ----------------------------------------------------------------------------
 // ------------------ get temporary name for file            ------------------
 // ----------------------------------------------------------------------------
-std::filesystem::path Compiler::generateTemporaryFileName(
-		const std::filesystem::path& original, 
-		const std::string &versionID,  
-		int incremental) const
-{
+std::filesystem::path
+Compiler::generateTemporaryFileName(const std::filesystem::path &original,
+                                    const std::string &versionID,
+                                    int incremental) const {
 
   std::string extension = ".c";
   std::filesystem::path dir = std::filesystem::u8path(".");
@@ -209,21 +193,18 @@ std::filesystem::path Compiler::generateTemporaryFileName(
     extension = original.extension();
   if (original.has_parent_path())
     dir = original.parent_path();
-  const std::filesystem::path filename = dir / std::filesystem::u8path(
-      std::to_string(incremental) +
-      "_"+
-      versionID+
-  extension);
+  const std::filesystem::path filename =
+      dir / std::filesystem::u8path(std::to_string(incremental) + "_" +
+                                    versionID + extension);
   return filename;
 }
 
 // ----------------------------------------------------------------------------
 // --------------- notification of unsupported feature request ----------------
 // ----------------------------------------------------------------------------
-void Compiler::unsupported(const std::string &message) const
-{
-  const std::string error_string = "Required Compiler unsupported feature:\n\t"
-                                   + message;
+void Compiler::unsupported(const std::string &message) const {
+  const std::string error_string =
+      "Required Compiler unsupported feature:\n\t" + message;
   log_string(error_string);
   return;
 }
@@ -231,8 +212,9 @@ void Compiler::unsupported(const std::string &message) const
 // ----------------------------------------------------------------------------
 // --------------------- static mutex map initialization ----------------------
 // ----------------------------------------------------------------------------
-std::map<std::filesystem::path, std::pair<uint64_t, std::shared_ptr<std::mutex>>>
-Compiler::log_access_mtx_map;
+std::map<std::filesystem::path,
+         std::pair<uint64_t, std::shared_ptr<std::mutex>>>
+    Compiler::log_access_mtx_map;
 
 // ----------------------------------------------------------------------------
 // ------------ static initialization of mutex to access mutex map ------------
@@ -242,20 +224,18 @@ std::mutex Compiler::mtx_map_mtx;
 // ----------------------------------------------------------------------------
 // ---------------- static mutex map accessors : add reference ----------------
 // ----------------------------------------------------------------------------
-void Compiler::addReferenceToLogFile(const std::filesystem::path &logFileName)
-{
+void Compiler::addReferenceToLogFile(const std::filesystem::path &logFileName) {
   if (logFileName.empty()) {
     return;
   }
   mtx_map_mtx.lock();
   auto it = log_access_mtx_map.find(logFileName);
   if (it != log_access_mtx_map.end()) {
-    it->second.first ++;
+    it->second.first++;
   } else {
     log_access_mtx_map[logFileName] =
-      std::make_pair<uint64_t, std::shared_ptr<std::mutex>>(
-        1,
-        std::make_shared<std::mutex>());
+        std::make_pair<uint64_t, std::shared_ptr<std::mutex>>(
+            1, std::make_shared<std::mutex>());
   }
   mtx_map_mtx.unlock();
   return;
@@ -264,16 +244,16 @@ void Compiler::addReferenceToLogFile(const std::filesystem::path &logFileName)
 // ----------------------------------------------------------------------------
 // -------------- static mutex map accessors : remove reference ---------------
 // ----------------------------------------------------------------------------
-void Compiler::removeReferenceToLogFile(const std::filesystem::path &logFileName)
-{
+void Compiler::removeReferenceToLogFile(
+    const std::filesystem::path &logFileName) {
   if (logFileName.empty()) {
     return;
   }
   mtx_map_mtx.lock();
   auto it = log_access_mtx_map.find(logFileName);
   if (it != log_access_mtx_map.end()) {
-    it->second.first --;
-    if(it->second.first <= 0) {
+    it->second.first--;
+    if (it->second.first <= 0) {
       log_access_mtx_map.erase(it);
     }
   }
@@ -284,8 +264,7 @@ void Compiler::removeReferenceToLogFile(const std::filesystem::path &logFileName
 // ----------------------------------------------------------------------------
 // ----------------- static mutex map accessors : lock mutex ------------------
 // ----------------------------------------------------------------------------
-void Compiler::lockMutex(const std::filesystem::path &logFileName)
-{
+void Compiler::lockMutex(const std::filesystem::path &logFileName) {
   if (logFileName.empty()) {
     return;
   }
@@ -299,8 +278,7 @@ void Compiler::lockMutex(const std::filesystem::path &logFileName)
 // ----------------------------------------------------------------------------
 // ---------------- static mutex map accessors : unlock mutex -----------------
 // ----------------------------------------------------------------------------
-void Compiler::unlockMutex(const std::filesystem::path &logFileName)
-{
+void Compiler::unlockMutex(const std::filesystem::path &logFileName) {
   if (logFileName.empty()) {
     return;
   }

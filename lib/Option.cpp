@@ -22,24 +22,12 @@
 
 using namespace vc;
 
-Option::Option(const std::string &optionTag,
-               const std::string &optionPrefix,
+Option::Option(const std::string &optionTag, const std::string &optionPrefix,
                const std::string &val)
-                                      : tag(optionTag),
-                                        value(val),
-                                        prefix(optionPrefix) { }
+    : tag(optionTag), value(val), prefix(optionPrefix) {}
 
-std::string Option::getTag() const
-{
-  return tag;
-}
+std::string Option::getTag() const { return tag; }
 
-std::string Option::getValue() const
-{
-  return value;
-}
+std::string Option::getValue() const { return value; }
 
-std::string Option::getPrefix() const
-{
-  return prefix;
-}
+std::string Option::getPrefix() const { return prefix; }

@@ -44,8 +44,8 @@
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Mangler.h"
 #include "llvm/Support/DynamicLibrary.h"
-#include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/raw_ostream.h"
 
 #include <algorithm>
 #include <iostream>
@@ -53,8 +53,6 @@
 #include <stdlib.h>
 #include <string>
 #include <vector>
-
-
 
 #ifndef FORCED_PATH_TO_TEST
 #define FORCED_PATH_TO_TEST "../libVersioningCompiler/test_code"
@@ -71,7 +69,6 @@
 #ifndef SECOND_FUNCTION
 #define SECOND_FUNCTION "test_function2"
 #endif
-
 
 using namespace llvm;
 using namespace orc;
@@ -101,14 +98,15 @@ int main(int argc, char const *argv[]) {
       std::filesystem::u8path("./test_jit.log"));
 
   builder.setCompiler(jitCompiler);
-  // builder._autoremoveFilesEnable = false; // uncomment this to keep intermediate files
+  // builder._autoremoveFilesEnable = false; // uncomment this to keep
+  // intermediate files
 #if LLVM_VERSION_MAJOR < 16
   builder.setOptOptions({
-          vc::Option("mem2reg", "-mem2reg"),
-          vc::Option("o", "-O", "3"),
+      vc::Option("mem2reg", "-mem2reg"),
+      vc::Option("o", "-O", "3"),
   });
 #else
-   builder.setOptOptions({
+  builder.setOptOptions({
       vc::Option("mem2reg", "-passes='defaultO3,mem2reg'"),
   });
 #endif
@@ -119,13 +117,16 @@ int main(int argc, char const *argv[]) {
   bool ok = myversion->prepareIR();
   if (!ok) {
     if (!jitCompiler->hasIRSupport()) {
-      std::cerr << "Error: something went wrong with the compiler." << std::endl;
+      std::cerr << "Error: something went wrong with the compiler."
+                << std::endl;
     } else if (!myversion->hasGeneratedIR()) {
       std::cerr << "Error: generation of IR for myversion failed." << std::endl;
     } else {
-      std::cerr << "Error: optimization of IR for myversion failed." << std::endl;
+      std::cerr << "Error: optimization of IR for myversion failed."
+                << std::endl;
     }
-    std::cerr << "\tPlease check the compiler/optimizer install path" << std::endl;
+    std::cerr << "\tPlease check the compiler/optimizer install path"
+              << std::endl;
     return -1;
   }
   std::cout << "IR prepared. Going for myversion compilation.." << std::endl;
@@ -134,7 +135,8 @@ int main(int argc, char const *argv[]) {
   if (!ok) {
     std::cerr << "Error: myversion compilation has failed." << std::endl;
     if (myversion->hasGeneratedBin()) {
-      std::cerr << "\tmyversion has generated binary " << myversion->getFileName_bin() << std::endl;
+      std::cerr << "\tmyversion has generated binary "
+                << myversion->getFileName_bin() << std::endl;
     }
     if (myversion->hasLoadedSymbol()) {
       std::cerr << "\tmyversion has loaded symbol" << std::endl;
@@ -173,8 +175,9 @@ int main(int argc, char const *argv[]) {
   std::cout << "Version folded, reloading it." << std::endl;
   myversion->reload();
   std::cout << "Executing myversion reloaded symbol." << std::endl;
-  signature_t reloaded = (signature_t)myversion->getSymbol();   // TEST_FUNCTION
-  signature_t reloaded2 = (signature_t)myversion->getSymbol(1); // SECOND_FUNCTION
+  signature_t reloaded = (signature_t)myversion->getSymbol(); // TEST_FUNCTION
+  signature_t reloaded2 =
+      (signature_t)myversion->getSymbol(1); // SECOND_FUNCTION
   if (reloaded) {
     std::cout << "Expected -1" << std::endl;
     reloaded2(0);

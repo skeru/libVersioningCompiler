@@ -22,14 +22,14 @@
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
 #include "versioningCompiler/CompilerImpl/ClangLLVM/LLVMInstanceManager.hpp"
+
 #ifndef CLANG_EXE_FULLPATH
 #define CLANG_EXE_FULLPATH "/usr/bin/clang"
 #endif
 // ---------------------------------------------------------------------------
 // ------------------------------- constructor -------------------------------
 // ---------------------------------------------------------------------------
-LLVMInstanceManager::LLVMInstanceManager()
-{
+LLVMInstanceManager::LLVMInstanceManager() {
   initializeLLVM();
   return;
 }
@@ -40,8 +40,7 @@ std::shared_ptr<LLVMInstanceManager> LLVMInstanceManager::instance = nullptr;
 // ---------------------------------------------------------------------------
 // ------------------------------- destructor --------------------------------
 // ---------------------------------------------------------------------------
-LLVMInstanceManager::~LLVMInstanceManager()
-{
+LLVMInstanceManager::~LLVMInstanceManager() {
   llvm::llvm_shutdown();
   return;
 }
@@ -49,42 +48,40 @@ LLVMInstanceManager::~LLVMInstanceManager()
 // ---------------------------------------------------------------------------
 // --------------------------- get clang exe path ----------------------------
 // ---------------------------------------------------------------------------
-std::filesystem::path LLVMInstanceManager::getClangExePath() const
-{
+std::filesystem::path LLVMInstanceManager::getClangExePath() const {
   return clangExeStr;
 }
 
 // ---------------------------------------------------------------------------
 // -------------------- get default target triple object ---------------------
 // ---------------------------------------------------------------------------
-std::shared_ptr<llvm::Triple> LLVMInstanceManager::getDefaultTriple() const
-{
+std::shared_ptr<llvm::Triple> LLVMInstanceManager::getDefaultTriple() const {
   return triple;
 }
 
 // ---------------------------------------------------------------------------
 // ----------------------------- initializeLLVM -----------------------------
 // ---------------------------------------------------------------------------
-void LLVMInstanceManager::initializeLLVM()
-{
+void LLVMInstanceManager::initializeLLVM() {
   llvm::InitializeAllTargetInfos();
   llvm::InitializeAllTargets();
   llvm::InitializeAllTargetMCs();
   llvm::InitializeAllAsmParsers();
   llvm::InitializeAllAsmPrinters();
   llvm::InitializeAllDisassemblers();
-  if (llvm::InitializeNativeTarget()) { // check whether it has native target or not
+  if (llvm::InitializeNativeTarget()) { // check whether it has native target or
+                                        // not
     llvm::InitializeNativeTargetAsmParser();
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::InitializeNativeTargetDisassembler();
   }
 
   // Initialize passes
-  llvm::PassRegistry& passRegistry = *llvm::PassRegistry::getPassRegistry();
+  llvm::PassRegistry &passRegistry = *llvm::PassRegistry::getPassRegistry();
   llvm::initializeCore(passRegistry);
-  #if LLVM_VERSION_MAJOR <15
+#if LLVM_VERSION_MAJOR < 15
   llvm::initializeCoroutines(passRegistry);
-  #endif
+#endif
   llvm::initializeScalarOpts(passRegistry);
 #if LLVM_VERSION_MAJOR < 16
   llvm::initializeObjCARCOpts(passRegistry);
@@ -110,13 +107,14 @@ void LLVMInstanceManager::initializeLLVM()
   llvm::initializePreISelIntrinsicLoweringLegacyPassPass(passRegistry);
   llvm::initializeGlobalMergePass(passRegistry);
   llvm::initializeInterleavedAccessPass(passRegistry);
-  #if LLVM_VERSION_MAJOR <15
+#if LLVM_VERSION_MAJOR < 15
   llvm::initializeEntryExitInstrumenterPass(passRegistry);
   llvm::initializePostInlineEntryExitInstrumenterPass(passRegistry);
-  #endif
+#endif
   llvm::initializeUnreachableBlockElimLegacyPassPass(passRegistry);
 
-  // remember default target triple , not suitable for cross compiling https://reviews.llvm.org/D34446
+  // remember default target triple , not suitable for cross compiling
+  // https://reviews.llvm.org/D34446
   auto tripleStr = llvm::sys::getProcessTriple();
   triple = std::make_shared<llvm::Triple>(tripleStr);
 

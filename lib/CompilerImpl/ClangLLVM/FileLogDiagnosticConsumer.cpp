@@ -33,18 +33,14 @@ using namespace vc;
 // --------------------------- detailed constructor ---------------------------
 // ----------------------------------------------------------------------------
 FileLogDiagnosticConsumer::FileLogDiagnosticConsumer(
-  std::filesystem::path LogFileName,
-  DiagnosticOptions *diags)
-                            : LangOpts(nullptr),
-                              DiagOpts(diags),
-                              _logFileName(LogFileName.string()),
-                              _log() { }
+    std::filesystem::path LogFileName, DiagnosticOptions *diags)
+    : LangOpts(nullptr), DiagOpts(diags), _logFileName(LogFileName.string()),
+      _log() {}
 
 // ----------------------------------------------------------------------------
 // --------------------------- default destructor ---------------------------
 // ----------------------------------------------------------------------------
-FileLogDiagnosticConsumer::~FileLogDiagnosticConsumer()
-{
+FileLogDiagnosticConsumer::~FileLogDiagnosticConsumer() {
   if (_log.is_open()) {
     _log.close();
   }
@@ -55,8 +51,7 @@ FileLogDiagnosticConsumer::~FileLogDiagnosticConsumer()
 // ---------------------------- begin source file -----------------------------
 // ----------------------------------------------------------------------------
 void FileLogDiagnosticConsumer::BeginSourceFile(const clang::LangOptions &LO,
-                                                const clang::Preprocessor *PP)
-{
+                                                const clang::Preprocessor *PP) {
   LangOpts = &LO;
   return;
 }
@@ -66,12 +61,18 @@ void FileLogDiagnosticConsumer::BeginSourceFile(const clang::LangOptions &LO,
 // ----------------------------------------------------------------------------
 static StringRef getLevelName(DiagnosticsEngine::Level Level) {
   switch (Level) {
-  case DiagnosticsEngine::Ignored: return "ignored";
-  case DiagnosticsEngine::Remark:  return "remark";
-  case DiagnosticsEngine::Note:    return "note";
-  case DiagnosticsEngine::Warning: return "warning";
-  case DiagnosticsEngine::Error:   return "error";
-  case DiagnosticsEngine::Fatal:   return "fatal error";
+  case DiagnosticsEngine::Ignored:
+    return "ignored";
+  case DiagnosticsEngine::Remark:
+    return "remark";
+  case DiagnosticsEngine::Note:
+    return "note";
+  case DiagnosticsEngine::Warning:
+    return "warning";
+  case DiagnosticsEngine::Error:
+    return "error";
+  case DiagnosticsEngine::Fatal:
+    return "fatal error";
   }
   llvm_unreachable("Invalid DiagnosticsEngine level!");
   return "";
@@ -85,11 +86,10 @@ static StringRef getLevelName(DiagnosticsEngine::Level Level) {
 /// This implements all of the logic for adding diagnostic options to a message
 /// (via logStream). Each relevant option is comma separated and all are
 /// enclosed in the standard bracketing: " [...]".
-static void printDiagnosticOptions(llvm::raw_ostream& logStream,
+static void printDiagnosticOptions(llvm::raw_ostream &logStream,
                                    DiagnosticsEngine::Level Level,
-                                   const Diagnostic& Info,
-                                   const DiagnosticOptions &DiagOpts)
-{
+                                   const Diagnostic &Info,
+                                   const DiagnosticOptions &DiagOpts) {
   bool Started = false;
   if (DiagOpts.ShowOptionNames) {
     // Handle special cases for non-warnings early.
@@ -117,7 +117,7 @@ static void printDiagnosticOptions(llvm::raw_ostream& logStream,
     StringRef Opt = DiagnosticIDs::getWarningOptionForDiag(Info.getID());
     if (!Opt.empty()) {
       logStream << (Started ? "," : " [")
-         << (Level == DiagnosticsEngine::Remark ? "-R" : "-W") << Opt;
+                << (Level == DiagnosticsEngine::Remark ? "-R" : "-W") << Opt;
       StringRef OptValue = Info.getDiags()->getFlagValue();
       if (!OptValue.empty())
         logStream << "=" << OptValue;
@@ -128,7 +128,7 @@ static void printDiagnosticOptions(llvm::raw_ostream& logStream,
   // If the user wants to see category information, include it too.
   if (DiagOpts.ShowCategories) {
     unsigned DiagCategory =
-      DiagnosticIDs::getCategoryNumberForDiag(Info.getID());
+        DiagnosticIDs::getCategoryNumberForDiag(Info.getID());
     if (DiagCategory) {
       logStream << (Started ? "," : " [");
       Started = true;
@@ -149,8 +149,7 @@ static void printDiagnosticOptions(llvm::raw_ostream& logStream,
 // ----------------------------------------------------------------------------
 // ----------------------------- end source file ------------------------------
 // ----------------------------------------------------------------------------
-void FileLogDiagnosticConsumer::EndSourceFile()
-{
+void FileLogDiagnosticConsumer::EndSourceFile() {
   // We emit all the diagnostics in EndSourceFile. However, we don't emit any
   // entry if no diagnostics were present.
   //
@@ -171,7 +170,7 @@ void FileLogDiagnosticConsumer::EndSourceFile()
     return;
   }
 
-  for (auto& e : Entries) {
+  for (auto &e : Entries) {
     _log << std::endl << e;
   }
   _log << std::endl;
@@ -184,19 +183,18 @@ void FileLogDiagnosticConsumer::EndSourceFile()
 // ---------------------------- handle diagnostic -----------------------------
 // ----------------------------------------------------------------------------
 void FileLogDiagnosticConsumer::HandleDiagnostic(DiagnosticsEngine::Level Level,
-                                                 const Diagnostic &Info)
-{
+                                                 const Diagnostic &Info) {
   // Initialize the main file name, if we haven't already fetched it.
   if (MainFilename.empty() && Info.hasSourceManager()) {
     const SourceManager &SM = Info.getSourceManager();
     FileID FID = SM.getMainFileID();
     if (FID.isValid()) {
       const FileEntry *FE = SM.getFileEntryForID(FID);
-      #if LLVM_VERSION_MAJOR <15
+#if LLVM_VERSION_MAJOR < 15
       if (FE && FE->isValid())
-      #else
+#else
       if (FE)
-      #endif
+#endif
         MainFilename = std::string(FE->getName());
     }
   }
@@ -219,7 +217,7 @@ void FileLogDiagnosticConsumer::HandleDiagnostic(DiagnosticsEngine::Level Level,
   // file+line+column number prefix is.
   uint64_t StartOfLocationInfo = stringBuffer.tell();
 
-  if (!Prefix.empty()){
+  if (!Prefix.empty()) {
     stringBuffer << Prefix << ": ";
   }
 
@@ -230,12 +228,10 @@ void FileLogDiagnosticConsumer::HandleDiagnostic(DiagnosticsEngine::Level Level,
   if (!Info.getLocation().isValid()) {
     TextDiagnostic::printDiagnosticLevel(stringBuffer, Level,
                                          DiagOpts->ShowColors);
-    TextDiagnostic::printDiagnosticMessage(stringBuffer, Level,
-                                           DiagMessageStream.str(),
-                                           stringBuffer.tell() - StartOfLocationInfo,
-                                           DiagOpts->MessageLength,
-                                           DiagOpts->ShowColors);
-
+    TextDiagnostic::printDiagnosticMessage(
+        stringBuffer, Level, DiagMessageStream.str(),
+        stringBuffer.tell() - StartOfLocationInfo, DiagOpts->MessageLength,
+        DiagOpts->ShowColors);
   }
 
   // store the string

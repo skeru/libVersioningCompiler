@@ -36,46 +36,38 @@ SystemCompilerOptimizer::SystemCompilerOptimizer()
 // --------------------------- detailed constructor ---------------------------
 // ----------------------------------------------------------------------------
 SystemCompilerOptimizer::SystemCompilerOptimizer(
-                         const std::string compilerID,
-                         const std::filesystem::path compilerCallString,
-                         const std::filesystem::path optimizerCallString,
-                         const std::filesystem::path libWorkingDir,
-                         const std::filesystem::path log,
-                         const std::filesystem::path installDir,
-                         const std::filesystem::path optimizerInstallDir
-                       ) : SystemCompiler(
-                                          compilerID,
-                                          compilerCallString,
-                                          libWorkingDir,
-                                          log,
-                                          installDir,
-                                          true
-                                         ),
-                          optCallString(optimizerCallString),
-                          optInstallDirectory(optimizerInstallDir) { }
+    const std::string compilerID,
+    const std::filesystem::path compilerCallString,
+    const std::filesystem::path optimizerCallString,
+    const std::filesystem::path libWorkingDir, const std::filesystem::path log,
+    const std::filesystem::path installDir,
+    const std::filesystem::path optimizerInstallDir)
+    : SystemCompiler(compilerID, compilerCallString, libWorkingDir, log,
+                     installDir, true),
+      optCallString(optimizerCallString),
+      optInstallDirectory(optimizerInstallDir) {}
 
 // ----------------------------------------------------------------------------
 // ---------------------- optimizer support declaration -----------------------
 // ----------------------------------------------------------------------------
-bool SystemCompilerOptimizer::hasOptimizer() const
-{
-  return true;
-}
+bool SystemCompilerOptimizer::hasOptimizer() const { return true; }
 
 // ----------------------------------------------------------------------------
 // ----------------------------- run IR optimizer -----------------------------
 // ----------------------------------------------------------------------------
-std::filesystem::path SystemCompilerOptimizer::runOptimizer(const std::filesystem::path &src_IR,
-                                                  const std::string &versionID,
-                                                  const opt_list_t options) const
-{
+std::filesystem::path
+SystemCompilerOptimizer::runOptimizer(const std::filesystem::path &src_IR,
+                                      const std::string &versionID,
+                                      const opt_list_t options) const {
   std::string commandString;
-  commandString = ( optInstallDirectory/ optCallString).string();
-  std::filesystem::path optimizedFileName = Compiler::getOptBitcodeFileName(versionID);
+  commandString = (optInstallDirectory / optCallString).string();
+  std::filesystem::path optimizedFileName =
+      Compiler::getOptBitcodeFileName(versionID);
   for (auto &o : options) {
-    commandString  = commandString + " " + getOptionString(o);
+    commandString = commandString + " " + getOptionString(o);
   }
-  commandString = commandString + " -o " + optimizedFileName.string() + " " + src_IR.string();
+  commandString = commandString + " -o " + optimizedFileName.string() + " " +
+                  src_IR.string();
   Compiler::log_exec(commandString);
   if (exists(optimizedFileName)) {
     return optimizedFileName;
