@@ -47,6 +47,18 @@
 #define TEST_FUNCTION_LBL "TEST_FUNCTION"
 #endif
 
+#ifndef LLVM_TOOLS_BINARY_DIR
+#define LLVM_TOOLS_BINARY_DIR "/usr/bin"
+#endif
+
+#ifndef CLANG_EXE_NAME
+#define CLANG_EXE_NAME "clang"
+#endif
+
+#ifndef OPT_EXE_FULLPATH
+#define OPT_EXE_FULLPATH "/usr/bin/opt"
+#endif
+
 // someone should provide the signature of the function now versioning
 // in the form of function pointer type.
 typedef int (*signature_t)(int);
@@ -86,12 +98,12 @@ int main(int argc, char const *argv[])
   // ANS: Here it is an example of how to handle that case.
   vc::compiler_ptr_t clang = vc::make_compiler<vc::SystemCompilerOptimizer>(
                                           "llvm/clang",
-                                          "clang",
-                                          "opt",
+                                          CLANG_EXE_NAME,
+                                          OPT_EXE_FULLPATH,
                                           ".",
-                                          "./test.log",
-                                          "/usr/bin",
-                                          "/usr/bin"
+                                          "./test.log", 
+                                          LLVM_TOOLS_BINARY_DIR,
+                                          "/"
                                         );
 #if HAVE_CLANG_AS_LIB
   vc::compiler_ptr_t clangAsLib = vc::make_compiler<vc::ClangLibCompiler>(

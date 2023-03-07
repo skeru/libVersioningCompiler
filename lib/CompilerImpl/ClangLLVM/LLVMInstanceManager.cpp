@@ -22,7 +22,9 @@
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
 #include "versioningCompiler/CompilerImpl/ClangLLVM/LLVMInstanceManager.hpp"
-
+#ifndef CLANG_EXE_FULLPATH
+#define CLANG_EXE_FULLPATH "/usr/bin/clang"
+#endif
 // ---------------------------------------------------------------------------
 // ------------------------------- constructor -------------------------------
 // ---------------------------------------------------------------------------
@@ -80,7 +82,7 @@ void LLVMInstanceManager::initializeLLVM()
   // Initialize passes
   llvm::PassRegistry& passRegistry = *llvm::PassRegistry::getPassRegistry();
   llvm::initializeCore(passRegistry);
-  #if LLVM_MAJOR_VERSION <15
+  #if LLVM_VERSION_MAJOR <15
   llvm::initializeCoroutines(passRegistry);
   #endif
   llvm::initializeScalarOpts(passRegistry);
@@ -104,7 +106,7 @@ void LLVMInstanceManager::initializeLLVM()
   llvm::initializePreISelIntrinsicLoweringLegacyPassPass(passRegistry);
   llvm::initializeGlobalMergePass(passRegistry);
   llvm::initializeInterleavedAccessPass(passRegistry);
-  #if LLVM_MAJOR_VERSION <15
+  #if LLVM_VERSION_MAJOR <15
   llvm::initializeEntryExitInstrumenterPass(passRegistry);
   llvm::initializePostInlineEntryExitInstrumenterPass(passRegistry);
   #endif
@@ -114,9 +116,6 @@ void LLVMInstanceManager::initializeLLVM()
   auto tripleStr = llvm::sys::getProcessTriple();
   triple = std::make_shared<llvm::Triple>(tripleStr);
 
-  auto clangPath = llvm::sys::findProgramByName(llvm::StringRef("clang"));
-  if (clangPath) {
-      clangExeStr = std::string(*clangPath);
-  }
+  clangExeStr = CLANG_EXE_FULLPATH;
   return;
 }

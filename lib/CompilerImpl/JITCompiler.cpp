@@ -49,6 +49,9 @@
 // opt stuff
 #include "versioningCompiler/CompilerImpl/ClangLLVM/OptUtils.hpp"
 
+#ifndef OPT_EXE_NAME
+#define OPT_EXE_NAME "opt"
+#endif
 #include <vector>
 #include <iostream>
 
@@ -132,7 +135,9 @@ std::string JITCompiler::generateIR(const std::vector<std::string> &src,
   };
 
   const std::string &command_filename = _llvmManager->getClangExePath();
-
+  if(command_filename==""){
+    report_error("Clang exe path is empty! Is the _llvmManager initialized?");
+  }
   // clang++ <options> -fpic -shared src -olibFileName -Wno-return-type-c-linkage
   std::vector<const char *> cmd_str;
   cmd_str.reserve(options.size() + 6);
@@ -244,9 +249,10 @@ std::string JITCompiler::runOptimizer(const std::string &src_IR,
   const std::vector<std::string> &argv_owner = getArgV(options);
   const size_t argc = argv_owner.size() + 1; // opt <options>
   std::vector<const char *> argv;
-  std::string log_str = "opt ";
+  std::string log_str = OPT_EXE_NAME;
+  log_str+=" ";
   argv.reserve(argc);
-  argv.push_back(std::move("opt"));
+  argv.push_back(std::move(OPT_EXE_NAME));
   for (const auto &arg : argv_owner) {
     argv.push_back(arg.c_str());
     log_str = log_str + arg + " ";

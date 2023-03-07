@@ -109,14 +109,14 @@ class Compiler
                                  const std::vector<std::string> &func,
                                  void ** handler);
 
-    virtual 
-    /** \brief Closes the binary shared object, set *handler to nullptr, and
+     
+/** \brief Closes the binary shared object, set *handler to nullptr, and
  * invalidates the symbol relative to the given function.
  *
  * Returns the loaded function pointer on success. nullptr otherwise.
  * Output of this method is supposed to reinterpreted by the caller.
  */
-  void releaseSymbol(void ** handler);
+ virtual void releaseSymbol(void ** handler);
 
 /** \brief Converts an Option object into a compiler flag.
  *

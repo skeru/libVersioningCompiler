@@ -34,11 +34,11 @@
 #include "versioningCompiler/CompilerImpl/JITCompiler.hpp"
 
 namespace vc {
+
+/** Default compiler to be used in this helper. */
     compiler_ptr_t _libVC_jit_compiler;
 
     llvm::TargetMachine *_targetMachine;
-/** Default compiler to be used in this helper. *
-//    compiler_ptr_t libVC_jit_compiler;
 
 /** Instantiate JIT Compiler */
     compiler_ptr_t vc_utils_init();

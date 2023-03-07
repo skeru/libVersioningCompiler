@@ -60,7 +60,7 @@
 #include "llvm/Support/SystemUtils.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Target/TargetMachine.h"
-#if LLVM_MAJOR_VERSION < 15
+#if LLVM_VERSION_MAJOR < 15
 #include "llvm/Transforms/Coroutines.h"
 #endif
 #include "llvm/Transforms/IPO/AlwaysInliner.h"
@@ -251,14 +251,14 @@ static cl::opt<bool> DiscardValueNames(
   cl::desc("Discard names from Value (other than GlobalValue)."),
   cl::init(false),
   cl::Hidden);
-#if LLVM_MAJOR_VERSION < 15
+#if LLVM_VERSION_MAJOR < 15
 static cl::opt<bool> Coroutines(
     "enable-coroutines",
     cl::desc("Enable coroutine passes."),
     cl::init(false),
     cl::Hidden);
 #endif
-#if LLVM_MAJOR_VERSION > 14
+#if LLVM_VERSION_MAJOR > 14
 static cl::list<std::string> PassPlugins(
     "load-pass-plugin",
     cl::desc("Load passes from plugin library"));
@@ -376,7 +376,7 @@ static void AddOptimizationPasses(legacy::PassManagerBase &MPM,
   if (TM) {
     TM->adjustPassManager(Builder);
   }
-#if LLVM_MAJOR_VERSION < 15
+#if LLVM_VERSION_MAJOR < 15
   if (Coroutines) {
     addCoroutinePassesToExtensionPoints(Builder);
   }
@@ -424,7 +424,7 @@ static void AddStandardLinkPasses(legacy::PassManagerBase &PM)
   if (!DisableInline) {
     Builder.Inliner = createFunctionInliningPass();
   }
-#if LLVM_MAJOR_VERSION < 15
+#if LLVM_VERSION_MAJOR < 15
   Builder.populateLTOPassManager(PM);
 #endif
   return;

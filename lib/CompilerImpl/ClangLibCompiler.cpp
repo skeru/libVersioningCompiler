@@ -33,7 +33,9 @@
 
 // opt stuff
 #include "versioningCompiler/CompilerImpl/ClangLLVM/OptUtils.hpp"
-
+#ifndef OPT_EXE_FULLPATH
+#define OPT_EXE_FULLPATH "opt"
+#endif
 #include <vector>
 
 using namespace vc;
@@ -227,9 +229,10 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
   const std::vector<std::string>& argv_owner = getArgV(options);
   const size_t argc = argv_owner.size() + 1; // opt <options>
   std::vector<const char*> argv;
-  std::string log_str = "opt ";
+  std::string log_str =OPT_EXE_FULLPATH; // "opt(-version) "...
+  log_str+=" ";
   argv.reserve(argc);
-  argv.push_back(std::move("opt"));
+  argv.push_back(std::move(OPT_EXE_FULLPATH));
   for (const auto& arg : argv_owner) {
     argv.push_back(arg.c_str());
     log_str = log_str + arg + " ";
@@ -298,7 +301,6 @@ std::string ClangLibCompiler::runOptimizer(const std::string &src_IR,
                                                                lookupError);
   // Some modules don't specify a triple, and this is okay.
   if (!TheTarget) {
-
     optTMachine = nullptr;
   } else {
     optTMachine = TheTarget->createTargetMachine(moduleTriple.getTriple(),

@@ -17,9 +17,9 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_TOOLS_OPT_NEWPMDRIVER_H
-#define LLVM_TOOLS_OPT_NEWPMDRIVER_H
-#if LLVM_MAJOR_VERSION > 14
+#ifndef LIB_VERSIONING_COMPILER_CLANG_LLVM_TOOLS_OPT_NEWPMDRIVER_H
+#define LIB_VERSIONING_COMPILER_CLANG_LLVM_TOOLS_OPT_NEWPMDRIVER_H
+#if LLVM_VERSION_MAJOR > 14
 #include "llvm/ADT/ArrayRef.h"
 #endif
 #include "llvm/Support/CommandLine.h"
@@ -27,7 +27,7 @@
 namespace llvm {
 class StringRef;
 class Module;
-#if LLVM_MAJOR_VERSION > 14
+#if LLVM_VERSION_MAJOR > 14
 class PassPlugin;
 #endif
 class TargetMachine;
@@ -36,7 +36,7 @@ class TargetLibraryInfoImpl;
 
 extern cl::opt<bool> DebugifyEach;
 extern cl::opt<std::string> DebugifyExport;
-#if LLVM_MAJOR_VERSION > 14
+#if LLVM_VERSION_MAJOR > 14
 extern cl::opt<bool> VerifyEachDebugInfoPreserve;
 extern cl::opt<std::string> VerifyDIPreserveExport;
 #endif
@@ -73,7 +73,7 @@ void printPasses(raw_ostream &OS);
 ///
 /// ThinLTOLinkOut is only used when OK is OK_OutputThinLTOBitcode, and can be
 /// nullptr.
-#if LLVM_MAJOR_VERSION > 14
+#if LLVM_VERSION_MAJOR > 14
 bool runPassPipeline(StringRef Arg0, Module &M, TargetMachine *TM,
                      TargetLibraryInfoImpl *TLII, ToolOutputFile *Out,
                      ToolOutputFile *ThinLinkOut, ToolOutputFile *OptRemarkFile,

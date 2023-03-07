@@ -14,9 +14,9 @@ matrix:
             - libz-dev
             - uuid-dev
       env:
-        - ENV_SETUP="CC=gcc-10 && CXX=g++-10"
+        - ENV_SETUP="CC=gcc-10 && CXX=g++-10 && CLANG_EXE_NAME=clang"
         - BEFORE_INSTALL=""
-        - RUN_TESTS="sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100 && sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && chmod +x libVC_test libVC_testUtils && ./libVC_testUtils && ./libVC_test "
+        - RUN_TESTS="sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100 && sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100 && sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && cd build && chmod +x libVC_testUtils && ./libVC_testUtils"
     - os: linux
       addons:
         apt:
@@ -49,10 +49,9 @@ matrix:
             - libclang-cpp15-dev
             - libunwind-15-dev
       env:
-        - ENV_SETUP="CC=clang-15 && CXX=clang-15"
-        - LLVM_CONFIG="llvm-config-15"
+        - ENV_SETUP="CC=clang-15 && CXX=clang-15 && CLANG_EXE_NAME=clang-15"
         - BEFORE_INSTALL=""
-        - RUN_TESTS="sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100 && sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && chmod +x libVC_test libVC_testJit libVC_testUtils && ./libVC_testUtils && ./libVC_test && ./libVC_testJit "
+        - RUN_TESTS="sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100 && sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 100 && sudo update-alternatives --install /usr/bin/opt opt /usr/bin/opt-15 100  && cd build && chmod +x libVC_test libVC_testJit libVC_testUtils && ./libVC_testUtils"
     - os: linux
       addons:
         apt:
@@ -85,10 +84,9 @@ matrix:
               - libclang-cpp14-dev
               - libunwind-14-dev
       env:
-          - ENV_SETUP="CC=clang-14 && CXX=clang-14"
-          - LLVM_CONFIG="llvm-config-14"
+          - ENV_SETUP="CC=clang-14 && CXX=clang-14 && CLANG_EXE_NAME=clang-14 && TEST_TOOLS_BINARY_DIR=/usr/lib/llvm-14/bin/"
           - BEFORE_INSTALL=""
-          - RUN_TESTS="sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100 && sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && chmod +x libVC_test libVC_testJit libVC_testUtils && ./libVC_testUtils && ./libVC_test && ./libVC_testJit "
+          - RUN_TESTS="sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100 && sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 100 && sudo update-alternatives --install /usr/bin/opt opt /usr/bin/opt-14 100 && cd build && chmod +x libVC_test libVC_testJit libVC_testUtils && ./libVC_testUtils"
     - os: linux
       addons:
         apt:
@@ -121,14 +119,13 @@ matrix:
               - libclang-cpp13-dev
               - libunwind-13-dev
       env:
-          - ENV_SETUP="CC=clang-13 && CXX=clang-13"
-          - LLVM_CONFIG="llvm-config-13"
+          - ENV_SETUP="CC=clang-13 && CXX=clang-13 && CLANG_EXE_NAME=clang-13"
           - BEFORE_INSTALL=""
-          - RUN_TESTS="sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100 && sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && chmod +x libVC_test libVC_testJit libVC_testUtils && ./libVC_testUtils && ./libVC_test && ./libVC_testJit "
+          - RUN_TESTS="sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100 && sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-13 100 && sudo update-alternatives --install /usr/bin/opt opt /usr/bin/opt-13 100 && cd build && chmod +x libVC_test libVC_testJit libVC_testUtils && ./libVC_testUtils"
 
 before_install:
   - eval "${ENV_SETUP}" && eval "${BEFORE_INSTALL}"
 
 
 script:
-  - mkdir build && cd build && cmake .. && make 
+  - cmake -D LIBCLANG_FIND_VERBOSE=1 -DCLANG_EXE_NAME=$CLANG_EXE_NAME -D LLVM_FIND_VERBOSE=1 -D CMAKE_VERBOSE_MAKEFILE=1 -S . -B build && cmake --build build -v && eval "${RUN_TESTS}"

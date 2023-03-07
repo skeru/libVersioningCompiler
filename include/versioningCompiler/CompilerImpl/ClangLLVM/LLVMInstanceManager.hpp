@@ -33,7 +33,7 @@
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Program.h"
 #include "llvm/Support/raw_os_ostream.h"
-#if LLVM_MAJOR_VERSION >= 14
+#if LLVM_VERSION_MAJOR >= 14
 #include "llvm/MC/TargetRegistry.h"
 #else
 #include "llvm/Support/TargetRegistry.h"

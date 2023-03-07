@@ -190,13 +190,12 @@ void FileLogDiagnosticConsumer::HandleDiagnostic(DiagnosticsEngine::Level Level,
     FileID FID = SM.getMainFileID();
     if (FID.isValid()) {
       const FileEntry *FE = SM.getFileEntryForID(FID);
-      #if LLVM_MAJOR_VERSION <15
+      #if LLVM_VERSION_MAJOR <15
       if (FE && FE->isValid())
-        MainFilename = std::string(FE->getName());
       #else
       if (FE)
-        MainFilename = std::string(FE->getName());
       #endif
+        MainFilename = std::string(FE->getName());
     }
   }
 
