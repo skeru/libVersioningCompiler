@@ -92,11 +92,8 @@ int main(int argc, char const *argv[]) {
   // ---------- Compiler initialization ---------
   std::cout << "Setting up compiler.." << std::endl;
   vc::compiler_ptr_t jitCompiler = vc::make_compiler<vc::JITCompiler>(
-          "jitCompiler",
-          ".",
-          "./test_jit.log"
-  );
-
+      "jitCompiler", std::filesystem::u8path("."),
+      std::filesystem::u8path("./test_jit.log"));
 
   builder._compiler = jitCompiler;
   builder._autoremoveFilesEnable = false;

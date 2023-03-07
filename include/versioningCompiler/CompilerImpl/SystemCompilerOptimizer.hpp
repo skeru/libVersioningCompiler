@@ -39,8 +39,10 @@ class SystemCompilerOptimizer : public SystemCompiler
                           const std::filesystem::path optimizerCallString,
                           const std::filesystem::path libWorkingDir,
                           const std::filesystem::path log = "",
-                          const std::filesystem::path installDir = "/usr/bin",
-                          const std::filesystem::path optimizerInstallDir = "/usr/bin");
+                          const std::filesystem::path installDir =
+                              std::filesystem::u8path("/usr/bin"),
+                          const std::filesystem::path optimizerInstallDir =
+                              std::filesystem::u8path("/usr/bin"));
 
   inline virtual ~SystemCompilerOptimizer() {}
 

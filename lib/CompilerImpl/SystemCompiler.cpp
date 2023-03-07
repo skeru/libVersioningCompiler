@@ -25,13 +25,10 @@ using namespace vc;
 // ----------------------------------------------------------------------------
 // ----------------------- zero-parameters constructor ------------------------
 // ----------------------------------------------------------------------------
-SystemCompiler::SystemCompiler() : SystemCompiler(
-                                                  "cc",
-                                                  "cc",
-                                                  ".",
-                                                  "",
-                                                  "/usr/bin"
-                                                ) { }
+SystemCompiler::SystemCompiler()
+    : SystemCompiler("cc", std::filesystem::u8path("cc"),
+                     std::filesystem::u8path("."), std::filesystem::u8path(""),
+                     std::filesystem::u8path("/usr/bin")) {}
 
 // ----------------------------------------------------------------------------
 // --------------------------- detailed constructor ---------------------------

@@ -87,31 +87,27 @@ int main(int argc, char const *argv[])
   // why they are called SystemCompilers.
   // Support for Compiler-as-a-library will be added soon.
   vc::compiler_ptr_t cc = vc::make_compiler<vc::SystemCompiler>();
+
+  // WARNING: on linux, paths starting with / are assumed to be absolute paths!
+  // Setting both callStrings and install path as absolute path would cause to
+  // ignore the install path! See
+  // https://en.cppreference.com/w/cpp/filesystem/path/append
   vc::compiler_ptr_t gcc = vc::make_compiler<vc::SystemCompiler>(
-                                                                 "gcc",
-                                                                 "gcc",
-                                                                 ".",
-                                                                 "./test.log",
-                                                                 "/usr/bin",
-                                                                 false
-                                                                 );
+      "gcc", std::filesystem::u8path("gcc"), std::filesystem::u8path("."),
+      std::filesystem::u8path("./test.log"),
+      std::filesystem::u8path("/usr/bin"), false);
   // FAQ: I have a separate install folder for LLVM/clang.
   // ANS: Here it is an example of how to handle that case.
   vc::compiler_ptr_t clang = vc::make_compiler<vc::SystemCompilerOptimizer>(
-                                          "llvm/clang",
-                                          std::filesystem::u8path(CLANG_EXE_NAME),
-                                          std::filesystem::u8path(OPT_EXE_FULLPATH),
-                                          ".",
-                                          "./test.log", 
-                                          std::filesystem::u8path(LLVM_TOOLS_BINARY_DIR),
-                                          "/"
-                                        );
+      "llvm/clang", std::filesystem::u8path(CLANG_EXE_NAME),
+      std::filesystem::u8path(OPT_EXE_FULLPATH), std::filesystem::u8path("."),
+      std::filesystem::u8path("./test.log"),
+      std::filesystem::u8path(LLVM_TOOLS_BINARY_DIR),
+      std::filesystem::u8path("/"));
 #if HAVE_CLANG_AS_LIB
   vc::compiler_ptr_t clangAsLib = vc::make_compiler<vc::ClangLibCompiler>(
-                                          "clangAsALibrary",
-                                          ".",
-                                          "test_clang.log"
-                                        );
+      "clangAsALibrary", std::filesystem::u8path("."),
+      std::filesystem::u8path("test_clang.log"));
 #endif
   // ---------- End compilers initialization ----------
   // start configuring version v

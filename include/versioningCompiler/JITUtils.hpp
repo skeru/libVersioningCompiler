@@ -66,15 +66,12 @@ namespace vc {
         std::cout << "Setting up target machine.." << std::endl;
         _targetMachine = llvm::EngineBuilder().selectTarget();
 
-        // ---------- Compiler initialization ---------
-        std::cout << "Setting up compiler.." << std::endl;
-        _libVC_jit_compiler = vc::make_compiler<vc::JITCompiler>(
-                "jitCompiler",
-                ".",
-                "./test_jit.log",
-                *_targetMachine
-        );
-    }
+  // ---------- Compiler initialization ---------
+  std::cout << "Setting up compiler.." << std::endl;
+  _libVC_jit_compiler = vc::make_compiler<vc::JITCompiler>(
+      "jitCompiler", std::filesystem::u8path("."),
+      std::filesystem::u8path("./test_jit.log"), *_targetMachine);
+}
 
     version_ptr_t createVersion(const std::filesystem::path &src,
                                 const std::string &fn,

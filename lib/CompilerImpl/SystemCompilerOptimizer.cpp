@@ -25,16 +25,12 @@ using namespace vc;
 // ----------------------------------------------------------------------------
 // ----------------------- zero-parameters constructor ------------------------
 // ----------------------------------------------------------------------------
-SystemCompilerOptimizer::SystemCompilerOptimizer() :
-  SystemCompilerOptimizer(
-                          "llvm/clang",
-                          "clang",
-                          "opt",
-                          ".",
-                          "",
-                          "/usr/bin",
-                          "/usr/bin"
-                        ) { }
+SystemCompilerOptimizer::SystemCompilerOptimizer()
+    : SystemCompilerOptimizer(
+          "llvm/clang", std::filesystem::u8path("clang"),
+          std::filesystem::u8path("opt"), std::filesystem::u8path("."),
+          std::filesystem::u8path(""), std::filesystem::u8path("/usr/bin"),
+          std::filesystem::u8path("/usr/bin")) {}
 
 // ----------------------------------------------------------------------------
 // --------------------------- detailed constructor ---------------------------

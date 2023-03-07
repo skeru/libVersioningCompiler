@@ -204,7 +204,7 @@ std::filesystem::path Compiler::generateTemporaryFileName(
 {
 
   std::string extension = ".c";
-  std::filesystem::path dir = ".";
+  std::filesystem::path dir = std::filesystem::u8path(".");
   if (original.has_extension())
     extension = original.extension();
   if (original.has_parent_path())
