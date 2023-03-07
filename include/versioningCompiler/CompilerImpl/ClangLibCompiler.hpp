@@ -55,28 +55,25 @@ public:
 
   virtual bool hasOptimizer() const override;
 
-  virtual std::filesystem::path generateIR(const std::vector<std::filesystem::path> &src,
-                                 const std::vector<std::string> &func,
-                                 const std::string &versionID,
-                                 const opt_list_t options)
-  override;
+  virtual std::filesystem::path
+  generateIR(const std::vector<std::filesystem::path> &src,
+             const std::vector<std::string> &func, const std::string &versionID,
+             const opt_list_t options) override;
 
-  virtual std::filesystem::path runOptimizer(const std::filesystem::path &src_IR,
-                                   const std::string &versionID,
-                                   const opt_list_t options) const
-  override;
+  virtual std::filesystem::path
+  runOptimizer(const std::filesystem::path &src_IR,
+               const std::string &versionID,
+               const opt_list_t options) const override;
 
-  virtual std::filesystem::path generateBin(const std::vector<std::filesystem::path> &src,
-                                  const std::vector<std::string> &func,
-                                  const std::string &versionID,
-                                  const opt_list_t options)
-  override;
+  virtual std::filesystem::path
+  generateBin(const std::vector<std::filesystem::path> &src,
+              const std::vector<std::string> &func,
+              const std::string &versionID, const opt_list_t options) override;
 
   virtual std::string getOptionString(const Option &o) const override;
 
 private:
-  inline
-  std::vector<std::string> getArgV(const opt_list_t optionList) const;
+  inline std::vector<std::string> getArgV(const opt_list_t optionList) const;
 
 private:
   llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs> _diagnosticIDs;
@@ -85,12 +82,12 @@ private:
   std::shared_ptr<FileLogDiagnosticConsumer> _diagConsumer;
   std::shared_ptr<LLVMInstanceManager> _llvmManager;
 
-/** \brief mutex to regulate exclusive access to static command line options
- * during optimizer option parsing and processing.
- */
+  /** \brief mutex to regulate exclusive access to static command line options
+   * during optimizer option parsing and processing.
+   */
   static std::mutex opt_parse_mtx;
-
 };
 } /* end namespace vc */
 
-#endif /* end of include guard: LIB_VERSIONING_COMPILER_CLANG_LIB_COMPILER_HPP */
+#endif /* end of include guard: LIB_VERSIONING_COMPILER_CLANG_LIB_COMPILER_HPP \
+        */

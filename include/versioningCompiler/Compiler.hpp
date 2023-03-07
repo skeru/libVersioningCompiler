@@ -35,95 +35,94 @@ namespace vc {
 
 /** \brief Abstract class that defines the general behaviour for a Compiler
  */
-class Compiler
-{
- public:
-/** \brief Default detailed constructor.
- *
- * Initialize internal state.
- */
+class Compiler {
+public:
+  /** \brief Default detailed constructor.
+   *
+   * Initialize internal state.
+   */
   Compiler(const std::string &compilerID,
            const std::filesystem::path &compilerCallString,
            const std::filesystem::path &libWorkingDir,
            const std::filesystem::path &log = "",
-           const std::filesystem::path &installDir = std::filesystem::u8path("/usr/bin"),
+           const std::filesystem::path &installDir =
+               std::filesystem::u8path("/usr/bin"),
            bool supportIR = false);
 
-/** \brief Default destructor. */
-  inline virtual ~Compiler()
-  {
-    removeReferenceToLogFile(logFile);
-  }
+  /** \brief Default destructor. */
+  inline virtual ~Compiler() { removeReferenceToLogFile(logFile); }
 
-/** \brief Returns the compiler unique identifier. */
+  /** \brief Returns the compiler unique identifier. */
   std::string getId() const;
 
-/** \brief Returns true if Compiler can work with LLVM IR files.
- * False otherwise.
- */
+  /** \brief Returns true if Compiler can work with LLVM IR files.
+   * False otherwise.
+   */
   bool hasIRSupport() const;
 
-/** \brief Returns true if Compiler can run an optimization pass on the IR.
- *
- * Implementation specific.
- */
+  /** \brief Returns true if Compiler can run an optimization pass on the IR.
+   *
+   * Implementation specific.
+   */
   virtual bool hasOptimizer() const = 0;
 
-/** \brief Generate LLVM-IR starting from a given source file.
- *
- * Returns the LLVM-IR bitcode filename on success. Empty string otherwise.
- *
- * Implementation specific.
- */
-  virtual std::filesystem::path generateIR(const std::vector<std::filesystem::path> &src,
-                                 const std::vector<std::string> &func,
-                                 const std::string &versionID,
-                                 const opt_list_t options) = 0;
+  /** \brief Generate LLVM-IR starting from a given source file.
+   *
+   * Returns the LLVM-IR bitcode filename on success. Empty string otherwise.
+   *
+   * Implementation specific.
+   */
+  virtual std::filesystem::path
+  generateIR(const std::vector<std::filesystem::path> &src,
+             const std::vector<std::string> &func, const std::string &versionID,
+             const opt_list_t options) = 0;
 
-/** \brief Runs optimizer on the input LLVM-IR source file.
- *
- * Returns the optimized filename on success. Empty string otherwise.
- *
- * Implementation specific.
- */
-  virtual std::filesystem::path runOptimizer(const std::filesystem::path &src_IR,
-                                   const std::string &versionID,
-                                   const opt_list_t options) const = 0;
+  /** \brief Runs optimizer on the input LLVM-IR source file.
+   *
+   * Returns the optimized filename on success. Empty string otherwise.
+   *
+   * Implementation specific.
+   */
+  virtual std::filesystem::path
+  runOptimizer(const std::filesystem::path &src_IR,
+               const std::string &versionID,
+               const opt_list_t options) const = 0;
 
-/** \brief Runs compiler on the input source file.
- *
- * Returns the binary shared object filename on success. Empty string otherwise.
- *
- * Implementation specific.
- */
-  virtual std::filesystem::path generateBin(const std::vector<std::filesystem::path> &src,
-                                  const std::vector<std::string> &func,
-                                  const std::string &versionID,
-                                  const opt_list_t options) = 0;
+  /** \brief Runs compiler on the input source file.
+   *
+   * Returns the binary shared object filename on success. Empty string
+   * otherwise.
+   *
+   * Implementation specific.
+   */
+  virtual std::filesystem::path
+  generateBin(const std::vector<std::filesystem::path> &src,
+              const std::vector<std::string> &func,
+              const std::string &versionID, const opt_list_t options) = 0;
 
-/** \brief Opens the binary shared object, stores in *handler the reference to
- * the open shared object, and loads the symbol relative to the given function.
- *
- * Returns the loaded function pointer on success. nullptr otherwise.
- * Output of this method is supposed to reinterpreted by the caller.
- */
-  virtual std::vector<void*> loadSymbols(const std::filesystem::path &bin,
-                                 const std::vector<std::string> &func,
-                                 void ** handler);
+  /** \brief Opens the binary shared object, stores in *handler the reference to
+   * the open shared object, and loads the symbol relative to the given
+   * function.
+   *
+   * Returns the loaded function pointer on success. nullptr otherwise.
+   * Output of this method is supposed to reinterpreted by the caller.
+   */
+  virtual std::vector<void *> loadSymbols(const std::filesystem::path &bin,
+                                          const std::vector<std::string> &func,
+                                          void **handler);
 
-     
-/** \brief Closes the binary shared object, set *handler to nullptr, and
- * invalidates the symbol relative to the given function.
- *
- * Returns the loaded function pointer on success. nullptr otherwise.
- * Output of this method is supposed to reinterpreted by the caller.
- */
- virtual void releaseSymbol(void ** handler);
+  /** \brief Closes the binary shared object, set *handler to nullptr, and
+   * invalidates the symbol relative to the given function.
+   *
+   * Returns the loaded function pointer on success. nullptr otherwise.
+   * Output of this method is supposed to reinterpreted by the caller.
+   */
+  virtual void releaseSymbol(void **handler);
 
-/** \brief Converts an Option object into a compiler flag.
- *
- * Implementation specific.
- */
+  /** \brief Converts an Option object into a compiler flag.
+   *
+   * Implementation specific.
+   */
   virtual std::string getOptionString(const Option &o) const = 0;
 
 protected:
@@ -163,15 +162,20 @@ protected:
 
   /** \brief Computes default fileName for optimized LLVM-IR bitcode file.
    */
-  std::filesystem::path getOptBitcodeFileName(const std::string &versionID) const;
+  std::filesystem::path
+  getOptBitcodeFileName(const std::string &versionID) const;
 
   /** \brief Computes default fileName for binary shared object file.
    */
-  std::filesystem::path getSharedObjectFileName(const std::string &versionID) const;
+  std::filesystem::path
+  getSharedObjectFileName(const std::string &versionID) const;
 
   /** \brief Copies the file to a new location.
    */
-  std::filesystem::path generateTemporaryFileName(const std::filesystem::path& original, const std::string &versionID, int incremental = 0) const;
+  std::filesystem::path
+  generateTemporaryFileName(const std::filesystem::path &original,
+                            const std::string &versionID,
+                            int incremental = 0) const;
 
   /** \brief Acquire the lock of the mutex related to logfileName. Blocking.
    */
@@ -188,7 +192,7 @@ protected:
    */
   void unsupported(const std::string &message) const;
 
- private:
+private:
   /** \brief compiler unique identifier.
    *
    * It is user-defined at instantiation time.
@@ -198,9 +202,9 @@ protected:
   /** Mutex to regulate exclusive access to log file.
    * It also includes a reference counter.
    */
-  static
-  std::map<std::filesystem::path, std::pair<uint64_t, std::shared_ptr<std::mutex>>>
-  log_access_mtx_map;
+  static std::map<std::filesystem::path,
+                  std::pair<uint64_t, std::shared_ptr<std::mutex>>>
+      log_access_mtx_map;
 
   /** \brief Mutex to modify reference counters on the mutex map. */
   static std::mutex mtx_map_mtx;
@@ -213,18 +217,19 @@ protected:
   /** \brief Decrements the reference counter of the mutex related to
    * logFileName. If needed, it removes an entry.
    */
-  static void removeReferenceToLogFile(const std::filesystem::path &logFileName);
+  static void
+  removeReferenceToLogFile(const std::filesystem::path &logFileName);
 };
 
 /** Compiler pointer data type */
 typedef std::shared_ptr<Compiler> compiler_ptr_t;
 
 /** High-Level API to create a compiler_ptr_t */
-template<class CompilerImplClass, class... Args>
-static inline compiler_ptr_t make_compiler(Args&&... args) {
+template <class CompilerImplClass, class... Args>
+static inline compiler_ptr_t make_compiler(Args &&...args) {
   static_assert(std::is_base_of<Compiler, CompilerImplClass>::value,
-    "attempting to build a compiler_ptr_t using an implementation "
-    "which is not derived from Compiler base class");
+                "attempting to build a compiler_ptr_t using an implementation "
+                "which is not derived from Compiler base class");
   return std::make_shared<CompilerImplClass>(std::forward<Args>(args)...);
 }
 

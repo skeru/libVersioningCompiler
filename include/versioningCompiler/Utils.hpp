@@ -41,11 +41,10 @@ version_ptr_t createVersion(const std::vector<std::filesystem::path> &src,
 
 /** Create a Version using default parameters */
 version_ptr_t createVersion(const std::filesystem::path &src,
-                            const std::string &fn,
-                            const opt_list_t &options);
+                            const std::string &fn, const opt_list_t &options);
 
 /** Compile a version and extract function pointer (has to be casted) */
-void* compileAndGetSymbol(version_ptr_t& v);
+void *compileAndGetSymbol(version_ptr_t &v);
 
 //---------- implementation ----------
 
@@ -55,8 +54,7 @@ void vc_utils_init() {
 }
 
 version_ptr_t createVersion(const std::filesystem::path &src,
-                            const std::string &fn,
-                            const opt_list_t &options) {
+                            const std::string &fn, const opt_list_t &options) {
   Version::Builder builder;
   builder._compiler = libVC_default_compiler;
   builder._fileName_src.push_back(src);
@@ -76,7 +74,7 @@ version_ptr_t createVersion(const std::vector<std::filesystem::path> &src,
   return builder.build();
 }
 
-void* compileAndGetSymbol(version_ptr_t& v) {
+void *compileAndGetSymbol(version_ptr_t &v) {
   v->compile();
   if (v->hasLoadedSymbol())
     return v->getSymbol();

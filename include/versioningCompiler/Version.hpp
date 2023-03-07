@@ -50,9 +50,8 @@ namespace vc {
  *
  * A Version object can be configured only through a Version::Builder.
  */
-class Version
-{
- public:
+class Version {
+public:
   class Builder;
 
   /** \brief String representation of the Version unique identifier. */
@@ -109,14 +108,14 @@ class Version
    */
   std::vector<void *> getSymbols() const;
 
-  /** \brief Return symbol corresponding to functionName, if was correctly loaded.
-   * nullptr otherwise.
+  /** \brief Return symbol corresponding to functionName, if was correctly
+   * loaded. nullptr otherwise.
    *
    * Please note that this symbol will stay valid only as long as the Version
    * object is still alive.
    * Closing the associated binary shared object will invalide this pointer.
    */
-  void *getSymbol(const std::string& functionName) const;
+  void *getSymbol(const std::string &functionName) const;
 
   /** \brief Closes the shared object to save memory resources.
    *
@@ -189,18 +188,18 @@ class Version
   /** \brief file name where the binary, if available, is stored. */
   std::filesystem::path getFileName_bin() const;
 
-  inline bool operator== (const Version& other) {
+  inline bool operator==(const Version &other) {
     return getID() == other.getID();
   }
 
-  inline bool operator< (const Version& other) {
+  inline bool operator<(const Version &other) {
     return getID() < other.getID();
   }
 
   /** default destructor*/
   ~Version();
 
- private:
+private:
   /** Version constructor is supposed to be called only from the
    * Version::Builder::build() method
    */
@@ -266,9 +265,8 @@ typedef std::shared_ptr<Version> version_ptr_t;
  * Once configuration is done, builder can finalize a Version object through
  * Version::Builder::build() method.
  */
-class Version::Builder
-{
- public:
+class Version::Builder {
+public:
   /** \brief constructs a Builder by cloning an existing Version. */
   Builder(const Version *v);
 
@@ -277,8 +275,7 @@ class Version::Builder
 
   /** \brief constructs a Builder and populate the mandatory parameters. */
   Builder(const std::filesystem::path &fileName,
-          const std::string &functionName,
-          const compiler_ptr_t &compiler);
+          const std::string &functionName, const compiler_ptr_t &compiler);
 
   /** \brief constructs a Builder and populate the mandatory parameters. */
   Builder(const std::vector<std::filesystem::path> &fileNames,
@@ -296,11 +293,12 @@ class Version::Builder
                                     const std::vector<std::string> &tag = {});
 
   /** \brief construct a Version using an already existing shared object. */
-  static version_ptr_t createFromSO(const std::filesystem::path &sharedObject,
-                                    const std::vector<std::string> &functionNames,
-                                    const compiler_ptr_t &compiler,
-                                    const bool autoremoveFilesEnable = true,
-                                    const std::vector<std::string> &tag = {});
+  static version_ptr_t
+  createFromSO(const std::filesystem::path &sharedObject,
+               const std::vector<std::string> &functionNames,
+               const compiler_ptr_t &compiler,
+               const bool autoremoveFilesEnable = true,
+               const std::vector<std::string> &tag = {});
 
   /** \brief actually create an immutable object Version. */
   version_ptr_t build();
@@ -309,23 +307,24 @@ class Version::Builder
   void reset();
 
   /** \brief Add a source file to be compiled.
-  */
+   */
   void addSourceFile(const std::filesystem::path &src);
 
-  /** \brief Add a symbol name to be obtained from the compiled code. Returns the symbol index.
+  /** \brief Add a symbol name to be obtained from the compiled code. Returns
+   * the symbol index.
    */
   std::size_t addFunctionName(const std::string &functionName);
 
   /** \brief Add string tag to the version.
-  */
+   */
   void addTag(const std::string &tag);
 
   /** \brief Add compiler option to specify additional include directory.
-  */
+   */
   void addIncludeDir(const std::filesystem::path &path);
 
   /** \brief Add compiler option to specify additional linking directory.
-  */
+   */
   void addLinkingDir(const std::filesystem::path &path);
 
   /** \brief Remove from the option list all options with a given tag. */
@@ -334,9 +333,9 @@ class Version::Builder
   /** \brief Remove from optimizer Option list all options with a given tag.
    */
   void removeOptOption(const std::string &optionTag);
-  /** \brief set the opt option list to a new list. 
+  /** \brief set the opt option list to a new list.
    */
-  void setOptOptions(const vc::opt_list_t &optionList){
+  void setOptOptions(const vc::opt_list_t &optionList) {
     _optOptionList = optionList;
   }
 
@@ -360,15 +359,12 @@ class Version::Builder
 
   /** \brief set the compiler for this builder.
    */
-  void setCompiler(const compiler_ptr_t &c)
-  {
-    _compiler = c;
-  }
+  void setCompiler(const compiler_ptr_t &c) { _compiler = c; }
   /** \brief Insert a define in the compilation stages to enable the
    * compilation of the given functions.
    */
-  template<typename value_t>
-  void addDefine(const std::string &defineName, const value_t& defineValue) {
+  template <typename value_t>
+  void addDefine(const std::string &defineName, const value_t &defineValue) {
     std::string flag = defineName + "=" + std::to_string(defineValue);
     return addFunctionFlag(flag);
   }
@@ -376,7 +372,7 @@ class Version::Builder
   /** \brief Insert a define in the compilation stages to enable the
    * compilation of the given functions.
    */
-  void addDefine(const std::string &defineName, const char* defineValue) {
+  void addDefine(const std::string &defineName, const char *defineValue) {
     std::string flag = defineName + "=" + std::string(defineValue);
     return addFunctionFlag(flag);
   }
@@ -408,31 +404,30 @@ class Version::Builder
   /** \brief ordered list of options to be used to generate the IR. */
   opt_list_t _genIROptionList;
 
-  /** \brief ordered list of options to be used with the optimizer to optimize this version. */
+  /** \brief ordered list of options to be used with the optimizer to optimize
+   * this version. */
   opt_list_t _optOptionList;
 
- private:
+private:
   /** \brief shared pointer to the object to be built. */
   version_ptr_t _version_ptr;
 
-  /** \brief Returns a flag to be enabled in order to compile the given function.
+  /** \brief Returns a flag to be enabled in order to compile the given
+   * function.
    *
    * That define depends on the source code.
    */
   static Option getFunctionFlag(const std::string &flagName);
-
 };
 
 } // end namespace vc
 
 namespace std {
-  template<>
-  struct hash<vc::Version>
-  {
-    std::size_t operator()( const vc::Version& key ) {
-      return hash<std::string>()(key.getID());
-    }
-  };
+template <> struct hash<vc::Version> {
+  std::size_t operator()(const vc::Version &key) {
+    return hash<std::string>()(key.getID());
+  }
+};
 } // end namespace std
 
 #endif /* end of include guard: LIB_VERSIONING_COMPILER_VERSION_HPP */

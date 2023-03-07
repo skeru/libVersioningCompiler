@@ -48,19 +48,10 @@ enum OutputKind {
   OK_OutputBitcode,
   OK_OutputThinLTOBitcode,
 };
-enum VerifierKind {
-  VK_NoVerifier,
-  VK_VerifyInAndOut,
-  VK_VerifyEachPass
-};
-enum PGOKind {
-  NoPGO,
-  InstrGen,
-  InstrUse,
-  SampleUse
-};
+enum VerifierKind { VK_NoVerifier, VK_VerifyInAndOut, VK_VerifyEachPass };
+enum PGOKind { NoPGO, InstrGen, InstrUse, SampleUse };
 enum CSPGOKind { NoCSPGO, CSInstrGen, CSInstrUse };
-}
+} // namespace opt_tool
 
 void printPasses(raw_ostream &OS);
 

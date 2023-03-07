@@ -29,13 +29,13 @@
 
 namespace vc {
 
-  /** Notify message */
-  inline void Notify(const std::string message) {
-    #ifdef VC_DEBUG
-    std::cerr << "VC Debug notification: " << message << std::endl;
-    #endif
-    return;
-  }
+/** Notify message */
+inline void Notify(const std::string message) {
+#ifdef VC_DEBUG
+  std::cerr << "VC Debug notification: " << message << std::endl;
+#endif
+  return;
+}
 
 } // end of namespace vc
 

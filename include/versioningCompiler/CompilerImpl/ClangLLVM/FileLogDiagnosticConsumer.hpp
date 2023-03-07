@@ -30,10 +30,10 @@
 #include <fstream>
 
 namespace clang {
-  class DiagnosticOptions;
-  class LangOptions;
-  class TextDiagnostic;
-}
+class DiagnosticOptions;
+class LangOptions;
+class TextDiagnostic;
+} // namespace clang
 
 namespace vc {
 /// This is basically a TextDiagnosticPrinter who writes into a std::fstream
@@ -65,7 +65,7 @@ public:
   FileLogDiagnosticConsumer(std::filesystem::path LogFileName,
                             clang::DiagnosticOptions *Diags);
 
-  FileLogDiagnosticConsumer(const FileLogDiagnosticConsumer&) = delete;
+  FileLogDiagnosticConsumer(const FileLogDiagnosticConsumer &) = delete;
 
   virtual ~FileLogDiagnosticConsumer() override;
 
@@ -97,4 +97,5 @@ public:
 
 } // end namespace vc
 
-#endif /* end of include guard: LIB_VERSIONING_COMPILER_CLANG_LLVM_FILE_LOG_DIAG_CONSUMER_HPP */
+#endif /* end of include guard:                                                \
+          LIB_VERSIONING_COMPILER_CLANG_LLVM_FILE_LOG_DIAG_CONSUMER_HPP */

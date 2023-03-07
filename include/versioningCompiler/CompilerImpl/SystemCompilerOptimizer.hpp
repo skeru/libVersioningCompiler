@@ -28,10 +28,9 @@ namespace vc {
 /** Compiler implementation with optimizer support.
  * It exploits system calls.
  */
-class SystemCompilerOptimizer : public SystemCompiler
-{
+class SystemCompilerOptimizer : public SystemCompiler {
 
- public:
+public:
   SystemCompilerOptimizer();
 
   SystemCompilerOptimizer(const std::string compilerID,
@@ -48,16 +47,17 @@ class SystemCompilerOptimizer : public SystemCompiler
 
   virtual bool hasOptimizer() const override;
 
-  virtual std::filesystem::path runOptimizer(const std::filesystem::path &src_IR,
-                                   const std::string &versionID,
-                                   const opt_list_t options) const
-  override;
+  virtual std::filesystem::path
+  runOptimizer(const std::filesystem::path &src_IR,
+               const std::string &versionID,
+               const opt_list_t options) const override;
 
- protected:
+protected:
   std::filesystem::path optInstallDirectory;
   std::filesystem::path optCallString;
 };
 
 } // end namespace vc
 
-#endif /* end of include guard: LIB_VERSIONING_COMPILER_SYSTEM_COMPILER_OPTIMIZER_HPP */
+#endif /* end of include guard:                                                \
+          LIB_VERSIONING_COMPILER_SYSTEM_COMPILER_OPTIMIZER_HPP */

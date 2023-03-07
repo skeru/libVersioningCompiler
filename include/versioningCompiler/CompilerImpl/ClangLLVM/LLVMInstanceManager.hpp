@@ -5,7 +5,7 @@
  *                Moreno Giussani
  *                Ms student, Politecnico di Milano
  *                <first_name>.<family_name>@mail.polimi.it
- * 
+ *
  * This file is part of libVersioningCompiler
  *
  * libVersioningCompiler is free software: you can redistribute it and/or
@@ -57,11 +57,10 @@
 class LLVMInstanceManager {
 
 public:
-  static std::shared_ptr<LLVMInstanceManager> getInstance()
-  {
+  static std::shared_ptr<LLVMInstanceManager> getInstance() {
     if (!instance) {
-      instance = std::shared_ptr<LLVMInstanceManager>(
-                  new LLVMInstanceManager());
+      instance =
+          std::shared_ptr<LLVMInstanceManager>(new LLVMInstanceManager());
     }
     return instance;
   }
@@ -78,9 +77,9 @@ public:
 
   std::shared_ptr<llvm::Triple> getDefaultTriple() const;
 
-  LLVMInstanceManager(const LLVMInstanceManager&) = delete;
+  LLVMInstanceManager(const LLVMInstanceManager &) = delete;
 
-  void operator=(const LLVMInstanceManager&) = delete;
+  void operator=(const LLVMInstanceManager &) = delete;
 
 private:
   inline void initializeLLVM();
@@ -88,7 +87,7 @@ private:
   std::filesystem::path clangExeStr;
 
   std::shared_ptr<llvm::Triple> triple;
-
 };
 
-#endif /* end of include guard: LIB_VERSIONING_COMPILER_CLANG_LLVM_LLVM_INSTANCE_MANAGER */
+#endif /* end of include guard:                                                \
+          LIB_VERSIONING_COMPILER_CLANG_LLVM_LLVM_INSTANCE_MANAGER */
