@@ -554,6 +554,19 @@ void Version::Builder::addFunctionFlag(const std::string &flag)
 }
 
 // ----------------------------------------------------------------------------
+// ---------------------------- add function name -----------------------------
+// ----------------------------------------------------------------------------
+std::size_t Version::Builder::addFunctionName(const std::string &functionName)
+{
+  if (functionName != "")
+  {
+    std::size_t retval = _functionName.size();
+    _functionName.push_back(functionName);
+    return retval;
+  }
+  return -1;
+}
+// ----------------------------------------------------------------------------
 // --------------- create version from shared object file name ----------------
 // ----------------------------------------------------------------------------
 version_ptr_t Version::Builder::createFromSO(const std::filesystem::path &sharedObject,

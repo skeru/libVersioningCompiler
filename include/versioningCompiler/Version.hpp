@@ -312,6 +312,10 @@ class Version::Builder
   */
   void addSourceFile(const std::filesystem::path &src);
 
+  /** \brief Add a symbol name to be obtained from the compiled code. Returns the symbol index.
+   */
+  std::size_t addFunctionName(const std::string &functionName);
+
   /** \brief Add string tag to the version.
   */
   void addTag(const std::string &tag);
@@ -330,6 +334,11 @@ class Version::Builder
   /** \brief Remove from optimizer Option list all options with a given tag.
    */
   void removeOptOption(const std::string &optionTag);
+  /** \brief set the opt option list to a new list. 
+   */
+  void setOptOptions(const vc::opt_list_t &optionList){
+    _optOptionList = optionList;
+  }
 
   /** \brief Remove from gen_IR Option list all options with a given tag.
    */
@@ -349,6 +358,12 @@ class Version::Builder
    */
   void addFunctionFlag(const std::string &flag);
 
+  /** \brief set the compiler for this builder.
+   */
+  void setCompiler(const compiler_ptr_t &c)
+  {
+    _compiler = c;
+  }
   /** \brief Insert a define in the compilation stages to enable the
    * compilation of the given functions.
    */
@@ -393,7 +408,7 @@ class Version::Builder
   /** \brief ordered list of options to be used to generate the IR. */
   opt_list_t _genIROptionList;
 
-  /** \brief ordered list of options to be used to build this version. */
+  /** \brief ordered list of options to be used with the optimizer to optimize this version. */
   opt_list_t _optOptionList;
 
  private:
