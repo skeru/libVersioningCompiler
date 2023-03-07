@@ -1,0 +1,438 @@
+# Gitlab CI/CD file
+
+stages:
+  - build
+  - test
+# Install required packages for all builds & tests
+.setup_script_focal: &setup_script_focal
+  - apt-get --quiet update --yes
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata apt-transport-https ca-certificates gnupg software-properties-common wget --yes
+  - wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+  - apt-add-repository 'deb https://apt.kitware.com/ubuntu/ focal main'
+  - apt-get install --quiet --yes build-essential cmake libz-dev uuid-dev
+  - cmake --version
+.setup_script_jammy: &setup_script_jammy
+  - apt-get --quiet update --yes
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata apt-transport-https ca-certificates gnupg software-properties-common wget --yes
+  - wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+  - apt-add-repository 'deb https://apt.kitware.com/ubuntu/ jammy main'
+  - apt-get install --quiet --yes build-essential cmake libz-dev uuid-dev
+  - cmake --version
+
+
+# Test with ubuntu jammy with its default llvm & clang - clang compiler as default
+build-llvm14-jammy-clang-default:
+  stage: build
+  image: ubuntu:jammy
+  variables:
+    CLANG_VN: "14"
+    CXX: "clang++-14"
+  before_script:
+    - *setup_script_jammy
+    - apt-get install clang-$CLANG_VN clang-tools-$CLANG_VN lld-$CLANG_VN llvm-$CLANG_VN-dev libclang-$CLANG_VN-dev --yes
+  script:
+    - mkdir build && cmake -D LLVM_FIND_VERBOSE=1 -D LIBCLANG_FIND_VERBOSE=1 -D CMAKE_VERBOSE_MAKEFILE=1 -S . -B build && cmake --build build -v
+  cache:
+    key: $CI_COMMIT_SHA-llvm$CLANG_VN-jammy-clang-default-cache
+    policy: push
+    paths:
+      - build
+  artifacts:
+    paths:
+      - build
+    expire_in: 1 month
+
+test-llvm14-jammy-clang-default:
+  stage: test
+  image: ubuntu:jammy
+  needs: [build-llvm14-jammy-clang-default]
+  variables:
+    CLANG_VN: "14"
+    CXX: "clang++-14"
+  cache:
+      key: $CI_COMMIT_SHA-llvm$CLANG_VN-jammy-clang-default-cache
+      policy: pull
+      paths:
+        - build
+  before_script:
+    - *setup_script_jammy
+    - apt-get install clang-$CLANG_VN clang-tools-$CLANG_VN lld-$CLANG_VN llvm-$CLANG_VN-dev libclang-$CLANG_VN-dev --yes
+  script:
+    - cd build && chmod +x libVC_test libVC_testUtils libVC_testJit && ./libVC_testUtils && ./libVC_test && ./libVC_testJit
+# Test with ubuntu jammy with its default llvm & clang - system default compiler as default
+build-llvm14-jammy-default:
+  stage: build
+  image: ubuntu:jammy
+  variables:
+    CLANG_VN: "14"
+  before_script:
+    - *setup_script_jammy
+    - apt-get install clang-$CLANG_VN clang-tools-$CLANG_VN lld-$CLANG_VN llvm-$CLANG_VN-dev libclang-$CLANG_VN-dev --yes
+  script:
+    - mkdir build && cmake -D LLVM_FIND_VERBOSE=1 -D LIBCLANG_FIND_VERBOSE=1 -D CMAKE_VERBOSE_MAKEFILE=1 -S . -B build && cmake --build build -v
+  cache:
+    key: $CI_COMMIT_SHA-llvm$CLANG_VN-jammy-default-cache
+    policy: push
+    paths:
+      - build
+  artifacts:
+    paths:
+      - build
+    expire_in: 1 month
+
+test-llvm14-jammy-default:
+  stage: test
+  image: ubuntu:jammy
+  needs: [build-llvm14-jammy-default]
+  variables:
+    CLANG_VN: "14"
+    CXX: "clang++-14"
+  cache:
+      key: $CI_COMMIT_SHA-llvm$CLANG_VN-jammy-default-cache
+      policy: pull
+      paths:
+        - build
+  before_script:
+    - *setup_script_jammy
+    - apt-get install clang-$CLANG_VN clang-tools-$CLANG_VN lld-$CLANG_VN llvm-$CLANG_VN-dev libclang-$CLANG_VN-dev --yes
+  script:
+    - cd build && chmod +x libVC_test libVC_testUtils libVC_testJit && ./libVC_testUtils && ./libVC_test && ./libVC_testJit
+
+# No clang or llvm
+build-nollvm-noclang:
+  stage: build
+  image: ubuntu:focal
+  before_script:
+    - *setup_script_focal
+  script:
+    - mkdir build && cmake -D LLVM_FIND_VERBOSE=1 -D LIBCLANG_FIND_VERBOSE=1 -D CMAKE_VERBOSE_MAKEFILE=1 -S . -B build && cmake --build build -v
+  cache:
+    key: $CI_COMMIT_SHA-nollvm-noclang-cache
+    policy: push
+    paths:
+      - build
+  artifacts:
+    paths:
+      - build
+    expire_in: 1 month
+  
+test-nollvm-noclang:
+  stage: test
+  image: ubuntu:focal
+  needs: [build-nollvm-noclang]
+  cache:
+      key: $CI_COMMIT_SHA-nollvm-noclang-cache
+      policy: pull
+      paths:
+        - build
+  before_script:
+    - *setup_script_focal
+  script:
+    - cd build && chmod +x libVC_test libVC_testUtils && ./libVC_testUtils # todo add ./libVC_test
+
+# Clang only, no libclang
+build-nollvm-clang15:
+  stage: build
+  image: ubuntu:focal
+  variables:
+    CLANG_VN: "15"
+    CXX: "clang++-15"
+  before_script:
+    - *setup_script_focal
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN
+  script:
+    - mkdir build && cmake -D LLVM_FIND_VERBOSE=1 -D LIBCLANG_FIND_VERBOSE=1 -D CMAKE_VERBOSE_MAKEFILE=1 -S . -B build && cmake --build build -v
+  cache:
+    key: $CI_COMMIT_SHA-nollvm-clang$CLANG_VN-cache
+    policy: push
+    paths:
+      - build
+  artifacts:
+    paths:
+      - build
+    expire_in: 1 month
+  
+test-nollvm-clang15:
+  stage: test
+  image: ubuntu:focal
+  needs: [build-nollvm-clang15]
+  variables:
+    CLANG_VN: "15"
+    CXX: "clang++-15"
+  cache:
+      key: $CI_COMMIT_SHA-nollvm-clang$CLANG_VN-cache
+      policy: pull
+      paths:
+        - build
+  before_script:
+    - *setup_script_focal
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN
+  script:
+    - cd build && chmod +x libVC_test libVC_testUtils && ./libVC_testUtils && ./libVC_test # TODO This probably fails
+
+# Clang & llvm test - all versions
+build-llvm13:
+  stage: build
+  image: ubuntu:focal
+  variables:
+    CLANG_VN: "13"
+  before_script:
+    - *setup_script_focal
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
+  script:
+    - mkdir build && cmake -D LLVM_FIND_VERBOSE=1 -D LIBCLANG_FIND_VERBOSE=1 -D CMAKE_VERBOSE_MAKEFILE=1 -S . -B build && cmake --build build -v
+  cache:
+    key: $CI_COMMIT_SHA-llvm$CLANG_VN-cache
+    policy: push
+    paths:
+      - build
+  artifacts:
+    paths:
+      - build
+    expire_in: 1 month
+
+test-llvm13:
+  stage: test
+  image: ubuntu:focal
+  needs: [build-llvm13]
+  variables:
+    CLANG_VN: "13"
+  cache:
+      key: $CI_COMMIT_SHA-llvm$CLANG_VN-cache
+      policy: pull
+      paths:
+        - build
+  before_script:
+    - *setup_script_focal
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
+  script:
+    - cd build && chmod +x libVC_test libVC_testUtils libVC_testJit && ./libVC_testUtils && ./libVC_test && ./libVC_testJit
+
+build-llvm14:
+  stage: build
+  image: ubuntu:focal
+  variables:
+    CLANG_VN: "14"
+  before_script:
+    - *setup_script_focal
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
+  script:
+    - mkdir build && cmake -D LLVM_FIND_VERBOSE=1 -D LIBCLANG_FIND_VERBOSE=1 -D CMAKE_VERBOSE_MAKEFILE=1 -S . -B build && cmake --build build -v
+  cache:
+    key: $CI_COMMIT_SHA-llvm$CLANG_VN-cache
+    policy: push
+    paths:
+      - build
+  artifacts:
+    paths:
+      - build
+    expire_in: 1 month
+
+test-llvm14:
+  stage: test
+  image: ubuntu:focal
+  needs: [build-llvm14]
+  variables:
+    CLANG_VN: "14"
+  cache:
+      key: $CI_COMMIT_SHA-llvm$CLANG_VN-cache
+      policy: pull
+      paths:
+        - build
+  before_script:
+    - *setup_script_focal
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
+  script:
+    - cd build && chmod +x libVC_test libVC_testUtils libVC_testJit && ./libVC_testUtils && ./libVC_test && ./libVC_testJit
+
+build-llvm15:
+  stage: build
+  image: ubuntu:focal
+  variables:
+    CLANG_VN: "15"
+  before_script:
+    - *setup_script_focal
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
+  script:
+    - mkdir build && cmake -D LLVM_FIND_VERBOSE=1 -D LIBCLANG_FIND_VERBOSE=1 -D CMAKE_VERBOSE_MAKEFILE=1 -S . -B build && cmake --build build -v
+  cache:
+    key: $CI_COMMIT_SHA-llvm$CLANG_VN-cache
+    policy: push
+    paths:
+      - build
+  artifacts:
+    paths:
+      - build
+    expire_in: 1 month
+
+test-llvm15:
+  stage: test
+  image: ubuntu:focal
+  needs: [build-llvm15]
+  variables:
+    CLANG_VN: "15"
+  cache:
+      key: $CI_COMMIT_SHA-llvm$CLANG_VN-cache
+      policy: pull
+      paths:
+        - build
+  before_script:
+    - *setup_script_focal
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
+  script:
+    - cd build && chmod +x libVC_test libVC_testUtils libVC_testJit && ./libVC_testUtils && ./libVC_test && ./libVC_testJit
+
+## Extra tests for bugs
+
+# Build with clang & llvm
+build-llvm15-clang:
+  stage: build
+  image: ubuntu:focal
+  variables:
+    CLANG_VN: "15"
+    CXX: clang++-15
+  before_script:
+    - *setup_script_focal
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
+  script:
+    - mkdir build && cmake -D LLVM_FIND_VERBOSE=1 -D LIBCLANG_FIND_VERBOSE=1 -D CMAKE_VERBOSE_MAKEFILE=1 -S . -B build && cmake --build build -v
+  cache:
+    key: $CI_COMMIT_SHA-llvm$CLANG_VN-clang-cache
+    policy: push
+    paths:
+      - build
+  artifacts:
+    paths:
+      - build
+    expire_in: 1 month
+# Test with clang
+test-llvm15-clang:
+  stage: test
+  image: ubuntu:focal
+  needs: [build-llvm15-clang]
+  variables:
+    CLANG_VN: "15"
+    CXX: clang++-15
+  cache:
+      key: $CI_COMMIT_SHA-llvm$CLANG_VN-clang-cache
+      policy: pull
+      paths:
+        - build
+  before_script:
+    - *setup_script_focal
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
+  script:
+    - cd build && chmod +x libVC_test libVC_testUtils libVC_testJit && ./libVC_testUtils && ./libVC_test && ./libVC_testJit
+# Test the clang compiled library with g++
+test-llvm15-clang-compiled-gcc-exe:
+  stage: test
+  image: ubuntu:focal
+  needs: [build-llvm15-clang]
+  variables:
+    CLANG_VN: "15"
+    CXX: g++
+  cache:
+      key: $CI_COMMIT_SHA-llvm$CLANG_VN-clang-cache
+      policy: pull
+      paths:
+        - build
+  before_script:
+    - *setup_script_focal
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
+  script:
+    - cd build && chmod +x libVC_test libVC_testUtils libVC_testJit && ./libVC_testUtils && ./libVC_test && ./libVC_testJit
+# Test the g++ compiled library with clang
+test-llvm15-gcc-compiled-clang-exe:
+  stage: test
+  image: ubuntu:focal
+  needs: [build-llvm15]
+  variables:
+    CLANG_VN: "15"
+    CXX: clang++-15
+  cache:
+      key: $CI_COMMIT_SHA-llvm$CLANG_VN-cache
+      policy: pull
+      paths:
+        - build
+  before_script:
+    - *setup_script_focal
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
+  script:
+    - cd build && chmod +x libVC_test libVC_testUtils libVC_testJit && ./libVC_testUtils && ./libVC_test && ./libVC_testJit
+
+# Test with ubuntu jammy 
+build-llvm15-jammy:
+  stage: build
+  image: ubuntu:jammy
+  variables:
+    CLANG_VN: "15"
+  before_script:
+    - *setup_script_jammy
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
+  script:
+    - mkdir build && cmake -D LLVM_FIND_VERBOSE=1 -D LIBCLANG_FIND_VERBOSE=1 -D CMAKE_VERBOSE_MAKEFILE=1 -S . -B build && cmake --build build -v
+  cache:
+    key: $CI_COMMIT_SHA-llvm$CLANG_VN-jammy-cache
+    policy: push
+    paths:
+      - build
+  artifacts:
+    paths:
+      - build
+    expire_in: 1 month
+
+test-llvm15-jammy:
+  stage: test
+  image: ubuntu:jammy
+  needs: [build-llvm15-jammy]
+  variables:
+    CLANG_VN: "15"
+  cache:
+      key: $CI_COMMIT_SHA-llvm$CLANG_VN-jammy-cache
+      policy: pull
+      paths:
+        - build
+  before_script:
+    - *setup_script_jammy
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
+  script:
+    - cd build && chmod +x libVC_test libVC_testUtils libVC_testJit && ./libVC_testUtils && ./libVC_test && ./libVC_testJit
+# Test with ubuntu jammy with clang compilation
+build-llvm15-jammy-clang:
+  stage: build
+  image: ubuntu:jammy
+  variables:
+    CLANG_VN: "15"
+    CXX: "clang++-15"
+  before_script:
+    - *setup_script_jammy
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
+  script:
+    - mkdir build && cmake -D LLVM_FIND_VERBOSE=1 -D LIBCLANG_FIND_VERBOSE=1 -D CMAKE_VERBOSE_MAKEFILE=1 -S . -B build && cmake --build build -v
+  cache:
+    key: $CI_COMMIT_SHA-llvm$CLANG_VN-jammy-clang-cache
+    policy: push
+    paths:
+      - build
+  artifacts:
+    paths:
+      - build
+    expire_in: 1 month
+
+test-llvm15-jammy-clang:
+  stage: test
+  image: ubuntu:jammy
+  needs: [build-llvm15-jammy-clang]
+  variables:
+    CLANG_VN: "15"
+    CXX: "clang++-15"
+  cache:
+      key: $CI_COMMIT_SHA-llvm$CLANG_VN-jammy-clang-cache
+      policy: pull
+      paths:
+        - build
+  before_script:
+    - *setup_script_jammy
+    - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN all
+  script:
+    - cd build && chmod +x libVC_test libVC_testUtils libVC_testJit && ./libVC_testUtils && ./libVC_test && ./libVC_testJit
