@@ -30,6 +30,7 @@
  */
 
 // opt includes
+#include "NewPMDriver.h"
 #include "llvm/ADT/Triple.h"
 #include "llvm/Analysis/LoopPass.h"
 #include "llvm/Analysis/RegionPass.h"
@@ -37,16 +38,16 @@
 #include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/Bitcode/BitcodeWriterPass.h"
 #include "llvm/CodeGen/CommandFlags.h"
-#include "llvm/InitializePasses.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/IRPrintingPasses.h"
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/LegacyPassNameParser.h"
-#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/IRReader/IRReader.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/LinkAllIR.h"
 #include "llvm/LinkAllPasses.h"
 #include "llvm/MC/SubtargetFeature.h"
@@ -59,7 +60,6 @@
 #include "llvm/Support/SystemUtils.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Target/TargetMachine.h"
-#include "NewPMDriver.h"
 #if LLVM_VERSION_MAJOR < 15
 #include "llvm/Transforms/Coroutines.h"
 #endif
@@ -458,3 +458,4 @@ static CodeGenOpt::Level GetCodeGenOptLevel()
 }
 
 #endif /* end of include guard: LIB_VERSIONING_COMPILER_CLANG_LLVM_OPT_UTILS */
+
