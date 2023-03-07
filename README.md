@@ -127,11 +127,12 @@ If you want to build libVersioningCompiler using a custom installation of llvm:
 cmake  \
 -D LLVM_FOUND=1 \
 -D LLVM_LIBRARY_DIR="/opt/x86_64-linux-gnu-llvm-static/lib" \
--D LLVM_INCLUDE_DIR="/extra/Politecnico/TESI/LIBVC_STUFF/x86_64-linux-gnu-llvm-static/include" \
--D LLVM_TOOLS_BINARY_DIR="/extra/Politecnico/TESI/LIBVC_STUFF/x86_64-linux-gnu-llvm-static/bin" \
+-D LLVM_INCLUDE_DIR="/opt/x86_64-linux-gnu-llvm-static/include" \
+-D LLVM_TOOLS_BINARY_DIR="/opt/x86_64-linux-gnu-llvm-static/bin" \
 -D LLVM_VERSION_MAJOR=15 \
 -D LLVM_PACKAGE_VERSION="15.0.6" \
  -S . -B build
+cmake --build build
 ```
 
 Explanation:
@@ -283,10 +284,10 @@ vc::compiler_ptr_t cc = vc::make_compiler<vc::SystemCompiler>();
 // /usr/bin/gcc using ./test.log as log file
 vc::compiler_ptr_t gcc = vc::make_compiler<vc::SystemCompiler>(
                                         "gcc",
-                                        "gcc",
-                                        ".",
-                                        "./test.log",
-                                        "/usr/bin",
+                                        std::filesystem::u8path("gcc"),
+                                        std::filesystem::u8path("."),
+                                        std::filesystem::u8path("./test.log"),
+                                        std::filesystem::u8path("/usr/bin"),
                                         false
                                         );
 
@@ -294,12 +295,12 @@ vc::compiler_ptr_t gcc = vc::make_compiler<vc::SystemCompiler>(
 // /opt/clang-13/bin/clang as compiler and /opt/clang-13/bin/opt as optimizer
 vc::compiler_ptr_t clang = vc::make_compiler<vc::SystemCompilerOptimizer>(
                                             "llvm/clang",
-                                            "clang",
-                                            "opt",
-                                            ".",
-                                            "./test.log",
-                                            "/opt/clang-13/bin",
-                                            "/opt/clang-13/bin"
+                                            std::filesystem::u8path("clang"),
+                                            std::filesystem::u8path("opt"),
+                                            std::filesystem::u8path("."),
+                                            std::filesystem::u8path("./test.log"),
+                                            std::filesystem::u8path("/opt/clang-13/bin"),
+                                            std::filesystem::u8path("/opt/clang-13/bin)"
                                           );
 ```
 
