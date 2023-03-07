@@ -22,15 +22,16 @@
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
 
+#include "versioningCompiler/CompilerImpl/ClangLibCompiler.hpp"
+#include "versioningCompiler/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.hpp"
+#include "versioningCompiler/CompilerImpl/ClangLLVM/OptUtils.hpp" // opt stuff
+#include "versioningCompiler/DebugUtils.hpp"
+
 #include "clang/CodeGen/CodeGenAction.h"
 #include "clang/Driver/Compilation.h"
 #include "clang/Driver/Driver.h"
 #include "clang/Driver/Job.h"
 #include "clang/Frontend/CompilerInvocation.h"
-#include "versioningCompiler/CompilerImpl/ClangLibCompiler.hpp"
-#include "versioningCompiler/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.hpp"
-#include "versioningCompiler/CompilerImpl/ClangLLVM/OptUtils.hpp" // opt stuff
-#include "versioningCompiler/DebugUtils.hpp"
 
 #include <vector>
 

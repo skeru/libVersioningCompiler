@@ -248,15 +248,16 @@ int main(int argc, char const *argv[])
   f.push_back((signature_t)v->getSymbol(1));
   f.push_back((signature_t)v2->getSymbol());
   f.push_back((signature_t)v3->getSymbol());
-  f.push_back((signature_t)v4->getSymbol());
+  f.push_back((signature_t)v4->getSymbol(1));
   f.push_back((signature_t)v5->getSymbol());
   if (f[0]) {
     f[0](42);
-    f[1](24);
-    f[2](5);
-    f[3](6);
-    f[4](7);
-    f[5](77);
+    f[1](0);
+    f[2](24);
+    f[3](3);
+    f[4](0);
+    f[5](7);
+    f[5](6);
   } else {
     std::cerr << "Error function pointers unavailable" << '\n';
   }
@@ -265,10 +266,13 @@ int main(int argc, char const *argv[])
   v3->fold();
   v4->fold();
   v5->fold();
+  std::cout << "Version folded, reloading it." << std::endl;
   v3->reload();
   signature_t reloaded = (signature_t)v3->getSymbol();
+  signature_t reloaded2 = (signature_t)v3->getSymbol(1);
   if (reloaded) {
     reloaded(15);
+    reloaded2(0);
   } else {
     std::cerr << "Error in folding and reloading v3" << std::endl;
   }

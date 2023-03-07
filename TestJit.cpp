@@ -27,6 +27,12 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
+#include "versioningCompiler/CompilerImpl/ClangLibCompiler.hpp"
+#include "versioningCompiler/CompilerImpl/JITCompiler.hpp"
+#include "versioningCompiler/CompilerImpl/SystemCompiler.hpp"
+#include "versioningCompiler/CompilerImpl/SystemCompilerOptimizer.hpp"
+#include "versioningCompiler/Version.hpp"
+
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/ExecutionEngine/JITSymbol.h"
@@ -40,11 +46,6 @@
 #include "llvm/Support/DynamicLibrary.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/TargetSelect.h"
-#include "versioningCompiler/CompilerImpl/ClangLibCompiler.hpp"
-#include "versioningCompiler/CompilerImpl/JITCompiler.hpp"
-#include "versioningCompiler/CompilerImpl/SystemCompiler.hpp"
-#include "versioningCompiler/CompilerImpl/SystemCompilerOptimizer.hpp"
-#include "versioningCompiler/Version.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -67,6 +68,9 @@
 #ifndef TEST_FUNCTION_LBL
 #define TEST_FUNCTION_LBL "TEST_FUNCTION"
 #endif
+#ifndef SECOND_FUNCTION
+#define SECOND_FUNCTION "test_function2"
+#endif
 
 
 using namespace llvm;
@@ -82,6 +86,7 @@ int main(int argc, char const *argv[]) {
 
   vc::Version::Builder builder;
   builder._functionName.push_back(TEST_FUNCTION);
+  builder._functionName.push_back(SECOND_FUNCTION);
   builder._fileName_src.push_back(PATH_TO_C_TEST_CODE);
   builder.addFunctionFlag(TEST_FUNCTION_LBL);
 
@@ -135,10 +140,23 @@ int main(int argc, char const *argv[]) {
   std::cout << "Executing myversion symbol." << std::endl;
 
   std::vector<signature_t> f;
-  f.push_back((signature_t) myversion->getSymbol());
-  std::cout << "Result 1: " << f[0](42) << std::endl;
-  std::cout << "Result 2: " << f[0](12) << std::endl;
-  std::cout << "Result 3: " << f[0](128) << std::endl;
+  f.push_back((signature_t)myversion->getSymbol());
+  f.push_back((signature_t)myversion->getSymbol(1));
+  f.push_back((signature_t)myversion->getSymbol());
+  f.push_back((signature_t)myversion->getSymbol());
+  f.push_back((signature_t)myversion->getSymbol(1));
+  f.push_back((signature_t)myversion->getSymbol());
+  if (f[0]) {
+    f[0](42);
+    f[1](0);
+    f[2](24);
+    f[3](3);
+    f[4](0);
+    f[5](7);
+    f[5](6);
+  } else {
+    std::cerr << "Error function pointers unavailable" << '\n';
+  }
 
   std::cout << "Folding myversion object." << std::endl;
   myversion->fold();
@@ -146,13 +164,13 @@ int main(int argc, char const *argv[]) {
   std::cout << "Version folded, reloading it." << std::endl;
   myversion->reload();
   std::cout << "Executing myversion reloaded symbol." << std::endl;
-  signature_t reloaded = (signature_t) myversion->getSymbol();
+  signature_t reloaded = (signature_t)myversion->getSymbol();
+  signature_t reloaded2 = (signature_t)myversion->getSymbol(1);
   if (reloaded) {
-    std::cout << "Result r1: " << reloaded(42) << std::endl;
-    std::cout << "Result r2: " << reloaded(12) << std::endl;
-    std::cout << "Result r3: " << reloaded(128) << std::endl;
+    reloaded(15);
+    reloaded2(0);
   } else {
-    std::cerr << "Error in folding and reloading v3" << std::endl;
+    std::cerr << "Error in folding and reloading myversion" << std::endl;
   }
 
   myversion->fold();

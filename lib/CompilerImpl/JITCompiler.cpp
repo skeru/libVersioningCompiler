@@ -27,6 +27,11 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
+#include "versioningCompiler/CompilerImpl/JITCompiler.hpp"
+#include "versioningCompiler/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.hpp"
+#include "versioningCompiler/CompilerImpl/ClangLLVM/OptUtils.hpp" // opt stuff
+#include "versioningCompiler/DebugUtils.hpp"
+
 #include "clang/Basic/Diagnostic.h"
 #include "clang/Basic/DiagnosticOptions.h"
 #include "clang/CodeGen/CodeGenAction.h"
@@ -39,10 +44,7 @@
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/Error.h"
-#include "versioningCompiler/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.hpp"
-#include "versioningCompiler/CompilerImpl/ClangLLVM/OptUtils.hpp" // opt stuff
-#include "versioningCompiler/CompilerImpl/JITCompiler.hpp"
-#include "versioningCompiler/DebugUtils.hpp"
+#include "llvm/Transforms/Utils/Cloning.h"
 
 #ifndef OPT_EXE_NAME
 #define OPT_EXE_NAME "opt"
@@ -63,8 +65,7 @@ JITCompiler::JITCompiler(
         const std::string &compilerID,
         const std::filesystem::path &libWorkingDir,
         const std::filesystem::path &log
-) : Compiler(
-        compilerID,
+) : Compiler(compilerID,
         std::filesystem::u8path("#"), // compiler call string
         libWorkingDir,
         log,                          // log filename
@@ -72,13 +73,13 @@ JITCompiler::JITCompiler(
         true                          // support IR
 ),
     _ES(std::make_unique<llvm::orc::ExecutionSession>(std::move(*llvm::orc::SelfExecutorProcessControl::Create()))),
-    _JTMB(_ES->getExecutorProcessControl().getTargetTriple()),
+    _JTMB(llvm::orc::JITTargetMachineBuilder::detectHost().get()),
     _tsctx(std::make_unique<llvm::LLVMContext>()),
     _mangle(*_ES, this->_dataLayout),
     _dataLayout(*this->_JTMB.getDefaultDataLayoutForTarget()), _mainJD(_ES->createBareJITDylib("<main>")) {
       this->_mainJD.addGenerator(
-        llvm::cantFail(llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(
-            this->_dataLayout.getGlobalPrefix())));
+        std::move(llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(
+            this->_dataLayout.getGlobalPrefix()).get()));
     
   std::cout << "Constructing compiler object.." << std::endl;
   _llvmManager = LLVMInstanceManager::getInstance();
@@ -548,18 +549,28 @@ std::filesystem::path JITCompiler::runOptimizer(const std::filesystem::path &src
  * Makes the actual call to llvm CompileLayer addModule functions and saves the JIT compilation
  * results in the JITCompiler class state
  */
-void JITCompiler::addModule(std::unique_ptr<llvm::Module> m, const std::string &versionID) {
-  llvm::orc::ThreadSafeModule TSM(std::move(m),_tsctx);
-  auto cm_iterator = _layer_map.find(versionID);
+void JITCompiler::addModule(std::unique_ptr<llvm::Module> m,
+                            const std::string &versionID) {
+  llvm::orc::ThreadSafeModule TSM(std::move(m), _tsctx);
+  auto lm_iterator = _layer_map.find(versionID);
 
-  if (cm_iterator == _layer_map.end()) {
+  if (lm_iterator == _layer_map.end()) {
     std::string error_string = "JITCompiler::addModule ";
     error_string = error_string + "compileLayer for " + versionID + " not found";
     Compiler::log_string(error_string);
     return;
   }
-  _resource_tracker_map[versionID] = _mainJD.createResourceTracker();
-  llvm::cantFail(cm_iterator->second->add(_resource_tracker_map[versionID],std::move(TSM)));
+  auto rt_iterator = _resource_tracker_map.find(versionID);
+  if (rt_iterator == _resource_tracker_map.end()) {
+    _resource_tracker_map[versionID] = _mainJD.createResourceTracker();
+  }
+  handleAllErrors(std::move(lm_iterator->second->add(
+                      _resource_tracker_map[versionID], std::move(TSM))),
+                  [&](llvm::ErrorInfoBase &EIB) {
+                    llvm::errs()
+                        << "Error while adding a module: " << EIB.message()
+                        << "\n";
+                  });
   return;
 }
 
@@ -634,25 +645,28 @@ std::vector<void*> JITCompiler::loadSymbols(const std::filesystem::path &bin,
       Compiler::log_string(error_string);
       return;
   };
-  llvm::SMDiagnostic parsing_input_error_code;
-  addModule(std::move(llvm::parseIRFile(mm_iterator->second,parsing_input_error_code, *(_tsctx.getContext()))), bin);
-  if (parsing_input_error_code.getMessage().size()>0){
-    report_error(parsing_input_error_code.getMessage().str());
-  }
-    auto hm_iterator = _resource_tracker_map.find(versionID);
-  if (hm_iterator == _resource_tracker_map.end()) {
+  // It seems that there is no better way to clone a module.
+  // Otherwise we should call llvm::parseIRFile each time
+  addModule(std::move(llvm::CloneModule(*mm_iterator->second)), bin);
+  auto rt_iterator = _resource_tracker_map.find(versionID);
+  if (rt_iterator == _resource_tracker_map.end()) {
     std::string error_string = "JITCompiler::loadSymbol ";
-    error_string = error_string + "cannot load symbol from " + versionID + " - addModule call failed";
+    error_string = error_string + "cannot load symbol from " + versionID +
+                   " - resource tracker not found";
     Compiler::log_string(error_string);
     return symbols;
   }
 
   _isloaded_map[versionID] = true;
 
-  for (const std::string& f : func) {
-    auto findSym=findSymbol(f, versionID);
-    llvm::cantFail(findSym.takeError());
-    void *symbol = (void* )findSym->getAddress();
+  for (const std::string &f : func) {
+    auto findSym = findSymbol(f, versionID);
+    handleAllErrors(
+        std::move(findSym.takeError()), [&](llvm::ErrorInfoBase &EIB) {
+          llvm::errs() << "Error while lokking for symbol: " << EIB.message()
+                       << "\n";
+        });
+    void *symbol = (void *)findSym->getAddress();
     if (!symbol) {
       std::string error_str = "cannot load symbol " + f + " from " + bin.string() +
       " : symbol not found";
@@ -685,7 +699,13 @@ void JITCompiler::releaseSymbol(void **handler) {
     Compiler::log_string(error_string);
     return;
   } else {
-    llvm::cantFail(_resource_tracker_map[*id]->remove()); // release all resources linked to this ResourceTrackerSP
+    llvm::handleAllErrors(_resource_tracker_map[*id]->remove(),
+                          [&](llvm::ErrorInfoBase &EIB) {
+                            llvm::errs() << "Error while deleting a resource "
+                                            "tracker during a symbol release: "
+                                         << EIB.message() << "\n";
+                          }); // release all resources linked
+                              // to this ResourceTrackerSP
     _resource_tracker_map.erase(*id);
     _isloaded_map.erase(*id);
   }
@@ -714,9 +734,10 @@ std::filesystem::path JITCompiler::generateBin(const std::vector<std::filesystem
   _obj_map[versionID] = std::make_unique<llvm::orc::RTDyldObjectLinkingLayer>(*this->_ES,
                     []() { return std::make_unique<llvm::SectionMemoryManager>(); });
   _layer_map[versionID] = std::make_unique<llvm::orc::IRCompileLayer>(
-          *this->_ES, 
-          *(_obj_map[versionID]),
-          std::make_unique<llvm::orc::ConcurrentIRCompiler>(std::move(this->_JTMB)));
+      *this->_ES, *(_obj_map[versionID]),
+      std::make_unique<llvm::orc::ConcurrentIRCompiler>(
+          std::move(this->_JTMB)));
+  _resource_tracker_map[versionID] = _mainJD.createResourceTracker();
 
   // IR filename
   const std::filesystem::path llvmIRfileName = Compiler::getBitcodeFileName(versionID);
@@ -747,14 +768,12 @@ std::filesystem::path JITCompiler::generateBin(const std::vector<std::filesystem
   llvm::SMDiagnostic parsing_input_error_code;
   Compiler::log_string("Jitting IR file: " + source.string());
 
-  _modules_map[versionID] = source; // this used to be std::move(llvm::parseIRFile(source, parsing_input_error_code, *(_tsctx.getContext())));
-  
-  auto m = std::move(llvm::parseIRFile(_modules_map[versionID], parsing_input_error_code, *(_tsctx.getContext())));
+  _modules_map[versionID] = std::move(llvm::parseIRFile(
+      source.string(), parsing_input_error_code, *(_tsctx.getContext())));
   if (parsing_input_error_code.getMessage().str().length() > 0) {
     report_error("Module was not generated: "+parsing_input_error_code.getMessage().str());
     return failureName;
   }
-  addModule(std::move(m), versionID);
   return versionID;
 }
 

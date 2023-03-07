@@ -30,6 +30,10 @@
 #ifndef LIB_VERSIONING_COMPILER_JIT_LIB_COMPILER_HPP
 #define LIB_VERSIONING_COMPILER_JIT_LIB_COMPILER_HPP
 
+#include "versioningCompiler/Compiler.hpp"
+#include "versioningCompiler/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.hpp"
+#include "versioningCompiler/CompilerImpl/ClangLLVM/LLVMInstanceManager.hpp"
+
 #include "clang/Basic/DiagnosticIDs.h"
 #include "clang/Basic/DiagnosticOptions.h"
 #include "clang/Frontend/CompilerInstance.h"
@@ -48,9 +52,6 @@
 #include "llvm/IR/Module.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Target/TargetMachine.h"
-#include "versioningCompiler/Compiler.hpp"
-#include "versioningCompiler/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.hpp"
-#include "versioningCompiler/CompilerImpl/ClangLLVM/LLVMInstanceManager.hpp"
 
 #include <filesystem>
 #include <string>
@@ -83,7 +84,7 @@ namespace vc {
 
     public:
         // Set of maps used to keep a state of the various versions requesting for JIT functionalities.
-        std::map<std::string, std::string> _modules_map; // source string gets placed here rather than the module. If it is present, generate the module
+        std::map<std::string, std::unique_ptr<llvm::Module>> _modules_map; // source string gets placed here rather than the module. If it is present, generate the module
         std::map<std::string, llvm::orc::ResourceTrackerSP> _resource_tracker_map;
         std::map<std::string, bool> _isloaded_map;
         std::map<std::string, std::unique_ptr<llvm::orc::IRCompileLayer>> _layer_map;
@@ -98,7 +99,23 @@ namespace vc {
                     const std::filesystem::path &log
                     );
 
-        inline ~JITCompiler() {}
+        inline ~JITCompiler() {
+          for (auto it = _resource_tracker_map.begin();
+              it != _resource_tracker_map.end(); ++it) {
+            handleAllErrors(
+                std::move(it->second->remove()), [&](llvm::ErrorInfoBase &EIB) {
+                  llvm::errs() << "Error while deleting a resource tracker: "
+                              << EIB.message() << "\n";
+                });
+          }
+#if LLVM_VERSION_MAJOR >= 14
+          handleAllErrors(std::move(this->_ES->removeJITDylib(this->_mainJD)),
+                          [&](llvm::ErrorInfoBase &EIB) {
+                            llvm::errs() << "Error while removing the JITDylib: "
+                                        << EIB.message() << "\n";
+                          });
+#endif
+}
 
         bool hasOptimizer() const override;
 

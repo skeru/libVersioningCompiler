@@ -44,7 +44,7 @@ int test_function(int x)
 int test_function2(int x)
 {
   float y;
-  if (x) {
+  if (!x) {
     y = global_var;
   } else {
     y = x * x * x;
