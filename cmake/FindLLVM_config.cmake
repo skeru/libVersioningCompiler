@@ -105,6 +105,12 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 separate_arguments(LLVM_MODULE_LIBFILES)
 
+execute_process(
+  COMMAND ${LLVM_CONFIG_EXECUTABLE} --system-libs
+  OUTPUT_VARIABLE LLVM_SYSTEM
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+separate_arguments(LLVM_SYSTEM)
+
 # This should never happen
 if(NOT LLVM_TOOLS_BINARY_DIR)
   execute_process(

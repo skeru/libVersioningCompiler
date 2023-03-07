@@ -12,14 +12,14 @@ An introductory video is available on [YouTube](https://www.youtube.com/watch?v=
 ## Dependencies
 libVersioningCompiler requires:
  - Ubuntu 20.04 LTS or greater
- - any compiler compliant to the C++14 standard
- - cmake 3.9.4 or greater
+ - any compiler compliant to the C++17 standard
+ - cmake 3.20 or greater
 
 external libraries:
  - libz-dev
  - uuid-dev
- - (OPTIONAL) LLVM 13 or greater (up to LLVM 15)
- - (OPTIONAL) libclang-13-dev up to libclang-15-dev
+ - (OPTIONAL) LLVM 13 or greater (tested up to LLVM 15)
+ - (OPTIONAL) libclang-13-dev or greater (tested up to libclang-15-dev)
 
 Compiling without the OPTIONAL dependencies will disable some features,
 like the Clang-as-a-library compiler implementation.
@@ -185,15 +185,15 @@ vc::compiler_ptr_t gcc = vc::make_compiler<vc::SystemCompiler>(
                                         );
 
 // custom installation of LLVM/clang
-// /clang-3.7.0/bin/clang as compiler and /clang-3.7.0/bin/opt as optimizer
+// /opt/clang-13/bin/clang as compiler and /opt/clang-13/bin/opt as optimizer
 vc::compiler_ptr_t clang = vc::make_compiler<vc::SystemCompilerOptimizer>(
                                             "llvm/clang",
                                             "clang",
                                             "opt",
                                             ".",
                                             "./test.log",
-                                            "/clang-3.7.0/bin",
-                                            "/clang-3.7.0/bin"
+                                            "/opt/clang-13/bin",
+                                            "/opt/clang-13/bin"
                                           );
 ```
 

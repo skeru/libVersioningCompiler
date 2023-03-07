@@ -45,13 +45,13 @@ TAFFOCompiler::TAFFOCompiler(
   if (const char *e_llvmdir = getenv("LLVM_DIR")) {
     const std::filesystem::path e_llvmdir_path= std::filesystem::u8path(e_llvmdir);
     if (this->llvmOptPath.empty())
-      this->llvmOptPath = e_llvmdir_path / std::filesystem::u8path("/bin/opt");
+      this->llvmOptPath = e_llvmdir_path / std::filesystem::u8path("bin/opt");
     if (this->llvmClangPath.empty())
-      this->llvmClangPath = e_llvmdir_path / std::filesystem::u8path("/bin/clang");
+      this->llvmClangPath = e_llvmdir_path / std::filesystem::u8path("bin/clang");
     if (this->llvmLinkerPath.empty())
-      this->llvmLinkerPath = e_llvmdir_path / std::filesystem::u8path("/bin/clang");
+      this->llvmLinkerPath = e_llvmdir_path / std::filesystem::u8path("bin/clang");
     if (this->llvmLinkerPath.empty())
-      this->llvmLinkPath = e_llvmdir_path / std::filesystem::u8path("/bin/link");
+      this->llvmLinkPath = e_llvmdir_path / std::filesystem::u8path("bin/link");
   }
 }
 
@@ -84,18 +84,18 @@ TAFFOCompiler::TAFFOCompiler(
       if (const char *e_clang = getenv("CLANG")) 
         llvmClangPath = std::filesystem::u8path(e_clang);
       else
-        llvmClangPath = llvmPfx / std::filesystem::path("/bin/clang");
+        llvmClangPath = llvmPfx / std::filesystem::path("bin/clang");
       break;
     case CXX:
       if (const char *e_clangxx = getenv("CLANGXX")) 
         llvmClangPath = std::filesystem::u8path(e_clangxx);
       else
-        llvmClangPath = llvmPfx / std::filesystem::path("/bin/clang++");
+        llvmClangPath = llvmPfx / std::filesystem::path("bin/clang++");
       break;
   }
 
-  llvmOptPath = llvmPfx / std::filesystem::path("/bin/opt");
-  llvmLinkPath = llvmPfx / std::filesystem::path("/bin/llvm-link");
+  llvmOptPath = llvmPfx / std::filesystem::path("bin/opt");
+  llvmLinkPath = llvmPfx / std::filesystem::path("bin/llvm-link");
   llvmLinkerPath = llvmClangPath;
 }
 

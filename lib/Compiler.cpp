@@ -19,11 +19,12 @@
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
 #include "versioningCompiler/Compiler.hpp"
+
 #include <cstdio>
 #include <dlfcn.h> // needed for loadSymbol
+#include <filesystem>
 #include <fstream>
 #include <sys/stat.h>
-#include <filesystem>
 
 using namespace vc;
 

@@ -20,6 +20,7 @@
 #define LIB_VERSIONING_COMPILER_TAFFO_COMPILER_HPP
 
 #include "versioningCompiler/Compiler.hpp"
+
 #include <filesystem>
 #include <string>
 

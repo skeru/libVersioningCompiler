@@ -19,8 +19,9 @@
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
 #include "versioningCompiler/Version.hpp"
-#include <dlfcn.h>
+
 #include <cstdio>
+#include <dlfcn.h>
 
 using namespace vc;
 

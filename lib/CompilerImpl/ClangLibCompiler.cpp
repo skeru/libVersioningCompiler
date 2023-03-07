@@ -21,22 +21,22 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
-#include "versioningCompiler/CompilerImpl/ClangLibCompiler.hpp"
-#include "versioningCompiler/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.hpp"
-#include "versioningCompiler/DebugUtils.hpp"
 
-#include "clang/Driver/Driver.h"
+#include "clang/CodeGen/CodeGenAction.h"
 #include "clang/Driver/Compilation.h"
+#include "clang/Driver/Driver.h"
 #include "clang/Driver/Job.h"
 #include "clang/Frontend/CompilerInvocation.h"
-#include "clang/CodeGen/CodeGenAction.h"
+#include "versioningCompiler/CompilerImpl/ClangLibCompiler.hpp"
+#include "versioningCompiler/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.hpp"
+#include "versioningCompiler/CompilerImpl/ClangLLVM/OptUtils.hpp" // opt stuff
+#include "versioningCompiler/DebugUtils.hpp"
 
-// opt stuff
-#include "versioningCompiler/CompilerImpl/ClangLLVM/OptUtils.hpp"
+#include <vector>
+
 #ifndef OPT_EXE_FULLPATH
 #define OPT_EXE_FULLPATH "opt"
 #endif
-#include <vector>
 
 using namespace vc;
 using namespace clang;
@@ -471,7 +471,7 @@ std::filesystem::path ClangLibCompiler::runOptimizer(const std::filesystem::path
     }
     Passes.add(createPrintModulePass(*OS, "", PreserveAssemblyUseListOrder));
   } else if (OutputThinLTOBC) {
-    Passes.add(createWriteThinLTOBitcodePass(*OS)); // TODO not sure if this is what causes the optimization errors
+    Passes.add(createWriteThinLTOBitcodePass(*OS)); 
   } else {
     Passes.add(createBitcodeWriterPass(*OS,
                                        PreserveBitcodeUseListOrder,

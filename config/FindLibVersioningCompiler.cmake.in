@@ -74,13 +74,13 @@ endif (CLANG_LIB_COMPILER_INCLUDE_PATH-NOTFOUND)
 # -----------------------------------------------------------------------------
 # check for DL library
 
-if(NOT CMAKE_DL_LIBS)
+if(NOT APPLE AND NOT CMAKE_DL_LIBS)
   set(LIBVC_FOUND FALSE)
   if(LibVersioningCompiler_FIND_REQUIRED)
     message(
       FATAL_ERROR "Could not find libVersioningCompiler required dependency DL")
   endif(LibVersioningCompiler_FIND_REQUIRED)
-endif(NOT CMAKE_DL_LIBS)
+endif(NOT APPLE AND NOT CMAKE_DL_LIBS)
 
 # -----------------------------------------------------------------------------
 # Check for UUID includes
@@ -200,6 +200,12 @@ execute_process(
 )
 separate_arguments(LLVM_MODULE_LIBFILES)
 
+execute_process(
+  COMMAND ${LLVM_CONFIG_EXECUTABLE} --system-libs
+  OUTPUT_VARIABLE LLVM_SYSTEM
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+separate_arguments(LLVM_SYSTEM)
+
 # This should never happen
 if(NOT LLVM_TOOLS_BINARY_DIR)
   execute_process(
@@ -226,7 +232,6 @@ if(NOT OPT_EXE_NAME)
   get_filename_component(OPT_EXE_NAME ${OPT_EXE_FULLPATH} NAME)
 endif(NOT OPT_EXE_NAME)
 
-set(LLVM_SYSTEM pthread z tinfo)
 
 # -----------------------------------------------------------------------------
 # Try to find libclang

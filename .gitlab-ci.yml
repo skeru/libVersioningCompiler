@@ -168,7 +168,7 @@ test-nollvm-clang15:
     - *setup_script_focal
     - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG_VN
   script:
-    - cd build && chmod +x libVC_test libVC_testUtils && ./libVC_testUtils && ./libVC_test # TODO This probably fails
+    - cd build && chmod +x libVC_test libVC_testUtils && ./libVC_testUtils && ./libVC_test
 
 # Clang & llvm test - all versions
 build-llvm13:

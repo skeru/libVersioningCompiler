@@ -24,32 +24,31 @@
 #ifndef LIB_VERSIONING_COMPILER_CLANG_LLVM_LLVM_INSTANCE_MANAGER
 #define LIB_VERSIONING_COMPILER_CLANG_LLVM_LLVM_INSTANCE_MANAGER
 
+#include "llvm/ADT/APInt.h"
 #include "llvm/ADT/Triple.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IR/PassManager.h"
+#include "llvm/PassRegistry.h"
+#include "llvm/Support/Host.h"
+#include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Program.h"
 #include "llvm/Support/raw_os_ostream.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Target/TargetMachine.h"
 #if LLVM_VERSION_MAJOR >= 14
 #include "llvm/MC/TargetRegistry.h"
 #else
 #include "llvm/Support/TargetRegistry.h"
 #endif
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/Target/TargetMachine.h"
-#include "llvm/Support/Host.h"
-#include "llvm/PassRegistry.h"
-#include "llvm/IR/PassManager.h"
-#include "llvm/InitializePasses.h"
-#include "llvm/Support/ManagedStatic.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/Support/Program.h"
 
-#include <string>
 #include <filesystem>
+#include <string>
 /** LLVMInstanceManager is a lazy-initialized singleton.
  *
  * It performs LLVM initialization at the first request and calls

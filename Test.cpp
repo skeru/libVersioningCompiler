@@ -18,17 +18,18 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
-#include "versioningCompiler/Version.hpp"
 #include "versioningCompiler/CompilerImpl/SystemCompiler.hpp"
 #include "versioningCompiler/CompilerImpl/SystemCompilerOptimizer.hpp"
-#include <string>
-#include <vector>
-#include <iostream>
-#include <stdlib.h>
-
+#include "versioningCompiler/Version.hpp"
 #if HAVE_CLANG_AS_LIB
 #include "versioningCompiler/CompilerImpl/ClangLibCompiler.hpp"
 #endif
+
+#include <iostream>
+#include <stdlib.h>
+#include <string>
+#include <vector>
+
 
 #ifndef FORCED_PATH_TO_TEST
 #define FORCED_PATH_TO_TEST "../libVersioningCompiler/test_code"
@@ -115,6 +116,7 @@ int main(int argc, char const *argv[])
   // ---------- End compilers initialization ----------
   // start configuring version v
   builder._compiler = cc;
+  // avoid relocation problems with global variables
   builder._genIROptionList={vc::Option("fpic", "-fPIC")};
   // finalization of a version. no compilation has been called yet.
   vc::version_ptr_t v = builder.build();

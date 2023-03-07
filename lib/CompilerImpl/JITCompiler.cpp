@@ -27,33 +27,28 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
-#include "versioningCompiler/CompilerImpl/JITCompiler.hpp"
-#include "versioningCompiler/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.hpp"
-#include "versioningCompiler/DebugUtils.hpp"
-
-#include "clang/Driver/Driver.h"
+#include "clang/Basic/Diagnostic.h"
+#include "clang/Basic/DiagnosticOptions.h"
+#include "clang/CodeGen/CodeGenAction.h"
 #include "clang/Driver/Compilation.h"
+#include "clang/Driver/Driver.h"
 #include "clang/Driver/Job.h"
 #include "clang/Frontend/CompilerInvocation.h"
-#include "clang/CodeGen/CodeGenAction.h"
-
-
 #include "clang/Frontend/TextDiagnosticPrinter.h"
-#include "clang/Basic/DiagnosticOptions.h"
-#include "clang/Basic/Diagnostic.h"
-
-#include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
-#include "llvm/Support/Error.h"
+#include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/Pass.h"
-// opt stuff
-#include "versioningCompiler/CompilerImpl/ClangLLVM/OptUtils.hpp"
+#include "llvm/Support/Error.h"
+#include "versioningCompiler/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.hpp"
+#include "versioningCompiler/CompilerImpl/ClangLLVM/OptUtils.hpp" // opt stuff
+#include "versioningCompiler/CompilerImpl/JITCompiler.hpp"
+#include "versioningCompiler/DebugUtils.hpp"
 
 #ifndef OPT_EXE_NAME
 #define OPT_EXE_NAME "opt"
 #endif
-#include <vector>
 #include <iostream>
+#include <vector>
 
 using namespace vc;
 using namespace clang;
@@ -67,8 +62,7 @@ std::mutex JITCompiler::opt_parse_mtx;
 JITCompiler::JITCompiler(
         const std::string &compilerID,
         const std::filesystem::path &libWorkingDir,
-        const std::filesystem::path &log //,
-        //llvm::orc::JITTargetMachineBuilder targetMachineBuilder
+        const std::filesystem::path &log
 ) : Compiler(
         compilerID,
         "#", // compiler call string

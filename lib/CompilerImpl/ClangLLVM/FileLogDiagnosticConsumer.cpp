@@ -18,10 +18,11 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
-#include "versioningCompiler/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.hpp"
 #include "clang/Basic/SourceManager.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Support/raw_ostream.h"
+#include "versioningCompiler/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.hpp"
+
 #include <fstream>
 
 using namespace clang;

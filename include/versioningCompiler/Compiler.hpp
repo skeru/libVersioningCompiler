@@ -22,6 +22,7 @@
 #define LIB_VERSIONING_COMPILER_COMPILER_HPP
 
 #include "versioningCompiler/Option.hpp"
+
 #include <filesystem>
 #include <list>
 #include <map>

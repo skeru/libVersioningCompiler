@@ -28,11 +28,11 @@
 #define LIB_VERSIONING_JIT_COMPILER_UTILS_HPP
 
 /** C-like simplified interface to libVC */
+#include "versioningCompiler/CompilerImpl/JITCompiler.hpp"
+#include "versioningCompiler/Version.hpp"
 
 #include <filesystem>
 #include <iostream>
-#include "versioningCompiler/Version.hpp"
-#include "versioningCompiler/CompilerImpl/JITCompiler.hpp"
 
 namespace vc {
 

@@ -24,13 +24,13 @@
 #include "versioningCompiler/Compiler.hpp"
 #include "versioningCompiler/Option.hpp"
 
+#include <filesystem>
 #include <list>
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <vector>
 #include <uuid/uuid.h>
-#include <filesystem>
+#include <vector>
 
 namespace vc {
 

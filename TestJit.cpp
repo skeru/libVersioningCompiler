@@ -27,39 +27,32 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
-#include <iostream>
-#include <stdlib.h>
-#include <string>
-#include <vector>
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ExecutionEngine/ExecutionEngine.h"
+#include "llvm/ExecutionEngine/JITSymbol.h"
+#include "llvm/ExecutionEngine/Orc/CompileUtils.h"
+#include "llvm/ExecutionEngine/Orc/IRCompileLayer.h"
+#include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
+#include "llvm/ExecutionEngine/RTDyldMemoryManager.h"
+#include "llvm/ExecutionEngine/SectionMemoryManager.h"
+#include "llvm/IR/DataLayout.h"
+#include "llvm/IR/Mangler.h"
+#include "llvm/Support/DynamicLibrary.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/TargetSelect.h"
+#include "versioningCompiler/CompilerImpl/ClangLibCompiler.hpp"
 #include "versioningCompiler/CompilerImpl/JITCompiler.hpp"
 #include "versioningCompiler/CompilerImpl/SystemCompiler.hpp"
 #include "versioningCompiler/CompilerImpl/SystemCompilerOptimizer.hpp"
 #include "versioningCompiler/Version.hpp"
 
-
-// ----------------------------------------------------------------------
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ExecutionEngine/ExecutionEngine.h"
-#include "llvm/ExecutionEngine/JITSymbol.h"
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/ExecutionEngine/RTDyldMemoryManager.h"
-#include "llvm/ExecutionEngine/SectionMemoryManager.h"
-#include "llvm/ExecutionEngine/Orc/CompileUtils.h"
-#include "llvm/ExecutionEngine/Orc/IRCompileLayer.h"
-#include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
-#include "llvm/IR/DataLayout.h"
-#include "llvm/IR/Mangler.h"
-#include "llvm/Support/DynamicLibrary.h"
-#include "llvm/Support/raw_ostream.h"
 #include <algorithm>
+#include <iostream>
 #include <memory>
+#include <stdlib.h>
 #include <string>
 #include <vector>
-// ----------------------------------------------------------------
 
-
-#include "versioningCompiler/CompilerImpl/ClangLibCompiler.hpp"
-#include "versioningCompiler/CompilerImpl/JITCompiler.hpp"
 
 
 #ifndef FORCED_PATH_TO_TEST

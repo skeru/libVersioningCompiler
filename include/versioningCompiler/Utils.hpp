@@ -23,8 +23,8 @@
 
 /** C-like simplified interface to libVC */
 
-#include "versioningCompiler/Version.hpp"
 #include "versioningCompiler/CompilerImpl/SystemCompiler.hpp"
+#include "versioningCompiler/Version.hpp"
 
 namespace vc {
 

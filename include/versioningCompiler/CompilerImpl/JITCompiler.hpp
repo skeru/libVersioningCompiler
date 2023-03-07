@@ -30,30 +30,27 @@
 #ifndef LIB_VERSIONING_COMPILER_JIT_LIB_COMPILER_HPP
 #define LIB_VERSIONING_COMPILER_JIT_LIB_COMPILER_HPP
 
-#include "versioningCompiler/Compiler.hpp"
-#include "versioningCompiler/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.hpp"
-#include "versioningCompiler/CompilerImpl/ClangLLVM/LLVMInstanceManager.hpp"
-
 #include "clang/Basic/DiagnosticIDs.h"
 #include "clang/Basic/DiagnosticOptions.h"
 #include "clang/Frontend/CompilerInstance.h"
-
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/Module.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Target/TargetMachine.h"
-
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/ExecutionEngine/JITSymbol.h"
+#include "llvm/ExecutionEngine/Orc/CompileUtils.h"
+#include "llvm/ExecutionEngine/Orc/Core.h"
+#include "llvm/ExecutionEngine/Orc/IRCompileLayer.h"
+#include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
 #include "llvm/ExecutionEngine/RTDyldMemoryManager.h"
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
-#include "llvm/ExecutionEngine/Orc/CompileUtils.h"
-#include "llvm/ExecutionEngine/Orc/IRCompileLayer.h"
-#include "llvm/ExecutionEngine/Orc/Core.h"
-#include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
 #include "llvm/IR/DataLayout.h"
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Mangler.h"
+#include "llvm/IR/Module.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Target/TargetMachine.h"
+#include "versioningCompiler/Compiler.hpp"
+#include "versioningCompiler/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.hpp"
+#include "versioningCompiler/CompilerImpl/ClangLLVM/LLVMInstanceManager.hpp"
 
 #include <filesystem>
 #include <string>
@@ -98,8 +95,7 @@ namespace vc {
 
         JITCompiler(const std::string &compilerID,
                     const std::filesystem::path &libWorkingDir,
-                    const std::filesystem::path &log //,
-                    //llvm::orc::JITTargetMachineBuilder targetMachineBuilder
+                    const std::filesystem::path &log
                     );
 
         inline ~JITCompiler() {}

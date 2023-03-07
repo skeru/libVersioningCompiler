@@ -18,11 +18,12 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
 
+# cmake_path had been introduced in cmake 3.20
 cmake_minimum_required(VERSION 3.20)
 
 project(
   libVersioningCompiler
-  VERSION 2.0
+  VERSION 3.0
   DESCRIPTION
     "library for runtime compilation and dynamic loading of a C/C++ function"
   LANGUAGES CXX C)
@@ -44,9 +45,9 @@ link_directories(${CMAKE_CURRENT_BINARY_DIR})
 list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # check for DL library
-if(NOT CMAKE_DL_LIBS)
+if(NOT APPLE AND NOT CMAKE_DL_LIBS)
   message(FATAL_ERROR "Missing DL libs!")
-endif(NOT CMAKE_DL_LIBS)
+endif(NOT APPLE AND NOT CMAKE_DL_LIBS)
 
 # The uuuid library
 find_package(UUID REQUIRED)
@@ -161,10 +162,9 @@ set ( VC_LIB_HDR2
 
 
 #----- Additionl files to enable Clang-as-a-library
-if (ENABLE_CLANG_AS_LIB)
-  set_source_files_properties(${VC_LIB_HDR_PREFIX}/Features.hpp PROPERTIES
-                              COMPILE_FLAGS "-DENABLE_CLANG_AS_LIB=true"
-                              )
+
+if(ENABLE_CLANG_AS_LIB)
+  set(COMPILE_DEFINITIONS "ENABLE_CLANG_AS_LIB=true")
 
   set (VC_LIB_SRC ${VC_LIB_SRC}
                   ${SRC_PREFIX}/CompilerImpl/JITCompiler.cpp
@@ -231,6 +231,17 @@ endif (ENABLE_CLANG_AS_LIB)
 #             TEST APP                      #
 #############################################
 
+# If not specified, guess which c++ library should use
+if(NOT CPP_LIBRARY)
+  if(APPLE)
+    set(CPP_LIBRARY "c++")
+  elseif(UNIX)
+    set(CPP_LIBRARY "stdc++")
+  else()
+    set(CPP_LIBRARY "c++")
+  endif()
+endif(NOT CPP_LIBRARY)
+
 # TestJit.cpp
 #----- Sources
 
@@ -240,7 +251,8 @@ if (ENABLE_CLANG_AS_LIB)
   set (VC_EXEJIT_NAME libVC_testJit)
   add_executable(${VC_EXEJIT_NAME} ${VC_TESTJIT_APP_SRC})
 
-  target_link_libraries(${VC_EXEJIT_NAME} ${VC_LIB_NAME} ${VC_LIB_DEPS})
+  target_link_libraries(${VC_EXEJIT_NAME} ${VC_LIB_NAME} ${VC_LIB_DEPS}
+                        ${CPP_LIBRARY})
 
   target_compile_definitions(${VC_EXEJIT_NAME} PRIVATE -DHAVE_CLANG_AS_LIB)
   set(TEST_CODE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/test_code")
@@ -258,7 +270,8 @@ set ( VC_TEST_APP_SRC Test.cpp )
 set ( VC_EXE_NAME libVC_test )
 add_executable(${VC_EXE_NAME} ${VC_TEST_APP_SRC})
 
-target_link_libraries(${VC_EXE_NAME} ${VC_LIB_NAME} ${VC_LIB_DEPS})
+target_link_libraries(${VC_EXE_NAME} ${VC_LIB_NAME} ${VC_LIB_DEPS}
+                      ${CPP_LIBRARY})
 set(TEST_CODE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/test_code")
 convert_to_native_normalized_path(${TEST_CODE_PATH})
 target_compile_definitions(${VC_EXE_NAME}
@@ -280,7 +293,8 @@ set ( VC_TESTUTILS_APP_SRC TestUtils.cpp )
 set ( VC_EXEUTILS_NAME libVC_testUtils )
 add_executable ( ${VC_EXEUTILS_NAME} ${VC_TESTUTILS_APP_SRC} )
 
-target_link_libraries(${VC_EXEUTILS_NAME} ${VC_LIB_NAME} ${VC_LIB_DEPS})
+target_link_libraries(${VC_EXEUTILS_NAME} ${VC_LIB_NAME} ${VC_LIB_DEPS}
+                      ${CPP_LIBRARY})
 set(TEST_CODE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/test_code")
 convert_to_native_normalized_path(${TEST_CODE_PATH})
 target_compile_definitions(${VC_EXEUTILS_NAME}
