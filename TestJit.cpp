@@ -85,9 +85,9 @@ int main(int argc, char const *argv[]) {
   std::cout << "Setting up builder.." << std::endl;
 
   vc::Version::Builder builder;
-  builder._functionName.push_back(TEST_FUNCTION);
-  builder._functionName.push_back(SECOND_FUNCTION);
-  builder._fileName_src.push_back(PATH_TO_C_TEST_CODE);
+  builder.addFunctionName(TEST_FUNCTION);   // returns 0
+  builder.addFunctionName(SECOND_FUNCTION); // returns 1
+  builder.addSourceFile(PATH_TO_C_TEST_CODE);
   builder.addFunctionFlag(TEST_FUNCTION_LBL);
 
   llvm::InitializeNativeTarget();
@@ -100,12 +100,12 @@ int main(int argc, char const *argv[]) {
       "jitCompiler", std::filesystem::u8path("."),
       std::filesystem::u8path("./test_jit.log"));
 
-  builder._compiler = jitCompiler;
-  builder._autoremoveFilesEnable = false;
-  builder._optOptionList = {
+  builder.setCompiler(jitCompiler);
+  // builder._autoremoveFilesEnable = false; // uncomment this to keep intermediate files
+  builder.setOptOptions({
           vc::Option("mem2reg", "-mem2reg"),
           vc::Option("o", "-O", "3"),
-  };
+  });
   std::cout << "Building version.." << std::endl;
   vc::version_ptr_t myversion = builder.build();
 
@@ -140,20 +140,23 @@ int main(int argc, char const *argv[]) {
   std::cout << "Executing myversion symbol." << std::endl;
 
   std::vector<signature_t> f;
-  f.push_back((signature_t)myversion->getSymbol());
-  f.push_back((signature_t)myversion->getSymbol(1));
-  f.push_back((signature_t)myversion->getSymbol());
-  f.push_back((signature_t)myversion->getSymbol());
-  f.push_back((signature_t)myversion->getSymbol(1));
-  f.push_back((signature_t)myversion->getSymbol());
+  f.push_back((signature_t)myversion->getSymbol());  // TEST_FUNCTION
+  f.push_back((signature_t)myversion->getSymbol(1)); // SECOND_FUNCTION
   if (f[0]) {
+    std::cout << "Expected 42**2 = 1764" << std::endl;
     f[0](42);
+    std::cout << "Expected 1764" << std::endl;
     f[1](0);
-    f[2](24);
-    f[3](3);
-    f[4](0);
-    f[5](7);
-    f[5](6);
+    std::cout << "Expected 24**2 = 576" << std::endl;
+    f[0](24);
+    std::cout << "Expected 3**3 = 27" << std::endl;
+    f[1](3);
+    std::cout << "Expected 576" << std::endl;
+    f[1](0);
+    std::cout << "Expected 7**2 = 49" << std::endl;
+    f[0](7);
+    std::cout << "Expected 6**3 = 216" << std::endl;
+    f[1](6);
   } else {
     std::cerr << "Error function pointers unavailable" << '\n';
   }
@@ -164,10 +167,14 @@ int main(int argc, char const *argv[]) {
   std::cout << "Version folded, reloading it." << std::endl;
   myversion->reload();
   std::cout << "Executing myversion reloaded symbol." << std::endl;
-  signature_t reloaded = (signature_t)myversion->getSymbol();
-  signature_t reloaded2 = (signature_t)myversion->getSymbol(1);
+  signature_t reloaded = (signature_t)myversion->getSymbol();   // TEST_FUNCTION
+  signature_t reloaded2 = (signature_t)myversion->getSymbol(1); // SECOND_FUNCTION
   if (reloaded) {
+    std::cout << "Expected -1" << std::endl;
+    reloaded2(0);
+    std::cout << "Expected 15**2 = 225" << std::endl;
     reloaded(15);
+    std::cout << "Expected 225" << std::endl;
     reloaded2(0);
   } else {
     std::cerr << "Error in folding and reloading myversion" << std::endl;

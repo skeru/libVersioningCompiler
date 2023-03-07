@@ -74,9 +74,14 @@ int main(int argc, char const *argv[])
   // the same builder by calling reset() on it, or just using another builder.
   // WARNING: builder does not call any compiler
   vc::Version::Builder builder, another_builder;
-  builder._functionName.push_back(TEST_FUNCTION);
-  builder._functionName.push_back(SECOND_FUNCTION);
-  builder._fileName_src.push_back(PATH_TO_C_TEST_CODE);
+
+  auto t_fun_index = builder.addFunctionName(TEST_FUNCTION); // This returns 0
+  if (t_fun_index == -1)
+    std::cerr << "Error: TEST_FUNCTION name not added correctly" << std::endl;
+  auto second_fun_index = builder.addFunctionName(SECOND_FUNCTION); // This returns 1
+  if (second_fun_index == -1)
+    std::cerr << "Error: SECOND_FUNCTION name not added correctly" << std::endl;
+  builder.addSourceFile(PATH_TO_C_TEST_CODE);
   builder.addFunctionFlag(TEST_FUNCTION_LBL);
   // ---------- Initialize the compiler to be used. ----------
   // Should be done just once.
@@ -111,9 +116,9 @@ int main(int argc, char const *argv[])
 #endif
   // ---------- End compilers initialization ----------
   // start configuring version v
-  builder._compiler = cc;
+  builder.setCompiler(cc);
   // avoid relocation problems with global variables
-  builder._genIROptionList={vc::Option("fpic", "-fPIC")};
+  builder.genIRoptions({vc::Option("fpic", "-fPIC")});
   // finalization of a version. no compilation has been called yet.
   vc::version_ptr_t v = builder.build();
   // end configuring version v
@@ -122,7 +127,7 @@ int main(int argc, char const *argv[])
   // want to reuse the same parameters as Version v. Use the same builder.
   // just modify the compiler...
   builder._compiler = gcc;
-  builder._autoremoveFilesEnable = true;
+  // builder._autoremoveFilesEnable = false; // uncomment this to keep the intermediate files
   // ...and the option list
   builder.options({vc::Option("o", "-O", "2")});
   // Version v2 is finalized as v, with the above mentioned changes.
@@ -132,25 +137,22 @@ int main(int argc, char const *argv[])
   // start configuring version v3
   // another way to clone a version: construct a builder by cloning v2
   another_builder = vc::Version::Builder(v2);
-  another_builder._compiler = clang;
-  another_builder._optOptionList = {
-                                    vc::Option("fp-contract", "-fp-contract=", "fast"),
-                                    vc::Option("inline", "-inline"),
-                                    vc::Option("unroll", "-loop-unroll"),
-                                    vc::Option("mem2reg", "-mem2reg")
-                                   };
+  another_builder.setCompiler(clang);
+  another_builder.setOptOptions({vc::Option("fp-contract", "-fp-contract=", "fast"),
+                                 vc::Option("inline", "-inline"), vc::Option("unroll", "-loop-unroll"),
+                                 vc::Option("mem2reg", "-mem2reg")});
   vc::version_ptr_t v3 = another_builder.build();
   // end configuring version v3
 
   // start configuring version v4
 #if HAVE_CLANG_AS_LIB
-  builder._compiler = clangAsLib;
+  builder.setCompiler(clangAsLib);
 #endif
   builder._autoremoveFilesEnable = true;
-  builder._optOptionList = {
-                            vc::Option("mem2reg", "-mem2reg"),
-                            vc::Option("o", "-O", "3"),
-                           };
+  builder.setOptOptions({
+      vc::Option("mem2reg", "-mem2reg"),
+      vc::Option("o", "-O", "3"),
+  });
   vc::version_ptr_t v4 = builder.build();
   // end configuring version v4
 
@@ -244,20 +246,36 @@ int main(int argc, char const *argv[])
   std::cout << "Notify: v5 loaded." << std::endl;
 
   std::vector<signature_t> f;
-  f.push_back((signature_t)v->getSymbol());
-  f.push_back((signature_t)v->getSymbol(1));
-  f.push_back((signature_t)v2->getSymbol());
-  f.push_back((signature_t)v3->getSymbol());
-  f.push_back((signature_t)v4->getSymbol(1));
+  f.push_back((signature_t)v->getSymbol(t_fun_index));
+  f.push_back((signature_t)v->getSymbol(second_fun_index));
+  f.push_back((signature_t)v2->getSymbol(t_fun_index));
+  f.push_back((signature_t)v3->getSymbol(t_fun_index));
+  f.push_back((signature_t)v4->getSymbol());                 // equivalent to v4->getSymbol(0) or v4->getSymbol(t_fun_index)
+  f.push_back((signature_t)v2->getSymbol(second_fun_index)); // equivalent to v5->getSymbol(1).
   f.push_back((signature_t)v5->getSymbol());
   if (f[0]) {
-    f[0](42);
-    f[1](0);
-    f[2](24);
-    f[3](3);
-    f[4](0);
-    f[5](7);
-    f[5](6);
+    std::cout << "Expected: 42**2 = 1764" << std::endl;
+    f[0](42); // prints "42**2 = 1764" and sets v's global variable to 1764
+    std::cout << "Expected: 1764" << std::endl;
+    f[1](0); // prints v's global variable value, 1764
+    std::cout << "Expected: 24**2 = 576" << std::endl;
+    f[2](24); // prints "24**2 = 576" and sets v2's global variable to 576
+    std::cout << "Expected: 3**2 = 9" << std::endl;
+    f[3](3); // prints "3**2 = 9" and sets v3's global variable to 9.
+    std::cout << "Expected: 0**2 = 0" << std::endl;
+    f[4](0); // prints "0**2 = 0" and sets v4's global variable to 0
+    std::cout << "Expected: 576" << std::endl;
+    f[5](0); // prints v2's global variable value, which is 576.
+    std::cout << "Expected: 22**2 = 484" << std::endl;
+    f[2](22); // prints "22**2 = 484" and sets v2's global variable to 484
+    std::cout << "Expected: 484" << std::endl;
+    f[5](0); // prints v2's global variable (484)
+    std::cout << "Expected: 6**3 = 216" << std::endl;
+    f[5](6); // prints "6**3 = 216"
+    std::cout << "Expected: 484" << std::endl;
+    f[5](0); // prints v2's global variable (484)
+    std::cout << "Expected: 3**2 = 9" << std::endl;
+    f[6](3); // prints "3**2 = 9"
   } else {
     std::cerr << "Error function pointers unavailable" << '\n';
   }
@@ -268,10 +286,14 @@ int main(int argc, char const *argv[])
   v5->fold();
   std::cout << "Version folded, reloading it." << std::endl;
   v3->reload();
-  signature_t reloaded = (signature_t)v3->getSymbol();
-  signature_t reloaded2 = (signature_t)v3->getSymbol(1);
+  signature_t reloaded = (signature_t)v3->getSymbol();   // equivalent to v3->getSymbol(t_fun_index)
+  signature_t reloaded2 = (signature_t)v3->getSymbol(1); // equivalent to v3->getSymbol(second_fun_index)
   if (reloaded) {
+    std::cout << "Expected: -1" << std::endl;
+    reloaded2(0); // v3's global variable was set to 9. After folding, the version is reset to its initial state so v3's global value is -1.
+    std::cout << "Expected: 15**2 = 225" << std::endl;
     reloaded(15);
+    std::cout << "Expected: 225" << std::endl;
     reloaded2(0);
   } else {
     std::cerr << "Error in folding and reloading v3" << std::endl;
