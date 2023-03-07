@@ -32,58 +32,50 @@ find_library(
   UUID_LIBRARY
   NAMES ${UUID_LIBRARY_VAR}
   PATHS ${UUID_ROOT}/lib
-  NO_DEFAULT_PATH
-  )
+  NO_DEFAULT_PATH)
 
-if (NOT UUID_LIBRARY)
-  find_library(UUID_LIBRARY
+if(NOT UUID_LIBRARY)
+  find_library(
+    UUID_LIBRARY
     NAMES ${UUID_LIBRARY_VAR}
-    PATHS /lib /usr/lib /usr/local/lib
-    )
+    PATHS /lib /usr/lib /usr/local/lib)
 endif(NOT UUID_LIBRARY)
 
 # Must be *after* the lib itself
 set(CMAKE_FIND_FRAMEWORK_SAVE ${CMAKE_FIND_FRAMEWORK})
 set(CMAKE_FIND_FRAMEWORK NEVER)
 
-find_path(UUID_INCLUDE_DIR 
-  uuid/uuid.h
+find_path(
+  UUID_INCLUDE_DIR uuid/uuid.h
   PATHS ${UUID_ROOT}/include
-  NO_DEFAULT_PATH
-  )
+  NO_DEFAULT_PATH)
 
-if (NOT UUID_INCLUDE_DIR)
-  find_path(UUID_INCLUDE_DIR uuid/uuid.h
-    /usr/local/include
-    /usr/include
-  )
+if(NOT UUID_INCLUDE_DIR)
+  find_path(UUID_INCLUDE_DIR uuid/uuid.h /usr/local/include /usr/include)
 endif(NOT UUID_INCLUDE_DIR)
 
-if (UUID_LIBRARY AND UUID_INCLUDE_DIR)
+if(UUID_LIBRARY AND UUID_INCLUDE_DIR)
   set(UUID_LIBRARIES ${UUID_LIBRARY})
   set(UUID_FOUND "YES")
-else (UUID_LIBRARY AND UUID_INCLUDE_DIR)
-  set (UUID_FOUND "NO")
-endif (UUID_LIBRARY AND UUID_INCLUDE_DIR)
+else(UUID_LIBRARY AND UUID_INCLUDE_DIR)
+  set(UUID_FOUND "NO")
+endif(UUID_LIBRARY AND UUID_INCLUDE_DIR)
 
-if (UUID_FOUND)
-  if (UUID_FIND_VERBOSE)
+if(UUID_FOUND)
+  if(UUID_FIND_VERBOSE)
     message(STATUS "Found UUID ......... = ${UUID_LIBRARY}")
-  endif (UUID_FIND_VERBOSE)
-else (UUID_FOUND)
-  if (UUID_FIND_REQUIRED)
+  endif(UUID_FIND_VERBOSE)
+else(UUID_FOUND)
+  if(UUID_FIND_REQUIRED)
     message("library: ${UUID_LIBRARY}")
     message("include: ${UUID_INCLUDE_DIR}")
     message(FATAL_ERROR "Could not find UUID library")
-  endif (UUID_FIND_REQUIRED)
-endif (UUID_FOUND)
+  endif(UUID_FIND_REQUIRED)
+endif(UUID_FOUND)
 
 # Deprecated declarations.
 #SET (NATIVE_UUID_INCLUDE_PATH ${UUID_INCLUDE_DIR} )
 #GET_FILENAME_COMPONENT (NATIVE_UUID_LIB_PATH ${UUID_LIBRARY} PATH)
 
-mark_as_advanced( 
-  UUID_LIBRARY
-  UUID_INCLUDE_DIR
-  )
+mark_as_advanced(UUID_LIBRARY UUID_INCLUDE_DIR)
 set(CMAKE_FIND_FRAMEWORK ${CMAKE_FIND_FRAMEWORK_SAVE})

@@ -57,8 +57,9 @@ if(NOT LLVM_FOUND)
   foreach(ver ${LLVM_KNOWN_MAJOR_VERSIONS})
     find_package(LLVM ${ver} QUIET)
     if(LLVM_FOUND)
-      # Call the main findLLVM.cmake to check LLVM setup and set some flags such as:
-      #   LLVM_LIBRARY_DIR, LLVM_INCLUDE_DIR, LLVM_TOOLS_BINARY_DIR, LLVM_VERSION_MAJOR, LLVM_PACKAGE_VERSION
+      # Call the main findLLVM.cmake to check LLVM setup and set some flags such
+      # as: LLVM_LIBRARY_DIR, LLVM_INCLUDE_DIR, LLVM_TOOLS_BINARY_DIR,
+      # LLVM_VERSION_MAJOR, LLVM_PACKAGE_VERSION
       if(LLVM_FIND_VERBOSE)
         find_package(LLVM ${ver} CONFIG)
       else(LLVM_FIND_VERBOSE)

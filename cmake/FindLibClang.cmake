@@ -32,15 +32,16 @@ if(NOT LLVM_FOUND)
   foreach(ver ${LLVM_KNOWN_MAJOR_VERSIONS})
     find_package(LLVM ${ver} QUIET)
     if(LLVM_FOUND)
-      # Call the main findLLVM.cmake to check LLVM setup and set some flags such as:
-      #   LLVM_LIBRARY_DIR, LLVM_INCLUDE_DIR, LLVM_TOOLS_BINARY_DIR, LLVM_VERSION_MAJOR, LLVM_PACKAGE_VERSION
+      # Call the main findLLVM.cmake to check LLVM setup and set some flags such
+      # as: LLVM_LIBRARY_DIR, LLVM_INCLUDE_DIR, LLVM_TOOLS_BINARY_DIR,
+      # LLVM_VERSION_MAJOR, LLVM_PACKAGE_VERSION
       if(LLVM_FIND_VERBOSE)
         find_package(LLVM ${ver} CONFIG)
       else(LLVM_FIND_VERBOSE)
         find_package(LLVM ${ver} CONFIG QUIET)
       endif(LLVM_FIND_VERBOSE)
-      break(
-      )# Exit on the first version found (they are sorted in descending order)
+      break() # Exit on the first version found (they are sorted in descending
+              # order)
     endif(LLVM_FOUND)
   endforeach(ver ${LLVM_KNOWN_VERSIONS})
 endif(NOT LLVM_FOUND)
@@ -98,7 +99,8 @@ else(MSVC)
       NO_DEFAULT_PATH
       DOC "The file that corresponds to the libclang library.")
   else(LLVM_SHARED_MODE STREQUAL "shared")
-    # Look for libclang library, giving higher priority to statically linked libraries (.a,.lib)
+    # Look for libclang library, giving higher priority to statically linked
+    # libraries (.a,.lib)
     find_library(
       LIBCLANG_LIBRARY
       NAMES libclang.a libclang.lib libclang.imp libclang clang
@@ -126,7 +128,8 @@ macro(FIND_AND_ADD_CLANG_LIB _libname_)
       NO_DEFAULT_PATH)
     list(REMOVE_ITEM CMAKE_FIND_LIBRARY_SUFFIXES ".so.${LLVM_VERSION_MAJOR}")
   else(LLVM_SHARED_MODE STREQUAL "shared") # if static
-    # I would then expect that distros name the static version of libclang as .a.versionMajor
+    # I would then expect that distros name the static version of libclang as
+    # .a.versionMajor
     list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES ".a.${LLVM_VERSION_MAJOR}")
     find_library(
       CLANG_${_libname_}_LIB
@@ -159,8 +162,8 @@ if(NOT CLANG_clang-cpp_LIB)
     WARNING
       "Cannot find library libclang! Attempting to find the single libraries!")
   find_and_add_clang_lib(clang NAMES clang libclang)
-  # Clang shared library provides just the limited C interface, so it
-  # can not be used.  We look for the static libraries.
+  # Clang shared library provides just the limited C interface, so it can not be
+  # used.  We look for the static libraries.
   find_and_add_clang_lib(clangFrontend)
   find_and_add_clang_lib(clangSerialization)
   find_and_add_clang_lib(clangDriver)
@@ -177,39 +180,34 @@ list(REMOVE_DUPLICATES LIBCLANG_LIBRARY_DIR)
 # -----------------------------------------------------------------------------
 # Actions taken when all components have been found
 
-if (LIBCLANG_INCLUDE_DIRS AND LIBCLANG_LIBRARY)
-  set (LIBCLANG_FOUND TRUE)
-else (LIBCLANG_INCLUDE_DIRS AND LIBCLANG_LIBRARY)
-  if (LIBCLANG_FIND_VERBOSE)
-    if (NOT LIBCLANG_INCLUDE_DIRS)
-      message (STATUS "Unable to find libClang header files!")
-    endif (NOT LIBCLANG_INCLUDE_DIRS)
-    if (NOT LIBCLANG_LIBRARY)
-      message (STATUS "Unable to find libClang library files!")
-    endif (NOT LIBCLANG_LIBRARY)
-  endif (LIBCLANG_FIND_VERBOSE)
-endif (LIBCLANG_INCLUDE_DIRS AND LIBCLANG_LIBRARY)
+if(LIBCLANG_INCLUDE_DIRS AND LIBCLANG_LIBRARY)
+  set(LIBCLANG_FOUND TRUE)
+else(LIBCLANG_INCLUDE_DIRS AND LIBCLANG_LIBRARY)
+  if(LIBCLANG_FIND_VERBOSE)
+    if(NOT LIBCLANG_INCLUDE_DIRS)
+      message(STATUS "Unable to find libClang header files!")
+    endif(NOT LIBCLANG_INCLUDE_DIRS)
+    if(NOT LIBCLANG_LIBRARY)
+      message(STATUS "Unable to find libClang library files!")
+    endif(NOT LIBCLANG_LIBRARY)
+  endif(LIBCLANG_FIND_VERBOSE)
+endif(LIBCLANG_INCLUDE_DIRS AND LIBCLANG_LIBRARY)
 
-if (LIBCLANG_FOUND)
-  if (LIBCLANG_FIND_VERBOSE)
-    message (STATUS "Found components for libClang")
-    message (STATUS "LibClang headers dirs= ${LIBCLANG_INCLUDE_DIRS}")
-    message (STATUS "LibClang libs path . = ${LIBCLANG_LIBRARIES}")
-  endif (LIBCLANG_FIND_VERBOSE)
-else (LIBCLANG_FOUND)
-  if (LIBCLANG_FIND_REQUIRED)
-    message (WARNING "Could not find libClang!")
-  endif (LIBCLANG_FIND_REQUIRED)
-endif (LIBCLANG_FOUND)
+if(LIBCLANG_FOUND)
+  if(LIBCLANG_FIND_VERBOSE)
+    message(STATUS "Found components for libClang")
+    message(STATUS "LibClang headers dirs= ${LIBCLANG_INCLUDE_DIRS}")
+    message(STATUS "LibClang libs path . = ${LIBCLANG_LIBRARIES}")
+  endif(LIBCLANG_FIND_VERBOSE)
+else(LIBCLANG_FOUND)
+  if(LIBCLANG_FIND_REQUIRED)
+    message(WARNING "Could not find libClang!")
+  endif(LIBCLANG_FIND_REQUIRED)
+endif(LIBCLANG_FOUND)
 
 if(LIBCLANG_FOUND)
   set(LibClang_FOUND TRUE)
 endif(LIBCLANG_FOUND)
 
-mark_as_advanced (
-    LibClang_FOUND
-    LIBCLANG_FOUND
-    LIBCLANG_INCLUDE_DIRS
-    LIBCLANG_LIBRARIES
-    LIBCLANG_LIBRARY_DIR
-  )
+mark_as_advanced(LibClang_FOUND LIBCLANG_FOUND LIBCLANG_INCLUDE_DIRS
+                 LIBCLANG_LIBRARIES LIBCLANG_LIBRARY_DIR)

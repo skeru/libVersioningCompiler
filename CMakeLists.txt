@@ -42,7 +42,7 @@ link_directories(${CMAKE_CURRENT_BINARY_DIR})
 #############################################
 
 # Load additional CMake modules
-list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # check for DL library
 if(NOT APPLE AND NOT CMAKE_DL_LIBS)
@@ -56,53 +56,47 @@ link_directories(${UUID_LIBRARY})
 
 # LibClang library
 find_package(LibClang)
-if (LIBCLANG_FOUND)
+if(LIBCLANG_FOUND)
   include_directories(${LIBCLANG_INCLUDE_DIRS})
   link_directories(${LIBCLANG_LIBRARY_DIR})
-endif (LIBCLANG_FOUND)
+endif(LIBCLANG_FOUND)
 
 # LLVM library
 find_package(LLVM_config)
-if (LLVM_FOUND)
+if(LLVM_FOUND)
   include_directories(${LLVM_INCLUDE_DIR})
   link_directories(${LLVM_LIBRARY_DIR})
-endif (LLVM_FOUND)
+endif(LLVM_FOUND)
 
-set (LLVM_VERSION_MIN_REQUIRED "13.0.0")
+set(LLVM_VERSION_MIN_REQUIRED "13.0.0")
 
-if (LLVM_FOUND AND
-     (NOT ( LLVM_PACKAGE_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED )) AND
-     LIBCLANG_FOUND )
-  set ( ENABLE_CLANG_AS_LIB true )
+if(LLVM_FOUND
+   AND (NOT (LLVM_PACKAGE_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED))
+   AND LIBCLANG_FOUND)
+  set(ENABLE_CLANG_AS_LIB true)
 else()
-  if (NOT LLVM_FOUND)
-    message( WARNING "LLVM not detected")
+  if(NOT LLVM_FOUND)
+    message(WARNING "LLVM not detected")
   else(NOT LLVM_FOUND)
-    if (LLVM_PACKAGE_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED)
-      message( WARNING "You are using an obsolete version of LLVM:\
+    if(LLVM_PACKAGE_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED)
+      message(WARNING "You are using an obsolete version of LLVM:\
 \n\t${LLVM_PACKAGE_VERSION} detected.\t\
-Minimum required is ${LLVM_VERSION_MIN_REQUIRED}" )
+Minimum required is ${LLVM_VERSION_MIN_REQUIRED}")
     else(LLVM_PACKAGE_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED)
-      message( WARNING "LibClang not detected")
-    endif (LLVM_PACKAGE_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED)
-  endif (NOT LLVM_FOUND)
-  message( WARNING "Clang-as-a-library will be disabled" )
+      message(WARNING "LibClang not detected")
+    endif(LLVM_PACKAGE_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED)
+  endif(NOT LLVM_FOUND)
+  message(WARNING "Clang-as-a-library will be disabled")
 endif()
 
-set (VC_LIB_DEPS ${CMAKE_DL_LIBS}
-                 ${UUID_LIBRARY}
-                 stdc++
-                )
+set(VC_LIB_DEPS ${CMAKE_DL_LIBS} ${UUID_LIBRARY} stdc++)
 
-if (ENABLE_CLANG_AS_LIB)
-  set (VC_LIB_DEPS ${VC_LIB_DEPS}
-                   ${LIBCLANG_LIBRARIES}
-                   ${LLVM_MODULE_LIBFILES}
-                   ${LLVM_SYSTEM}
-                   )
+if(ENABLE_CLANG_AS_LIB)
+  set(VC_LIB_DEPS ${VC_LIB_DEPS} ${LIBCLANG_LIBRARIES} ${LLVM_MODULE_LIBFILES}
+                  ${LLVM_SYSTEM})
 
-  set ( VC_DEPS_EXTRA_LINK_FLAGS "${LLVM_LFLAGS}" )
-endif (ENABLE_CLANG_AS_LIB)
+  set(VC_DEPS_EXTRA_LINK_FLAGS "${LLVM_LFLAGS}")
+endif(ENABLE_CLANG_AS_LIB)
 
 list(REMOVE_DUPLICATES VC_LIB_DEPS)
 
@@ -114,90 +108,83 @@ if(NOT CMAKE_BUILD_TYPE)
   message("No build type detected. Build type set to Release by default")
   set(CMAKE_BUILD_TYPE Release)
 endif()
-set ( CMAKE_CXX_STANDARD 17 )
-set ( CMAKE_CXX_STANDARD_REQUIRED ON )
-set ( CMAKE_CXX_EXTENSIONS OFF )
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # https://gcc.gnu.org/wiki/Visibility#line-14 - Much lower chance of symbol collision.
-set ( CMAKE_VISIBILITY_INLINES_HIDDEN ON )
-set ( CMAKE_POSITION_INDEPENDENT_CODE ON )
+set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # CMAKE_INTERPROCEDURAL_OPTIMIZATION applies different optimizations depending on the compiler.
 # It breaks cross compiler compatibility (e.g. library compiled with g++ which is being used with clang later on), so
 # I'm not enabling link time optimization by default.
-set ( CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF )
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
 
 # There is no no-rtti cmake setting so far (related https://gitlab.kitware.com/cmake/cmake/-/issues/17991) and no no-use-cxa-atexit cmake setting as well.
-set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-use-cxa-atexit -fno-rtti" )
-set ( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3" )
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-use-cxa-atexit -fno-rtti")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 #----- Sources
-set ( SRC_PREFIX "lib" )
-set ( VC_LIB_SRC
-                ${SRC_PREFIX}/Version.cpp
-                ${SRC_PREFIX}/Option.cpp
-                ${SRC_PREFIX}/Compiler.cpp
-                ${SRC_PREFIX}/CompilerImpl/SystemCompiler.cpp
-                ${SRC_PREFIX}/CompilerImpl/SystemCompilerOptimizer.cpp
-                ${SRC_PREFIX}/CompilerImpl/TAFFOCompiler.cpp
-                )
+set(SRC_PREFIX "lib")
+set(VC_LIB_SRC
+    ${SRC_PREFIX}/Version.cpp
+    ${SRC_PREFIX}/Option.cpp
+    ${SRC_PREFIX}/Compiler.cpp
+    ${SRC_PREFIX}/CompilerImpl/SystemCompiler.cpp
+    ${SRC_PREFIX}/CompilerImpl/SystemCompilerOptimizer.cpp
+    ${SRC_PREFIX}/CompilerImpl/TAFFOCompiler.cpp)
 
 #----- Headers
-set ( VC_LIB_HDR_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/include/versioningCompiler )
-set ( VC_LIB_HDR1
-                ${VC_LIB_HDR_PREFIX}/Version.hpp
-                ${VC_LIB_HDR_PREFIX}/Option.hpp
-                ${VC_LIB_HDR_PREFIX}/Compiler.hpp
-                ${VC_LIB_HDR_PREFIX}/Utils.hpp
-                ${VC_LIB_HDR_PREFIX}/DebugUtils.hpp
-                ${VC_LIB_HDR_PREFIX}/JITUtils.hpp
-                )
+set(VC_LIB_HDR_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/include/versioningCompiler)
+set(VC_LIB_HDR1
+    ${VC_LIB_HDR_PREFIX}/Version.hpp ${VC_LIB_HDR_PREFIX}/Option.hpp
+    ${VC_LIB_HDR_PREFIX}/Compiler.hpp ${VC_LIB_HDR_PREFIX}/Utils.hpp
+    ${VC_LIB_HDR_PREFIX}/DebugUtils.hpp ${VC_LIB_HDR_PREFIX}/JITUtils.hpp)
 
-set ( VC_LIB_HDR_PREFIX2 ${CMAKE_CURRENT_SOURCE_DIR}/include/versioningCompiler/CompilerImpl )
-set ( VC_LIB_HDR2
-                ${VC_LIB_HDR_PREFIX2}/SystemCompiler.hpp
-                ${VC_LIB_HDR_PREFIX2}/SystemCompilerOptimizer.hpp
-                ${VC_LIB_HDR_PREFIX2}/TAFFOCompiler.hpp
-                )
-
+set(VC_LIB_HDR_PREFIX2
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/versioningCompiler/CompilerImpl)
+set(VC_LIB_HDR2
+    ${VC_LIB_HDR_PREFIX2}/SystemCompiler.hpp
+    ${VC_LIB_HDR_PREFIX2}/SystemCompilerOptimizer.hpp
+    ${VC_LIB_HDR_PREFIX2}/TAFFOCompiler.hpp)
 
 #----- Additionl files to enable Clang-as-a-library
 
 if(ENABLE_CLANG_AS_LIB)
   set(COMPILE_DEFINITIONS "ENABLE_CLANG_AS_LIB=true")
 
-  set (VC_LIB_SRC ${VC_LIB_SRC}
-                  ${SRC_PREFIX}/CompilerImpl/JITCompiler.cpp
-                  ${SRC_PREFIX}/CompilerImpl/ClangLibCompiler.cpp
-                  ${SRC_PREFIX}/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.cpp
-                  ${SRC_PREFIX}/CompilerImpl/ClangLLVM/LLVMInstanceManager.cpp
-                  )
+  set(VC_LIB_SRC
+      ${VC_LIB_SRC}
+      ${SRC_PREFIX}/CompilerImpl/JITCompiler.cpp
+      ${SRC_PREFIX}/CompilerImpl/ClangLibCompiler.cpp
+      ${SRC_PREFIX}/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.cpp
+      ${SRC_PREFIX}/CompilerImpl/ClangLLVM/LLVMInstanceManager.cpp)
 
-  set ( VC_LIB_HDR2 ${VC_LIB_HDR2}
-                    ${VC_LIB_HDR_PREFIX2}/JITCompiler.hpp
-                    ${VC_LIB_HDR_PREFIX2}/ClangLibCompiler.hpp
-                    )
+  set(VC_LIB_HDR2 ${VC_LIB_HDR2} ${VC_LIB_HDR_PREFIX2}/JITCompiler.hpp
+                  ${VC_LIB_HDR_PREFIX2}/ClangLibCompiler.hpp)
 
-set ( VC_LIB_HDR_PREFIX3 ${CMAKE_CURRENT_SOURCE_DIR}/include/versioningCompiler/CompilerImpl/ClangLLVM )
+  set(VC_LIB_HDR_PREFIX3
+      ${CMAKE_CURRENT_SOURCE_DIR}/include/versioningCompiler/CompilerImpl/ClangLLVM
+  )
 
-set ( VC_LIB_HDR3
-                ${VC_LIB_HDR_PREFIX3}/OptUtils.hpp
-                ${VC_LIB_HDR_PREFIX3}/FileLogDiagnosticConsumer.hpp
-                ${VC_LIB_HDR_PREFIX3}/LLVMInstanceManager.hpp
-                )
+  set(VC_LIB_HDR3
+      ${VC_LIB_HDR_PREFIX3}/OptUtils.hpp
+      ${VC_LIB_HDR_PREFIX3}/FileLogDiagnosticConsumer.hpp
+      ${VC_LIB_HDR_PREFIX3}/LLVMInstanceManager.hpp)
 endif(ENABLE_CLANG_AS_LIB)
 
-set (VC_LIB_HDR ${VC_LIB_HDR1} ${VC_LIB_HDR2} ${VC_LIB_HDR3} )
+set(VC_LIB_HDR ${VC_LIB_HDR1} ${VC_LIB_HDR2} ${VC_LIB_HDR3})
 
 #----- setup library
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/include )
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 if(ENABLE_CLANG_AS_LIB)
   link_directories(${LLVM_LIBRARY_DIR} ${LIBCLANG_LIBRARY_DIR}
                    "${CMAKE_INSTALL_PREFIX}/lib")
 endif(ENABLE_CLANG_AS_LIB)
-add_library( ${VC_LIB_NAME} STATIC ${VC_LIB_SRC} ${VC_LIB_HDR} )
-target_link_libraries( ${VC_LIB_NAME} ${VC_LIB_DEPS} )
+add_library(${VC_LIB_NAME} STATIC ${VC_LIB_SRC} ${VC_LIB_HDR})
+target_link_libraries(${VC_LIB_NAME} ${VC_LIB_DEPS})
 
 #----- additional filesystem helpers
 
@@ -207,25 +194,25 @@ include("${CMAKE_CURRENT_LIST_DIR}/cmake/NormalizePathHelper.cmake")
 #               CONFIGURE                   #
 #############################################
 
-set (FIND_LIBVC_OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/config/FindLibVersioningCompiler.cmake")
+set(FIND_LIBVC_OUTPUT
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/FindLibVersioningCompiler.cmake")
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/config/FindLibVersioningCompiler.cmake.in"
-  "${FIND_LIBVC_OUTPUT}"
-  @ONLY
-)
+  "${FIND_LIBVC_OUTPUT}" @ONLY)
 
 #############################################
 #           INSTALL LIBRARY VC              #
 #############################################
 
-install( TARGETS ${VC_LIB_NAME} DESTINATION lib )
-install( FILES ${VC_LIB_HDR1} DESTINATION include/versioningCompiler )
-install( FILES ${VC_LIB_HDR2}
-        DESTINATION include/versioningCompiler/CompilerImpl )
-install( FILES ${FIND_LIBVC_OUTPUT} DESTINATION lib/cmake )
-if (ENABLE_CLANG_AS_LIB)
-  install( FILES ${VC_LIB_HDR3} DESTINATION include/versioningCompiler/CompilerImpl/ClangLLVM )
-endif (ENABLE_CLANG_AS_LIB)
+install(TARGETS ${VC_LIB_NAME} DESTINATION lib)
+install(FILES ${VC_LIB_HDR1} DESTINATION include/versioningCompiler)
+install(FILES ${VC_LIB_HDR2}
+        DESTINATION include/versioningCompiler/CompilerImpl)
+install(FILES ${FIND_LIBVC_OUTPUT} DESTINATION lib/cmake)
+if(ENABLE_CLANG_AS_LIB)
+  install(FILES ${VC_LIB_HDR3}
+          DESTINATION include/versioningCompiler/CompilerImpl/ClangLLVM)
+endif(ENABLE_CLANG_AS_LIB)
 
 #############################################
 #             TEST APP                      #
@@ -246,9 +233,9 @@ endif(NOT CPP_LIBRARY)
 #----- Sources
 
 # It does make no sense building it if there is no LLVM, given that the JIT implementation relies on LLVM.
-if (ENABLE_CLANG_AS_LIB)
-  set (VC_TESTJIT_APP_SRC TestJit.cpp)
-  set (VC_EXEJIT_NAME libVC_testJit)
+if(ENABLE_CLANG_AS_LIB)
+  set(VC_TESTJIT_APP_SRC TestJit.cpp)
+  set(VC_EXEJIT_NAME libVC_testJit)
   add_executable(${VC_EXEJIT_NAME} ${VC_TESTJIT_APP_SRC})
 
   target_link_libraries(${VC_EXEJIT_NAME} ${VC_LIB_NAME} ${VC_LIB_DEPS}
@@ -266,8 +253,8 @@ endif(ENABLE_CLANG_AS_LIB)
 
 # Test.cpp
 #----- Sources
-set ( VC_TEST_APP_SRC Test.cpp )
-set ( VC_EXE_NAME libVC_test )
+set(VC_TEST_APP_SRC Test.cpp)
+set(VC_EXE_NAME libVC_test)
 add_executable(${VC_EXE_NAME} ${VC_TEST_APP_SRC})
 
 target_link_libraries(${VC_EXE_NAME} ${VC_LIB_NAME} ${VC_LIB_DEPS}
@@ -289,9 +276,9 @@ endif(CMAKE_BUILD_TYPE MATCHES DEBUG)
 # testUtils.cpp
 #----- Sources
 
-set ( VC_TESTUTILS_APP_SRC TestUtils.cpp )
-set ( VC_EXEUTILS_NAME libVC_testUtils )
-add_executable ( ${VC_EXEUTILS_NAME} ${VC_TESTUTILS_APP_SRC} )
+set(VC_TESTUTILS_APP_SRC TestUtils.cpp)
+set(VC_EXEUTILS_NAME libVC_testUtils)
+add_executable(${VC_EXEUTILS_NAME} ${VC_TESTUTILS_APP_SRC})
 
 target_link_libraries(${VC_EXEUTILS_NAME} ${VC_LIB_NAME} ${VC_LIB_DEPS}
                       ${CPP_LIBRARY})
@@ -311,8 +298,8 @@ endif(CMAKE_BUILD_TYPE MATCHES DEBUG)
 #            INSTALL TEST BIN               #
 #############################################
 
-install( TARGETS ${VC_EXE_NAME} DESTINATION bin/test )
-install( TARGETS ${VC_EXEUTILS_NAME} DESTINATION bin/test )
+install(TARGETS ${VC_EXE_NAME} DESTINATION bin/test)
+install(TARGETS ${VC_EXEUTILS_NAME} DESTINATION bin/test)
 if(ENABLE_CLANG_AS_LIB)
-  install( TARGETS ${VC_EXEJIT_NAME} DESTINATION bin/test )
+  install(TARGETS ${VC_EXEJIT_NAME} DESTINATION bin/test)
 endif(ENABLE_CLANG_AS_LIB)
