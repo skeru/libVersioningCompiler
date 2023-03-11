@@ -20,6 +20,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public License
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
+ * 
+ * This utility uses a modified version of the opt.cpp file's main function. Its main job is to initialize the opt related functions.
  */
 #ifndef LIB_VERSIONING_COMPILER_CLANG_LLVM_LLVM_INSTANCE_MANAGER
 #define LIB_VERSIONING_COMPILER_CLANG_LLVM_LLVM_INSTANCE_MANAGER

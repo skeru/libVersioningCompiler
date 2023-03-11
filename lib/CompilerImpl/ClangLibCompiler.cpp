@@ -235,6 +235,8 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
     argv.push_back(arg.c_str());
     log_str = log_str + arg + " ";
   }
+  argv.push_back(src_IR.c_str());
+  log_str = log_str + src_IR.c_str();
   Compiler::log_string(log_str);
 
   // command line options are static and should be accessed exclusively
@@ -295,22 +297,13 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
     optCPUStr = llvm::codegen::getCPUStr(); // llvm static helper function
     optFeaturesStr =
         llvm::codegen::getFeaturesStr(); // llvm static helper function
-  }
-
-  const llvm::Target *TheTarget = llvm::TargetRegistry::lookupTarget(
-      llvm::codegen::getMArch(), moduleTriple, lookupError);
-  // Some modules don't specify a triple, and this is okay.
-  if (!TheTarget) {
-    optTMachine = nullptr;
-  } else {
-    optTMachine = TheTarget->createTargetMachine(
-        moduleTriple.getTriple(), optCPUStr, optFeaturesStr, Options,
-        llvm::codegen::getRelocModel(),
-        llvm::CodeModel::Small, // llvm::codegen::getCodeModel returns zero
-                                // (casted to Tiny), which is wrong! Going with
-                                // small which is the default model for majority
-                                // of supported targets
-        GetCodeGenOptLevel());
+    optTMachine =
+        GetTargetMachine(moduleTriple, optCPUStr, optFeaturesStr, Options);
+  } else if (moduleTriple.getArchName() != "unknown" &&
+             moduleTriple.getArchName() != "") {
+    report_error(std::string(argv[0]) + ": unrecognized architecture '" +
+                 moduleTriple.getArchName().str() + "' provided.\n");
+    return failureFileName;
   }
 
   std::unique_ptr<llvm::TargetMachine> actualTM(optTMachine);
@@ -333,8 +326,8 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
 
   // Add an appropriate DataLayout instance for this module.
   const llvm::DataLayout &DL = module->getDataLayout();
-  if (DL.isDefault() && !DefaultDataLayout.empty()) {
-    module->setDataLayout(DefaultDataLayout);
+  if (DL.isDefault() && !ClDataLayout.empty()) {
+    module->setDataLayout(ClDataLayout);
   }
 
   // Add internal analysis passes from the target machine.
@@ -465,11 +458,11 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
       report_error("Text output is incompatible with -module-hash");
     }
     Passes.add(createPrintModulePass(*OS, "", PreserveAssemblyUseListOrder));
-  } 
+  }
 #if LLVM_VERSION_MAJOR < 16
   else if (OutputThinLTOBC) {
     Passes.add(createWriteThinLTOBitcodePass(*OS));
-  } 
+  }
 #endif
   else {
     Passes.add(createBitcodeWriterPass(*OS, PreserveBitcodeUseListOrder,
@@ -507,7 +500,7 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
       report_error(error_message);
       Out->os() << BOS->str();
       Out->keep();
-      if (Compiler::exists(optBCfilename)) {
+      if (exists(optBCfilename)) {
         return optBCfilename;
       }
       return failureFileName;
@@ -517,11 +510,12 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
 
   opt_parse_mtx.unlock();
 
-  // Declare success.
-  Out->keep();
-  if (Compiler::exists(optBCfilename)) {
+  if (exists(optBCfilename)) {
+    // Declare success.
+    Out->keep();
     return optBCfilename;
   }
+  report_error("Output file not found! This should not happen!");
   return failureFileName;
 }
 
@@ -628,7 +622,8 @@ inline std::string ClangLibCompiler::getOptionString(const Option &o) const {
   // remove single and double quotes
   std::string tmp_val = o.getValue();
   if (tmp_val.length() > 1 &&
-      (tmp_val[0] == '\"' && tmp_val[tmp_val.length() - 1] == '\"')) {
+      ((tmp_val[0] == '\"' && tmp_val[tmp_val.length() - 1] == '\"') ||
+       (tmp_val[0] == '\'' && tmp_val[tmp_val.length() - 1] == '\''))) {
     tmp_val = tmp_val.substr(1, tmp_val.length() - 2);
   }
   return o.getPrefix() + tmp_val;

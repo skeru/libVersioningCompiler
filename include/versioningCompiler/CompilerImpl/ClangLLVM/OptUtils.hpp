@@ -20,54 +20,119 @@
  *
  * You should have received a copy of the GNU Lesser General Public License
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
- */
-#ifndef LIB_VERSIONING_COMPILER_CLANG_LLVM_OPT_UTILS
-#define LIB_VERSIONING_COMPILER_CLANG_LLVM_OPT_UTILS
-
-/** This source file contains portion of code of the LLVM tool `opt`.
+ *
+ * This source file contains portion of code of the LLVM tool `opt`.
  * LLVM tool `opt` is covered by the LLVM license.
  * See LLVM_LICENSE.txt for more details.
- */
+ *
+ * It is an adaptation of the LLVM tool `opt` to the needs for
+ * libVersioningCompiler. All the edits from the original file are in form of
+ * #if LLVM_VERSION_MAJOR ... #endif, otherwise indicated as comments with the
+ * EDIT prefix.
+ * */
+//===- BreakpointPrinter.h - Breakpoint location printer ------------------===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+///
+/// \file
+/// Breakpoint location printer.
+///
+//===----------------------------------------------------------------------===//
+#ifndef LLVM_TOOLS_OPT_BREAKPOINTPRINTER_H
+#define LLVM_TOOLS_OPT_BREAKPOINTPRINTER_H
+
+namespace llvm {
+
+class ModulePass;
+class raw_ostream;
+
+ModulePass *createBreakpointPrinter(raw_ostream &out);
+} // namespace llvm
+
+#endif // LLVM_TOOLS_OPT_BREAKPOINTPRINTER_H
+
+#ifndef LIB_VERSIONING_COMPILER_CLANG_LLVM_OPT_UTILS
+#define LIB_VERSIONING_COMPILER_CLANG_LLVM_OPT_UTILS
+//===- opt.cpp - The LLVM Modular Optimizer -------------------------------===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+//
+// Optimizations may be specified an arbitrary number of times on the command
+// line, They are run in the order specified.
+//
+//===----------------------------------------------------------------------===//
 
 // opt includes
 #include "NewPMDriver.h"
 #include "llvm/ADT/Triple.h"
+#include "llvm/Analysis/CallGraph.h"
+#include "llvm/Analysis/CallGraphSCCPass.h"
 #include "llvm/Analysis/LoopPass.h"
 #include "llvm/Analysis/RegionPass.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
-#include "llvm/Bitcode/BitcodeWriterPass.h"
+#include "llvm/AsmParser/Parser.h"
+#include "llvm/Bitcode/BitcodeReader.h" // EDIT: Added to get the ParserCallback
 #include "llvm/CodeGen/CommandFlags.h"
+#include "llvm/CodeGen/TargetPassConfig.h"
+#include "llvm/Config/llvm-config.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DebugInfo.h"
-#include "llvm/IR/IRPrintingPasses.h"
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/LLVMRemarkStreamer.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/LegacyPassNameParser.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IR/ModuleSummaryIndex.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/LinkAllIR.h"
 #include "llvm/LinkAllPasses.h"
 #include "llvm/MC/SubtargetFeature.h"
-#include "llvm/Support/CommandLine.h"
+#if LLVM_VERSION_MAJOR >= 14
+#include "llvm/MC/TargetRegistry.h"
+#endif
+#include "llvm/Passes/PassPlugin.h"
+#include "llvm/Remarks/HotnessThresholdParser.h"
+#include "llvm/Support/Debug.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Host.h"
-#include "llvm/Support/ManagedStatic.h"
+#include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/PluginLoader.h"
-#include "llvm/Support/Signals.h"
+#include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/SystemUtils.h"
+#include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
+#include "llvm/Support/YAMLTraits.h"
 #include "llvm/Target/TargetMachine.h"
 #if LLVM_VERSION_MAJOR < 15
 #include "llvm/Transforms/Coroutines.h"
 #endif
 #include "llvm/Transforms/IPO/AlwaysInliner.h"
-#include "llvm/Transforms/IPO/PassManagerBuilder.h"
+#include "llvm/Transforms/IPO/PassManagerBuilder.h" // EDIT: added to provide compatibility to legacy PM
+#include "llvm/Transforms/IPO/WholeProgramDevirt.h"
 #include "llvm/Transforms/Utils/Cloning.h"
+#include "llvm/Transforms/Utils/Debugify.h"
+
+#include <algorithm>
+#include <memory>
+#include <optional>
 
 using namespace llvm;
+using namespace opt_tool;
+
+// EDIT: it seems useless, to avoid issues I cannot see, I kept it.
+static codegen::RegisterCodeGenFlags CFG;
+
 // The OptimizationList is automatically populated with registered Passes by the
 // PassNameParser.
 //
@@ -78,14 +143,10 @@ static cl::opt<bool> PrintPasses("print-passes",
                                  cl::desc("Print available passes that can be "
                                           "specified in -passes=foo and exit"));
 
-// This flag specifies a textual description of the optimization pass pipeline
-// to run over the module. This flag switches opt to use the new pass manager
-// infrastructure, completely disabling all of the flags specific to the old
-// pass management.
-
-// Removed in LLVM-15
+// EDIT: the compile definition had been removed in LLVM 15, so I had set it
+// manually
 #ifndef LLVM_ENABLE_NEW_PASS_MANAGER
-#define LLVM_ENABLE_NEW_PASS_MANAGER 1
+#define LLVM_ENABLE_NEW_PASS_MANAGER 0
 #endif
 static cl::opt<bool> EnableNewPassManager(
     "enable-new-pm",
@@ -103,13 +164,36 @@ static cl::opt<std::string> PassPipeline(
     cl::desc(
         "A textual description of the pass pipeline. To have analysis passes "
         "available before a certain pass, add 'require<foo-analysis>'."));
+static cl::alias PassPipeline2("p", cl::aliasopt(PassPipeline),
+                               cl::desc("Alias for -passes"));
 
+static cl::opt<std::string> InputFilename(cl::Positional,
+                                          cl::desc("<input bitcode file>"),
+                                          cl::init("-"),
+                                          cl::value_desc("filename"));
+
+static cl::opt<std::string> OutputFilename("o",
+                                           cl::desc("Override output filename"),
+                                           cl::value_desc("filename"));
+
+static cl::opt<bool> Force("f", cl::desc("Enable binary output on terminals"));
+
+static cl::opt<bool> NoOutput("disable-output",
+                              cl::desc("Do not write result bitcode file"),
+                              cl::Hidden);
+
+// EDIT: We do use it custom, so this flag should be useless
 static cl::opt<bool> OutputAssembly("S",
                                     cl::desc("Write output as LLVM assembly"));
 
 static cl::opt<bool>
     OutputThinLTOBC("thinlto-bc",
                     cl::desc("Write output as ThinLTO-ready bitcode"));
+
+static cl::opt<std::string> ThinLinkBitcodeFile(
+    "thin-link-bitcode-file", cl::value_desc("filename"),
+    cl::desc(
+        "A file in which to write minimized bitcode for the thin link only"));
 
 static cl::opt<bool>
     SplitLTOUnit("thinlto-split-lto-unit",
@@ -125,7 +209,6 @@ static cl::opt<bool> NoUpgradeDebugInfo("disable-upgrade-debug-info",
 static cl::opt<bool> VerifyEach("verify-each",
                                 cl::desc("Verify after each transform"));
 
-// Removed in LLVM 14
 static cl::opt<bool>
     DisableDITypeMap("disable-debug-info-type-map",
                      cl::desc("Don't use a uniquing type map for debug info"));
@@ -137,19 +220,19 @@ static cl::opt<bool>
 static cl::opt<bool>
     StripNamedMetadata("strip-named-metadata",
                        cl::desc("Strip module-level named metadata"));
-#if LLVM__MAJOR_VERSION < 14
+// EDIT: kept for compatibility with legacy code
 static cl::opt<bool>
     DisableInline("disable-inlining",
                   cl::desc("Do not run the inliner pass (legacy PM only)"));
-
+// EDIT: kept for compatibility with legacy code
 static cl::opt<bool>
     DisableOptimizations("disable-opt",
                          cl::desc("Do not run any optimization passes"));
-
+// EDIT: kept for compatibility with legacy code
 static cl::opt<bool> StandardLinkOpts(
     "std-link-opts",
     cl::desc("Include the standard link time optimizations (legacy PM only)"));
-#endif
+
 static cl::opt<bool>
     OptLevelO0("O0", cl::desc("Optimization level 0. Similar to clang -O0. "
                               "Use -passes='default<O0>' for the new PM"));
@@ -182,9 +265,11 @@ static cl::opt<unsigned> CodeGenOptLevel(
 static cl::opt<std::string>
     TargetTriple("mtriple", cl::desc("Override target triple for module"));
 
+#if LLVM_VERSION_MAJOR < 16
 static cl::opt<bool> DisableLoopUnrolling(
     "disable-loop-unrolling",
     cl::desc("Disable loop unrolling in all relevant passes"), cl::init(false));
+#endif
 
 static cl::opt<bool> EmitSummaryIndex("module-summary",
                                       cl::desc("Emit module summary index"),
@@ -202,15 +287,34 @@ static cl::list<std::string> DisableBuiltins(
     cl::desc("Disable specific target library builtin function"),
     cl::ZeroOrMore);
 
+static cl::opt<bool> EnableDebugify(
+    "enable-debugify",
+    cl::desc(
+        "Start the pipeline with debugify and end it with check-debugify"));
+
+static cl::opt<bool> VerifyDebugInfoPreserve(
+    "verify-debuginfo-preserve",
+    cl::desc("Start the pipeline with collecting and end it with checking of "
+             "debug info preservation."));
+
+static cl::opt<bool>
+    PrintBreakpoints("print-breakpoints-for-testing",
+                     cl::desc("Print select breakpoints location for testing"));
+#if LLVM_VERSION_MAJOR < 16
 static cl::opt<bool>
     AnalyzeOnly("analyze", cl::desc("Only perform analysis, no optimization"
                                     "Legacy pass manager only."));
 
-static cl::opt<std::string> DefaultDataLayout(
+static cl::opt<std::string> ClDataLayout(
     "default-data-layout",
     cl::desc("data layout string to use if not specified by module"),
     cl::value_desc("layout-string"), cl::init(""));
-
+#else
+static cl::opt<std::string> ClDataLayout("data-layout",
+                                         cl::desc("data layout string to use"),
+                                         cl::value_desc("layout-string"),
+                                         cl::init("")); 
+#endif
 static cl::opt<bool> PreserveBitcodeUseListOrder(
     "preserve-bc-uselistorder",
     cl::desc("Preserve use-list order when writing LLVM bitcode."),
@@ -230,15 +334,11 @@ static cl::opt<bool> DiscardValueNames(
     "discard-value-names",
     cl::desc("Discard names from Value (other than GlobalValue)."),
     cl::init(false), cl::Hidden);
+
 #if LLVM_VERSION_MAJOR < 15
 static cl::opt<bool> Coroutines("enable-coroutines",
                                 cl::desc("Enable coroutine passes."),
                                 cl::init(false), cl::Hidden);
-#endif
-#if LLVM_VERSION_MAJOR > 14
-static cl::list<std::string>
-    PassPlugins("load-pass-plugin",
-                cl::desc("Load passes from plugin library"));
 #endif
 
 static cl::opt<bool> TimeTrace("time-trace", cl::desc("Record time trace"));
@@ -254,68 +354,61 @@ static cl::opt<std::string>
                   cl::desc("Specify time trace file destination"),
                   cl::value_desc("filename"));
 
-// no pass remarks
-
-cl::opt<opt_tool::PGOKind> PGOKindFlag(
-    "pgo-kind", cl::init(opt_tool::NoPGO), cl::Hidden,
-    cl::desc("The kind of profile guided optimization"),
-    cl::values(clEnumValN(opt_tool::NoPGO, "nopgo", "Do not use PGO."),
-               clEnumValN(opt_tool::InstrGen, "pgo-instr-gen-pipeline",
-                          "Instrument the IR to generate profile."),
-               clEnumValN(opt_tool::InstrUse, "pgo-instr-use-pipeline",
-                          "Use instrumented profile to guide PGO."),
-               clEnumValN(opt_tool::SampleUse, "pgo-sample-use-pipeline",
-                          "Use sampled profile to guide PGO.")));
-cl::opt<std::string> ProfileFile("profile-file",
-                                 cl::desc("Path to the profile."), cl::Hidden);
-
-cl::opt<opt_tool::CSPGOKind> CSPGOKindFlag(
-    "cspgo-kind", cl::init(opt_tool::NoCSPGO), cl::Hidden,
-    cl::desc("The kind of context sensitive profile guided optimization"),
-    cl::values(
-        clEnumValN(opt_tool::NoCSPGO, "nocspgo", "Do not use CSPGO."),
-        clEnumValN(
-            opt_tool::CSInstrGen, "cspgo-instr-gen-pipeline",
-            "Instrument (context sensitive) the IR to generate profile."),
-        clEnumValN(
-            opt_tool::CSInstrUse, "cspgo-instr-use-pipeline",
-            "Use instrumented (context sensitive) profile to guide PGO.")));
-
-cl::opt<std::string> CSProfileGenFile(
-    "cs-profilegen-file",
-    cl::desc("Path to the instrumented context sensitive profile."),
+static cl::opt<bool> RemarksWithHotness(
+    "pass-remarks-with-hotness",
+    cl::desc("With PGO, include profile count in optimization remarks"),
     cl::Hidden);
+#if LLVM_VERSION_MAJOR < 16
+static cl::opt<Optional<uint64_t>, false, remarks::HotnessThresholdParser>
+    RemarksHotnessThreshold(
+        "pass-remarks-hotness-threshold",
+        cl::desc("Minimum profile count required for "
+                 "an optimization remark to be output. "
+                 "Use 'auto' to apply the threshold from profile summary"),
+        cl::value_desc("N or 'auto'"), cl::init(0), cl::Hidden);
+#else
+static cl::opt<std::optional<uint64_t>, false, remarks::HotnessThresholdParser>
+    RemarksHotnessThreshold(
+        "pass-remarks-hotness-threshold",
+        cl::desc("Minimum profile count required for "
+                 "an optimization remark to be output. "
+                 "Use 'auto' to apply the threshold from profile summary"),
+        cl::value_desc("N or 'auto'"), cl::init(0), cl::Hidden);
+#endif
 
-// ----------------------------------------------------------------------------
-// end of extra optimizer options
-// ----------------------------------------------------------------------------
+static cl::opt<std::string>
+    RemarksFilename("pass-remarks-output",
+                    cl::desc("Output filename for pass remarks"),
+                    cl::value_desc("filename"));
 
-// ---------------------------------------------------------------------------
-// --------------------- Reset all command line options ----------------------
-// ---------------------------------------------------------------------------
-static void resetOptOptions() {
-  auto &optionMap = cl::getRegisteredOptions();
-  for (auto &o : optionMap) {
-    o.second->reset();
-  }
-  return;
-}
+static cl::opt<std::string>
+    RemarksPasses("pass-remarks-filter",
+                  cl::desc("Only record optimization remarks from passes whose "
+                           "names match the given regular expression"),
+                  cl::value_desc("regex"));
 
-// ---------------------------------------------------------------------------
-// ---------------------- Pass related helper functions ----------------------
-// ---------------------------------------------------------------------------
+static cl::opt<std::string> RemarksFormat(
+    "pass-remarks-format",
+    cl::desc("The format used for serializing remarks (default: YAML)"),
+    cl::value_desc("format"), cl::init("yaml"));
+
+// EDIT: This one is useless in LLVM < 15
+static cl::list<std::string>
+    PassPlugins("load-pass-plugin",
+                cl::desc("Load passes from plugin library"));
+
 static inline void addPass(legacy::PassManagerBase &PM, Pass *P) {
   // Add the pass to the pass manager...
   PM.add(P);
+
   // If we are verifying all of the intermediate steps, add the verifier...
-  if (VerifyEach) {
+  if (VerifyEach)
     PM.add(createVerifierPass());
-  }
-  return;
 }
 
-/// This routine adds optimization passes based on selected optimization level,
-/// OptLevel.
+// EDIT: legacy function
+/// This routine adds legacy optimization passes based on selected optimization
+/// level, OptLevel.
 ///
 /// OptLevel - Optimization Level
 static void AddOptimizationPasses(legacy::PassManagerBase &MPM,
@@ -338,9 +431,13 @@ static void AddOptimizationPasses(legacy::PassManagerBase &MPM,
   } else {
     Builder.Inliner = createAlwaysInlinerLegacyPass();
   }
+
+#if LLVM_VERSION_MAJOR < 16
+  // Otherwise it breaks with multiple definitions of DisableLoopUnrolling
   Builder.DisableUnrollLoops = (DisableLoopUnrolling.getNumOccurrences() > 0)
                                    ? DisableLoopUnrolling
                                    : OptLevel == 0;
+#endif
   Builder.LoopVectorize = OptLevel > 1 && SizeLevel < 2;
   // When #pragma vectorize is on for SLP, do the same as above
   Builder.SLPVectorize = OptLevel > 1 && SizeLevel < 2;
@@ -361,38 +458,12 @@ static void AddOptimizationPasses(legacy::PassManagerBase &MPM,
   if (Coroutines) {
     addCoroutinePassesToExtensionPoints(Builder);
   }
-  switch (PGOKindFlag) {
-  case opt_tool::InstrGen:
-    Builder.EnablePGOInstrGen = true;
-    Builder.PGOInstrGen = ProfileFile;
-    break;
-  case opt_tool::InstrUse:
-    Builder.PGOInstrUse = ProfileFile;
-    break;
-  case opt_tool::SampleUse:
-    Builder.PGOSampleUse = ProfileFile;
-    break;
-  default:
-    break;
-  }
-
-  switch (CSPGOKindFlag) {
-  case opt_tool::CSInstrGen:
-    Builder.EnablePGOCSInstrGen = true;
-    break;
-  case opt_tool::CSInstrUse:
-    Builder.EnablePGOCSInstrUse = true;
-    break;
-  default:
-    break;
-  }
 #endif
   Builder.populateFunctionPassManager(FPM);
   Builder.populateModulePassManager(MPM);
-  return;
 }
 
-// Removed in LLVM 14
+// EDIT: kept for compatibility with legacy code
 static void AddStandardLinkPasses(legacy::PassManagerBase &PM) {
   PassManagerBuilder Builder;
   Builder.VerifyInput = true;
@@ -404,13 +475,25 @@ static void AddStandardLinkPasses(legacy::PassManagerBase &PM) {
   }
 #if LLVM_VERSION_MAJOR < 15
   Builder.populateLTOPassManager(PM);
+#else
+  // Add LTO like passes manually, this is a workaround for the fact that
+  // populateLTOPassManager had been purged. 
+  PM.add(createConstantMergePass());
+  PM.add(createGlobalDCEPass());
+  PM.add(createGlobalOptimizerPass());
+  PM.add(createIPSCCPPass());
+  PM.add(createStripDeadPrototypesPass());
+  PM.add(createDeadCodeEliminationPass());
+  PM.add(createAggressiveDCEPass());
+  PM.add(createStripDeadDebugInfoPass());
 #endif
   return;
 }
 
-// ---------------------------------------------------------------------------
-// -------------------- CodeGen-related helper functions ---------------------
-// ---------------------------------------------------------------------------
+//===----------------------------------------------------------------------===//
+// CodeGen-related helper functions.
+
+// EDIT: kept legacy version with OptLevels
 static CodeGenOpt::Level GetCodeGenOptLevel() {
   if (CodeGenOptLevel.getNumOccurrences()) {
     return static_cast<CodeGenOpt::Level>(unsigned(CodeGenOptLevel));
@@ -425,6 +508,135 @@ static CodeGenOpt::Level GetCodeGenOptLevel() {
     return CodeGenOpt::Aggressive;
   }
   return CodeGenOpt::None;
+}
+
+// EDIT: specified llvm::TargetOptions as it is ambiguous
+// Returns the TargetMachine instance or zero if no triple is provided.
+static TargetMachine *GetTargetMachine(Triple TheTriple, StringRef CPUStr,
+                                       StringRef FeaturesStr,
+                                       const llvm::TargetOptions &Options) {
+  std::string Error;
+  const Target *TheTarget =
+      TargetRegistry::lookupTarget(codegen::getMArch(), TheTriple, Error);
+  // Some modules don't specify a triple, and this is okay.
+  if (!TheTarget) {
+    return nullptr;
+  }
+
+  return TheTarget->createTargetMachine(
+      TheTriple.getTriple(), codegen::getCPUStr(), codegen::getFeaturesStr(),
+      Options, codegen::getExplicitRelocModel(),
+      codegen::getExplicitCodeModel(), GetCodeGenOptLevel());
+}
+
+struct TimeTracerRAII {
+  TimeTracerRAII(StringRef ProgramName) {
+    if (TimeTrace)
+      timeTraceProfilerInitialize(TimeTraceGranularity, ProgramName);
+  }
+  ~TimeTracerRAII() {
+    if (TimeTrace) {
+      if (auto E = timeTraceProfilerWrite(TimeTraceFile, OutputFilename)) {
+        handleAllErrors(std::move(E), [&](const StringError &SE) {
+          errs() << SE.getMessage() << "\n";
+        });
+        return;
+      }
+      timeTraceProfilerCleanup();
+    }
+  }
+};
+
+// For use in NPM transition. Currently this contains most codegen-specific
+// passes. Remove passes from here when porting to the NPM.
+// TODO: use a codegen version of PassRegistry.def/PassBuilder::is*Pass() once
+// it exists.
+static bool shouldPinPassToLegacyPM(StringRef Pass) {
+  std::vector<StringRef> PassNameExactToIgnore = {
+      "nvvm-reflect",
+      "nvvm-intr-range",
+      "amdgpu-simplifylib",
+      "amdgpu-usenative",
+      "amdgpu-promote-alloca",
+      "amdgpu-promote-alloca-to-vector",
+      "amdgpu-lower-kernel-attributes",
+      "amdgpu-propagate-attributes-early",
+      "amdgpu-propagate-attributes-late",
+      "amdgpu-unify-metadata",
+      "amdgpu-printf-runtime-binding",
+      "amdgpu-always-inline"};
+  if (llvm::is_contained(PassNameExactToIgnore, Pass))
+    return false;
+
+  std::vector<StringRef> PassNamePrefix = {
+      "x86-",    "xcore-", "wasm-",  "systemz-", "ppc-",    "nvvm-",
+      "nvptx-",  "mips-",  "lanai-", "hexagon-", "bpf-",    "avr-",
+      "thumb2-", "arm-",   "si-",    "gcn-",     "amdgpu-", "aarch64-",
+      "amdgcn-", "polly-", "riscv-", "dxil-"};
+  std::vector<StringRef> PassNameContain = {"ehprepare"};
+  std::vector<StringRef> PassNameExact = {"safe-stack",
+                                          "cost-model",
+                                          "codegenprepare",
+                                          "interleaved-load-combine",
+                                          "unreachableblockelim",
+                                          "verify-safepoint-ir",
+                                          "atomic-expand",
+                                          "expandvp",
+                                          "hardware-loops",
+                                          "mve-tail-predication",
+                                          "interleaved-access",
+                                          "global-merge",
+                                          "pre-isel-intrinsic-lowering",
+                                          "expand-reductions",
+                                          "indirectbr-expand",
+                                          "generic-to-nvvm",
+                                          "expandmemcmp",
+                                          "loop-reduce",
+                                          "lower-amx-type",
+                                          "pre-amx-config",
+                                          "lower-amx-intrinsics",
+                                          "polyhedral-info",
+                                          "print-polyhedral-info",
+                                          "replace-with-veclib",
+                                          "jmc-instrument",
+                                          "dot-regions",
+                                          "dot-regions-only",
+                                          "view-regions",
+                                          "view-regions-only",
+                                          "select-optimize",
+                                          "expand-large-div-rem",
+                                          "structurizecfg",
+                                          "fix-irreducible",
+                                          "expand-large-fp-convert"};
+  for (const auto &P : PassNamePrefix)
+    if (Pass.startswith(P))
+      return true;
+  for (const auto &P : PassNameContain)
+    if (Pass.contains(P))
+      return true;
+  return llvm::is_contained(PassNameExact, Pass);
+}
+
+// For use in NPM transition.
+static bool shouldForceLegacyPM() {
+  for (const auto &P : PassList) {
+    StringRef Arg = P->getPassArgument();
+    if (shouldPinPassToLegacyPM(Arg))
+      return true;
+  }
+  return false;
+}
+
+// ----------------------------------------------------------------------------
+// EDIT: end of opt.cpp definitions
+// ----------------------------------------------------------------------------
+// EDIT: custom helper
+static void resetOptOptions() {
+  auto &optionMap = cl::getRegisteredOptions();
+  for (auto &o : optionMap) {
+    o.second->reset();
+  }
+  return;
 }
 
 #endif /* end of include guard: LIB_VERSIONING_COMPILER_CLANG_LLVM_OPT_UTILS   \

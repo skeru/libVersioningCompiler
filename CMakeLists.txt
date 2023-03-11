@@ -160,6 +160,10 @@ if(ENABLE_CLANG_AS_LIB)
       ${SRC_PREFIX}/CompilerImpl/ClangLibCompiler.cpp
       ${SRC_PREFIX}/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.cpp
       ${SRC_PREFIX}/CompilerImpl/ClangLLVM/LLVMInstanceManager.cpp)
+  if(LLVM_VERSION_MAJOR GREATER_EQUAL 15)
+    set(VC_LIB_SRC ${VC_LIB_SRC}
+                   ${SRC_PREFIX}/CompilerImpl/ClangLLVM/NewPMDriver.cpp)
+  endif(LLVM_VERSION_MAJOR GREATER_EQUAL 15)
 
   set(VC_LIB_HDR2 ${VC_LIB_HDR2} ${VC_LIB_HDR_PREFIX2}/JITCompiler.hpp
                   ${VC_LIB_HDR_PREFIX2}/ClangLibCompiler.hpp)
@@ -169,7 +173,7 @@ if(ENABLE_CLANG_AS_LIB)
   )
 
   set(VC_LIB_HDR3
-      ${VC_LIB_HDR_PREFIX3}/OptUtils.hpp
+      ${VC_LIB_HDR_PREFIX3}/OptUtils.hpp ${VC_LIB_HDR_PREFIX3}/NewPMDriver.h
       ${VC_LIB_HDR_PREFIX3}/FileLogDiagnosticConsumer.hpp
       ${VC_LIB_HDR_PREFIX3}/LLVMInstanceManager.hpp)
 endif(ENABLE_CLANG_AS_LIB)

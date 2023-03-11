@@ -107,7 +107,7 @@ int main(int argc, char const *argv[]) {
   });
 #else
   builder.setOptOptions({
-      vc::Option("mem2reg", "-passes='defaultO3,mem2reg'"),
+      vc::Option("optimization passes", "-passes=","'default<O3>,mem2reg'"),
   });
 #endif
   std::cout << "Building version.." << std::endl;
