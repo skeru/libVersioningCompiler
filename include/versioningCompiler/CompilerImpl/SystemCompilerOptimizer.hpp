@@ -28,34 +28,36 @@ namespace vc {
 /** Compiler implementation with optimizer support.
  * It exploits system calls.
  */
-class SystemCompilerOptimizer : public SystemCompiler
-{
+class SystemCompilerOptimizer : public SystemCompiler {
 
- public:
+public:
   SystemCompilerOptimizer();
 
   SystemCompilerOptimizer(const std::string compilerID,
-                          const std::string compilerCallString,
-                          const std::string optimizerCallString,
-                          const std::string libWorkingDir,
-                          const std::string log = "",
-                          const std::string installDir = "/usr/bin",
-                          const std::string optimizerInstallDir = "/usr/bin");
+                          const std::filesystem::path compilerCallString,
+                          const std::filesystem::path optimizerCallString,
+                          const std::filesystem::path libWorkingDir,
+                          const std::filesystem::path log = "",
+                          const std::filesystem::path installDir =
+                              std::filesystem::u8path("/usr/bin"),
+                          const std::filesystem::path optimizerInstallDir =
+                              std::filesystem::u8path("/usr/bin"));
 
   inline virtual ~SystemCompilerOptimizer() {}
 
   virtual bool hasOptimizer() const override;
 
-  virtual std::string runOptimizer(const std::string &src_IR,
-                                   const std::string &versionID,
-                                   const opt_list_t options) const
-  override;
+  virtual std::filesystem::path
+  runOptimizer(const std::filesystem::path &src_IR,
+               const std::string &versionID,
+               const opt_list_t options) const override;
 
- protected:
-  std::string optInstallDirectory;
-  std::string optCallString;
+protected:
+  std::filesystem::path optInstallDirectory;
+  std::filesystem::path optCallString;
 };
 
 } // end namespace vc
 
-#endif /* end of include guard: LIB_VERSIONING_COMPILER_SYSTEM_COMPILER_OPTIMIZER_HPP */
+#endif /* end of include guard:                                                \
+          LIB_VERSIONING_COMPILER_SYSTEM_COMPILER_OPTIMIZER_HPP */

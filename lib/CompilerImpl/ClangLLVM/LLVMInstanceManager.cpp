@@ -2,6 +2,9 @@
  * Developed by : Stefano Cherubin
  *                PhD student, Politecnico di Milano
  *                <first_name>.<family_name>@polimi.it
+ *                Moreno Giussani
+ *                Ms student, Politecnico di Milano
+ *                <first_name>.<family_name>@mail.polimi.it
  *
  * This file is part of libVersioningCompiler
  *
@@ -20,11 +23,13 @@
  */
 #include "versioningCompiler/CompilerImpl/ClangLLVM/LLVMInstanceManager.hpp"
 
+#ifndef CLANG_EXE_FULLPATH
+#define CLANG_EXE_FULLPATH "/usr/bin/clang"
+#endif
 // ---------------------------------------------------------------------------
 // ------------------------------- constructor -------------------------------
 // ---------------------------------------------------------------------------
-LLVMInstanceManager::LLVMInstanceManager()
-{
+LLVMInstanceManager::LLVMInstanceManager() {
   initializeLLVM();
   return;
 }
@@ -35,8 +40,7 @@ std::shared_ptr<LLVMInstanceManager> LLVMInstanceManager::instance = nullptr;
 // ---------------------------------------------------------------------------
 // ------------------------------- destructor --------------------------------
 // ---------------------------------------------------------------------------
-LLVMInstanceManager::~LLVMInstanceManager()
-{
+LLVMInstanceManager::~LLVMInstanceManager() {
   llvm::llvm_shutdown();
   return;
 }
@@ -44,48 +48,52 @@ LLVMInstanceManager::~LLVMInstanceManager()
 // ---------------------------------------------------------------------------
 // --------------------------- get clang exe path ----------------------------
 // ---------------------------------------------------------------------------
-std::string LLVMInstanceManager::getClangExePath() const
-{
+std::filesystem::path LLVMInstanceManager::getClangExePath() const {
   return clangExeStr;
 }
 
 // ---------------------------------------------------------------------------
 // -------------------- get default target triple object ---------------------
 // ---------------------------------------------------------------------------
-std::shared_ptr<llvm::Triple> LLVMInstanceManager::getDefaultTriple() const
-{
+std::shared_ptr<llvm::Triple> LLVMInstanceManager::getDefaultTriple() const {
   return triple;
 }
 
 // ---------------------------------------------------------------------------
 // ----------------------------- initializeLLVM -----------------------------
 // ---------------------------------------------------------------------------
-void LLVMInstanceManager::initializeLLVM()
-{
+void LLVMInstanceManager::initializeLLVM() {
   llvm::InitializeAllTargetInfos();
   llvm::InitializeAllTargets();
   llvm::InitializeAllTargetMCs();
   llvm::InitializeAllAsmParsers();
   llvm::InitializeAllAsmPrinters();
   llvm::InitializeAllDisassemblers();
-  if (llvm::InitializeNativeTarget()) { // check whether it has native target or not
+  if (llvm::InitializeNativeTarget()) { // check whether it has native target or
+                                        // not
     llvm::InitializeNativeTargetAsmParser();
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::InitializeNativeTargetDisassembler();
   }
 
   // Initialize passes
-  llvm::PassRegistry& passRegistry = *llvm::PassRegistry::getPassRegistry();
+  llvm::PassRegistry &passRegistry = *llvm::PassRegistry::getPassRegistry();
   llvm::initializeCore(passRegistry);
+#if LLVM_VERSION_MAJOR < 15
   llvm::initializeCoroutines(passRegistry);
+#endif
   llvm::initializeScalarOpts(passRegistry);
+#if LLVM_VERSION_MAJOR < 16
   llvm::initializeObjCARCOpts(passRegistry);
+#endif
   llvm::initializeVectorization(passRegistry);
   llvm::initializeIPO(passRegistry);
   llvm::initializeAnalysis(passRegistry);
   llvm::initializeTransformUtils(passRegistry);
   llvm::initializeInstCombine(passRegistry);
+#if LLVM_VERSION_MAJOR < 16
   llvm::initializeInstrumentation(passRegistry);
+#endif
   llvm::initializeTarget(passRegistry);
   // For codegen passes, only passes that do IR to IR transformation are
   // supported.
@@ -93,23 +101,23 @@ void LLVMInstanceManager::initializeLLVM()
   llvm::initializeAtomicExpandPass(passRegistry);
   llvm::initializeRewriteSymbolsLegacyPassPass(passRegistry);
   llvm::initializeWinEHPreparePass(passRegistry);
-  llvm::initializeDwarfEHPreparePass(passRegistry);
+  llvm::initializeDwarfEHPrepareLegacyPassPass(passRegistry);
   llvm::initializeSafeStackLegacyPassPass(passRegistry);
   llvm::initializeSjLjEHPreparePass(passRegistry);
   llvm::initializePreISelIntrinsicLoweringLegacyPassPass(passRegistry);
   llvm::initializeGlobalMergePass(passRegistry);
   llvm::initializeInterleavedAccessPass(passRegistry);
+#if LLVM_VERSION_MAJOR < 15
   llvm::initializeEntryExitInstrumenterPass(passRegistry);
   llvm::initializePostInlineEntryExitInstrumenterPass(passRegistry);
+#endif
   llvm::initializeUnreachableBlockElimLegacyPassPass(passRegistry);
 
-  // remember default target triple
+  // remember default target triple , not suitable for cross compiling
+  // https://reviews.llvm.org/D34446
   auto tripleStr = llvm::sys::getProcessTriple();
   triple = std::make_shared<llvm::Triple>(tripleStr);
 
-  auto clangPath = llvm::sys::findProgramByName("clang");
-  if (clangPath) {
-      clangExeStr = std::string(*clangPath);
-  }
+  clangExeStr = std::filesystem::u8path(CLANG_EXE_FULLPATH);
   return;
 }

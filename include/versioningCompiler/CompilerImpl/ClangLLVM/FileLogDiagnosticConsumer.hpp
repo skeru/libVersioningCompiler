@@ -25,13 +25,15 @@
 #include "clang/Frontend/TextDiagnostic.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
+
+#include <filesystem>
 #include <fstream>
 
 namespace clang {
-  class DiagnosticOptions;
-  class LangOptions;
-  class TextDiagnostic;
-}
+class DiagnosticOptions;
+class LangOptions;
+class TextDiagnostic;
+} // namespace clang
 
 namespace vc {
 /// This is basically a TextDiagnosticPrinter who writes into a std::fstream
@@ -40,7 +42,7 @@ class FileLogDiagnosticConsumer : public clang::DiagnosticConsumer {
 
 protected:
   /// The log file name currently used. Leave "" to disable logging
-  std::string _logFileName;
+  std::filesystem::path _logFileName;
 
   /// The output file stream. It will be used as input/output/append mode
   std::fstream _log;
@@ -57,22 +59,22 @@ protected:
   /// Buffer to store message queue
   llvm::SmallVector<std::string, 8> Entries;
 
-  std::string MainFilename;
+  std::filesystem::path MainFilename;
 
 public:
-  FileLogDiagnosticConsumer(llvm::StringRef LogFileName,
+  FileLogDiagnosticConsumer(std::filesystem::path LogFileName,
                             clang::DiagnosticOptions *Diags);
 
-  FileLogDiagnosticConsumer(const FileLogDiagnosticConsumer&) = delete;
+  FileLogDiagnosticConsumer(const FileLogDiagnosticConsumer &) = delete;
 
   virtual ~FileLogDiagnosticConsumer() override;
 
-  inline void setLogFileName(std::string fileName) {
+  inline void setLogFileName(std::filesystem::path fileName) {
     _logFileName = std::move(fileName);
     if (_log.is_open()) {
       _log.close();
     }
-    if (_logFileName != "") {
+    if (!_logFileName.empty()) {
       _log.open(_logFileName,
                 std::fstream::in | std::fstream::out | std::fstream::app);
     }
@@ -95,4 +97,5 @@ public:
 
 } // end namespace vc
 
-#endif /* end of include guard: LIB_VERSIONING_COMPILER_CLANG_LLVM_FILE_LOG_DIAG_CONSUMER_HPP */
+#endif /* end of include guard:                                                \
+          LIB_VERSIONING_COMPILER_CLANG_LLVM_FILE_LOG_DIAG_CONSUMER_HPP */

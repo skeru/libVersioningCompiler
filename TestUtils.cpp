@@ -26,7 +26,7 @@
 #ifndef FORCED_PATH_TO_TEST
 #define FORCED_PATH_TO_TEST "../libVersioningCompiler/test_code"
 #endif
-#define PATH_TO_C_TEST_CODE FORCED_PATH_TO_TEST"/test_code.c"
+#define PATH_TO_C_TEST_CODE FORCED_PATH_TO_TEST "/test_code.c"
 
 #ifndef TEST_FUNCTION
 #define TEST_FUNCTION "test_function"
@@ -44,8 +44,8 @@ int main(int argc, char const *argv[]) {
   options.push_back(Option("O", "-O", "2"));
   options.push_back(Option("O", "-D", "TEST_FUNCTION"));
   version_ptr_t v = createVersion(PATH_TO_C_TEST_CODE, TEST_FUNCTION, options);
-  signature_t fn_ptr = (signature_t) compileAndGetSymbol(v);
-  if(fn_ptr)
+  signature_t fn_ptr = (signature_t)compileAndGetSymbol(v);
+  if (fn_ptr)
     fn_ptr(3);
   else
     std::cerr << "Error: function pointer unavailable" << '\n';

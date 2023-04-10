@@ -20,66 +20,59 @@
 #define LIB_VERSIONING_COMPILER_TAFFO_COMPILER_HPP
 
 #include "versioningCompiler/Compiler.hpp"
-#include <string>
 
+#include <filesystem>
+#include <string>
 
 namespace vc {
 
-
-class TAFFOCompiler : public Compiler
-{
+class TAFFOCompiler : public Compiler {
 public:
-  enum Language {
-    C,
-    CXX
-  };
+  enum Language { C, CXX };
 
   TAFFOCompiler();
 
   TAFFOCompiler(
-    const std::string &compilerID,
-    const std::string &llvmInstallPrefix,
-    Language lang = C,
-    const std::string &taffoInstallPrefix = "",
-    const std::string &libWorkingDir = ".",
-    const std::string &log = "",
-    const std::string &annotationInserterPath = "");
+      const std::string &compilerID,
+      const std::filesystem::path &llvmInstallPrefix, Language lang = C,
+      const std::filesystem::path &taffoInstallPrefix = "",
+      const std::filesystem::path &libWorkingDir = std::filesystem::u8path("."),
+      const std::filesystem::path &log = "",
+      const std::filesystem::path &annotationInserterPath = "");
 
   TAFFOCompiler(
-    const std::string &compilerID,
-    const std::string &llvmOptPath,
-    const std::string &llvmClangPath,
-    const std::string &llvmLinkerPath,
-    const std::string &taffoInstallPrefix = "",
-    const std::string &libWorkingDir = ".",
-    const std::string &log = "",
-    const std::string &annotationInserterPath = "",
-	const std::string &llvmLinkPath = "");
+      const std::string &compilerID, const std::filesystem::path &llvmOptPath,
+      const std::filesystem::path &llvmClangPath,
+      const std::filesystem::path &llvmLinkerPath,
+      const std::filesystem::path &taffoInstallPrefix = "",
+      const std::filesystem::path &libWorkingDir = std::filesystem::u8path("."),
+      const std::filesystem::path &log = "",
+      const std::filesystem::path &annotationInserterPath = "",
+      const std::filesystem::path &llvmLinkPath = "");
 
   inline virtual ~TAFFOCompiler() {}
 
   virtual bool hasOptimizer() const override;
 
-  virtual std::string generateIR(
-    const std::vector<std::string> &src,
-    const std::vector<std::string> &func,
-    const std::string &versionID,
-    const opt_list_t options) const override;
+  virtual std::filesystem::path
+  generateIR(const std::vector<std::filesystem::path> &src,
+             const std::vector<std::string> &func, const std::string &versionID,
+             const opt_list_t options) const;
 
-  virtual std::string runOptimizer(
-    const std::string &src_IR,
-    const std::string &versionID,
-    const opt_list_t options) const override;
+  virtual std::filesystem::path
+  runOptimizer(const std::filesystem::path &src_IR,
+               const std::string &versionID,
+               const opt_list_t options) const override;
 
-  virtual std::string generateBin(
-    const std::vector<std::string> &src,
-    const std::vector<std::string> &func,
-    const std::string &versionID,
-    const opt_list_t options) const override;
+  virtual std::filesystem::path
+  generateBin(const std::vector<std::filesystem::path> &src,
+              const std::vector<std::string> &func,
+              const std::string &versionID, const opt_list_t options) const;
 
   virtual std::string getOptionString(const Option &o) const override;
 
-  static Option getScalarAnnotationDefine(const std::string& define, double min, double max);
+  static Option getScalarAnnotationDefine(const std::string &define, double min,
+                                          double max);
 
   void setDisableVRA(bool disableVRA) { noVRA = disableVRA; }
   bool getDisableVRA() { return noVRA; }
@@ -89,21 +82,20 @@ public:
 
   void setDisableTypeMerging(bool dtm) { noTypeMerge = dtm; }
   bool setDisableTypeMerging() { return noTypeMerge; }
-  
+
 private:
-  std::string llvmOptPath;
-  std::string llvmClangPath;
-  std::string llvmLinkerPath;
-  std::string llvmLinkPath;
-  std::string taffoInstallPrefix;
-  std::string annotationInserterPath;
-  std::string annotationFilePath;
+  std::filesystem::path llvmOptPath;
+  std::filesystem::path llvmClangPath;
+  std::filesystem::path llvmLinkerPath;
+  std::filesystem::path llvmLinkPath;
+  std::filesystem::path taffoInstallPrefix;
+  std::filesystem::path annotationInserterPath;
+  std::filesystem::path annotationFilePath;
   bool noVRA = false;
   bool restrictFunClone = false;
   bool noTypeMerge = false;
-  
-  struct Component
-  {
+
+  struct Component {
     std::string libName;
     std::string optParamName;
     std::string envName;
@@ -112,15 +104,20 @@ private:
   static Component VRA;
   static Component DTA;
   static Component Conversion;
-  
-  void insertAnnotations(const std::vector<std::string>& src, const opt_list_t& options, const opt_list_t& annotationOptions) const;
-  std::vector<std::string> copySources(const std::vector<std::string>& src, const std::string& versionID, const opt_list_t& options) const;
-  std::string getLLVMLibExtension() const;
-  std::string getInvocation(const Component& c) const;
-  static void splitOptimizationOptions(const opt_list_t& in, opt_list_t& outOpt, opt_list_t& outRest);
-  static void splitAnnotationOptions(const opt_list_t& in, opt_list_t& outOpt, opt_list_t& outRest);
-};
 
+  void insertAnnotations(const std::vector<std::filesystem::path> &src,
+                         const opt_list_t &options,
+                         const opt_list_t &annotationOptions) const;
+  std::vector<std::filesystem::path>
+  copySources(const std::vector<std::filesystem::path> &src,
+              const std::string &versionID, const opt_list_t &options) const;
+  std::string getLLVMLibExtension() const;
+  std::string getInvocation(const Component &c) const;
+  static void splitOptimizationOptions(const opt_list_t &in, opt_list_t &outOpt,
+                                       opt_list_t &outRest);
+  static void splitAnnotationOptions(const opt_list_t &in, opt_list_t &outOpt,
+                                     opt_list_t &outRest);
+};
 
 } // end namespace vc
 

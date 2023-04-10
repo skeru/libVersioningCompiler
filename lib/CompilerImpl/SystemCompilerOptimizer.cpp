@@ -25,61 +25,49 @@ using namespace vc;
 // ----------------------------------------------------------------------------
 // ----------------------- zero-parameters constructor ------------------------
 // ----------------------------------------------------------------------------
-SystemCompilerOptimizer::SystemCompilerOptimizer() :
-  SystemCompilerOptimizer(
-                          "llvm/clang",
-                          "clang",
-                          "opt",
-                          ".",
-                          "",
-                          "/usr/bin",
-                          "/usr/bin"
-                        ) { }
+SystemCompilerOptimizer::SystemCompilerOptimizer()
+    : SystemCompilerOptimizer(
+          "llvm/clang", std::filesystem::u8path("clang"),
+          std::filesystem::u8path("opt"), std::filesystem::u8path("."),
+          std::filesystem::u8path(""), std::filesystem::u8path("/usr/bin"),
+          std::filesystem::u8path("/usr/bin")) {}
 
 // ----------------------------------------------------------------------------
 // --------------------------- detailed constructor ---------------------------
 // ----------------------------------------------------------------------------
 SystemCompilerOptimizer::SystemCompilerOptimizer(
-                         const std::string compilerID,
-                         const std::string compilerCallString,
-                         const std::string optimizerCallString,
-                         const std::string libWorkingDir,
-                         const std::string log,
-                         const std::string installDir,
-                         const std::string optimizerInstallDir
-                       ) : SystemCompiler(
-                                          compilerID,
-                                          compilerCallString,
-                                          libWorkingDir,
-                                          log,
-                                          installDir,
-                                          true
-                                         ),
-                          optCallString(optimizerCallString),
-                          optInstallDirectory(optimizerInstallDir) { }
+    const std::string compilerID,
+    const std::filesystem::path compilerCallString,
+    const std::filesystem::path optimizerCallString,
+    const std::filesystem::path libWorkingDir, const std::filesystem::path log,
+    const std::filesystem::path installDir,
+    const std::filesystem::path optimizerInstallDir)
+    : SystemCompiler(compilerID, compilerCallString, libWorkingDir, log,
+                     installDir, true),
+      optCallString(optimizerCallString),
+      optInstallDirectory(optimizerInstallDir) {}
 
 // ----------------------------------------------------------------------------
 // ---------------------- optimizer support declaration -----------------------
 // ----------------------------------------------------------------------------
-bool SystemCompilerOptimizer::hasOptimizer() const
-{
-  return true;
-}
+bool SystemCompilerOptimizer::hasOptimizer() const { return true; }
 
 // ----------------------------------------------------------------------------
 // ----------------------------- run IR optimizer -----------------------------
 // ----------------------------------------------------------------------------
-std::string SystemCompilerOptimizer::runOptimizer(const std::string &src_IR,
-                                                  const std::string &versionID,
-                                                  const opt_list_t options) const
-{
+std::filesystem::path
+SystemCompilerOptimizer::runOptimizer(const std::filesystem::path &src_IR,
+                                      const std::string &versionID,
+                                      const opt_list_t options) const {
   std::string commandString;
-  commandString = optInstallDirectory + "/" + optCallString;
-  std::string optimizedFileName = Compiler::getOptBitcodeFileName(versionID);
+  commandString = (optInstallDirectory / optCallString).string();
+  std::filesystem::path optimizedFileName =
+      Compiler::getOptBitcodeFileName(versionID);
   for (auto &o : options) {
-    commandString  = commandString + " " + getOptionString(o);
+    commandString = commandString + " " + getOptionString(o);
   }
-  commandString = commandString + " -o " + optimizedFileName + " " + src_IR;
+  commandString = commandString + " -o " + optimizedFileName.string() + " " +
+                  src_IR.string();
   Compiler::log_exec(commandString);
   if (exists(optimizedFileName)) {
     return optimizedFileName;

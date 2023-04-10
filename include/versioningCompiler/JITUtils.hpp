@@ -1,7 +1,13 @@
-/* Copyright 2017-2018 Politecnico di Milano.
+/* Copyright 2017 Politecnico di Milano.
  * Developed by : Stefano Cherubin
  *                PhD student, Politecnico di Milano
  *                <first_name>.<family_name>@polimi.it
+ *                Marco Festa
+ *                Ms student, Politecnico di Milano
+ *                <first_name>2.<family_name>@mail.polimi.it
+ *                Nicole Gervasoni
+ *                Ms student, Politecnico di Milano
+ *                <first_name>annamaria.<family_name>@mail.polimi.it
  *
  * This file is part of libVersioningCompiler
  *
@@ -18,26 +24,25 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
-#ifndef LIB_VERSIONING_COMPILER_UTILS_HPP
-#define LIB_VERSIONING_COMPILER_UTILS_HPP
+#ifndef LIB_VERSIONING_JIT_COMPILER_UTILS_HPP
+#define LIB_VERSIONING_JIT_COMPILER_UTILS_HPP
 
 /** C-like simplified interface to libVC */
-
-#include "versioningCompiler/CompilerImpl/SystemCompiler.hpp"
+#include "versioningCompiler/CompilerImpl/JITCompiler.hpp"
 #include "versioningCompiler/Version.hpp"
+
+#include <filesystem>
+#include <iostream>
 
 namespace vc {
 
 /** Default compiler to be used in this helper. */
-compiler_ptr_t libVC_default_compiler;
+compiler_ptr_t _libVC_jit_compiler;
 
-/** Instantiate default Compiler */
-void vc_utils_init();
+llvm::TargetMachine *_targetMachine;
 
-/** Create a Version using default parameters */
-version_ptr_t createVersion(const std::vector<std::filesystem::path> &src,
-                            const std::vector<std::string> &fn,
-                            const opt_list_t &options);
+/** Instantiate JIT Compiler */
+compiler_ptr_t vc_utils_init();
 
 /** Create a Version using default parameters */
 version_ptr_t createVersion(const std::filesystem::path &src,
@@ -48,39 +53,38 @@ void *compileAndGetSymbol(version_ptr_t &v);
 
 //---------- implementation ----------
 
-void vc_utils_init() {
-  libVC_default_compiler = make_compiler<SystemCompiler>();
-  return;
+compiler_ptr_t vc_utils_init() {
+
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+  llvm::InitializeNativeTargetAsmParser();
+  // ---------- Compiler initialization ---------
+  std::cout << "Setting up compiler.." << std::endl;
+  _libVC_jit_compiler = vc::make_compiler<vc::JITCompiler>(
+      "jitCompiler", std::filesystem::u8path("."),
+      std::filesystem::u8path("./test_jit.log"));
 }
 
 version_ptr_t createVersion(const std::filesystem::path &src,
                             const std::string &fn, const opt_list_t &options) {
-  Version::Builder builder;
-  builder._compiler = libVC_default_compiler;
-  builder._fileName_src.push_back(src);
-  builder._functionName.push_back(fn);
-  builder._optionList = options;
-  return builder.build();
-}
 
-version_ptr_t createVersion(const std::vector<std::filesystem::path> &src,
-                            const std::vector<std::string> &fn,
-                            const opt_list_t &options) {
+  std::cout << "Setting up builder.." << std::endl;
   Version::Builder builder;
-  builder._compiler = libVC_default_compiler;
-  builder._fileName_src = src;
-  builder._functionName = fn;
+  builder._compiler = _libVC_jit_compiler;
+  builder._fileName_src = {src};
+  builder._functionName = {fn};
   builder._optionList = options;
+  // builder.addFunctionFlag();
+  builder._autoremoveFilesEnable = true;
   return builder.build();
 }
 
 void *compileAndGetSymbol(version_ptr_t &v) {
+
   v->compile();
-  if (v->hasLoadedSymbol())
-    return v->getSymbol();
-  return nullptr;
+  return v->getSymbol();
 }
 
 } // end namespace vc
 
-#endif /* end of include guard: LIB_VERSIONING_COMPILER_UTILS_HPP */
+#endif /* end of include guard: LIB_VERSIONING_JIT_COMPILER_UTILS_HPP */

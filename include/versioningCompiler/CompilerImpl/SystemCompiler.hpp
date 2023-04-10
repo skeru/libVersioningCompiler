@@ -22,43 +22,43 @@
 #define LIB_VERSIONING_COMPILER_SYSTEM_COMPILER_HPP
 
 #include "versioningCompiler/Compiler.hpp"
+
+#include <filesystem>
 #include <string>
 
 namespace vc {
 
-class SystemCompiler : public Compiler
-{
+class SystemCompiler : public Compiler {
 
- public:
+public:
   SystemCompiler();
 
   SystemCompiler(const std::string &compilerID,
-                 const std::string &compilerCallString,
-                 const std::string &libWorkingDir,
-                 const std::string &log = "",
-                 const std::string &installDir = "/usr/bin",
+                 const std::filesystem::path &compilerCallString,
+                 const std::filesystem::path &libWorkingDir,
+                 const std::filesystem::path &log = "",
+                 const std::filesystem::path &installDir =
+                     std::filesystem::u8path("/usr/bin"),
                  bool supportsIR = false);
 
   inline virtual ~SystemCompiler() {}
 
   virtual bool hasOptimizer() const override;
 
-  virtual std::string generateIR(const std::vector<std::string> &src,
-                                 const std::vector<std::string> &func,
-                                 const std::string &versionID,
-                                 const opt_list_t options) const
-  override;
+  virtual std::filesystem::path
+  generateIR(const std::vector<std::filesystem::path> &src,
+             const std::vector<std::string> &func, const std::string &versionID,
+             const opt_list_t options) override;
 
-  virtual std::string runOptimizer(const std::string &src_IR,
-                                   const std::string &versionID,
-                                   const opt_list_t options) const
-  override;
+  virtual std::filesystem::path
+  runOptimizer(const std::filesystem::path &src_IR,
+               const std::string &versionID,
+               const opt_list_t options) const override;
 
-  virtual std::string generateBin(const std::vector<std::string> &src,
-                                  const std::vector<std::string> &func,
-                                  const std::string &versionID,
-                                  const opt_list_t options) const
-  override;
+  virtual std::filesystem::path
+  generateBin(const std::vector<std::filesystem::path> &src,
+              const std::vector<std::string> &func,
+              const std::string &versionID, const opt_list_t options) override;
 
   virtual std::string getOptionString(const Option &o) const override;
 };

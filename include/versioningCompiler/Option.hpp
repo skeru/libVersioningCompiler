@@ -26,10 +26,9 @@
 
 namespace vc {
 
-class Option
-{
+class Option {
 
- public:
+public:
   /** \brief default constructor.
    *
    * \param optionTag option identifier.
@@ -45,11 +44,10 @@ class Option
    * Examples are "2" for `-O2`, "3" for `-O3`.
    * Default value is an empty string.
    */
-  Option(const std::string &optionTag,
-         const std::string &optionPrefix,
+  Option(const std::string &optionTag, const std::string &optionPrefix,
          const std::string &val = "");
 
-  Option(const Option& other) = default;
+  Option(const Option &other) = default;
 
   std::string getTag() const;
 
@@ -57,25 +55,24 @@ class Option
 
   std::string getPrefix() const;
 
-  inline Option& operator= (const Option& other) = default;
+  inline Option &operator=(const Option &other) = default;
 
-  inline bool operator== (const Option& other) {
+  inline bool operator==(const Option &other) {
     return (getPrefix() + getValue()) == (other.getPrefix() + other.getValue());
   }
 
-  inline bool operator< (const Option& other) {
+  inline bool operator<(const Option &other) {
     return (getPrefix() + getValue()) < (other.getPrefix() + other.getValue());
   }
 
- private:
+private:
   std::string tag;
   std::string value;
   std::string prefix;
-
 };
 
 /** static High-Level API - Option creation */
-static inline Option make_option(const std::string& opt_string) {
+static inline Option make_option(const std::string &opt_string) {
   return Option("", opt_string);
 }
 
@@ -88,7 +85,7 @@ typedef std::list<Option> opt_list_t;
  * Please use this API only when it is not feasible to directly create a
  * list of Options, alias opt_list_t.
  */
-static inline opt_list_t make_option_list(const std::list<std::string>& l) {
+static inline opt_list_t make_option_list(const std::list<std::string> &l) {
   opt_list_t ol;
   for (const auto elem : l) {
     ol.push_back(make_option(elem));
@@ -99,13 +96,11 @@ static inline opt_list_t make_option_list(const std::list<std::string>& l) {
 } // end namespace vc
 
 namespace std {
-  template<>
-  struct hash<vc::Option>
-  {
-    std::size_t operator()( const vc::Option& key ) {
-      return hash<std::string>()(key.getPrefix() + key.getValue());
-    }
-  };
+template <> struct hash<vc::Option> {
+  std::size_t operator()(const vc::Option &key) {
+    return hash<std::string>()(key.getPrefix() + key.getValue());
+  }
+};
 } // end namespace std
 
 #endif /* end of include guard: LIB_VERSIONING_COMPILER_OPTION_HPP */

@@ -25,60 +25,48 @@ using namespace vc;
 // ----------------------------------------------------------------------------
 // ----------------------- zero-parameters constructor ------------------------
 // ----------------------------------------------------------------------------
-SystemCompiler::SystemCompiler() : SystemCompiler(
-                                                  "cc",
-                                                  "cc",
-                                                  ".",
-                                                  "",
-                                                  "/usr/bin"
-                                                ) { }
+SystemCompiler::SystemCompiler()
+    : SystemCompiler("cc", std::filesystem::u8path("cc"),
+                     std::filesystem::u8path("."), std::filesystem::u8path(""),
+                     std::filesystem::u8path("/usr/bin")) {}
 
 // ----------------------------------------------------------------------------
 // --------------------------- detailed constructor ---------------------------
 // ----------------------------------------------------------------------------
 SystemCompiler::SystemCompiler(const std::string &compilerID,
-                               const std::string &compilerCallString,
-                               const std::string &libWorkingDir,
-                               const std::string &mylogfile,
-                               const std::string &installDir,
-                               bool supportsIR
-                             ) : Compiler(
-                                          compilerID,
-                                          compilerCallString,
-                                          libWorkingDir,
-                                          mylogfile,
-                                          installDir,
-                                          supportsIR
-                                        ) { }
+                               const std::filesystem::path &compilerCallString,
+                               const std::filesystem::path &libWorkingDir,
+                               const std::filesystem::path &mylogfile,
+                               const std::filesystem::path &installDir,
+                               bool supportsIR)
+    : Compiler(compilerID, compilerCallString, libWorkingDir, mylogfile,
+               installDir, supportsIR) {}
 
 // ----------------------------------------------------------------------------
 // ---------------------- optimizer support declaration -----------------------
 // ----------------------------------------------------------------------------
-bool SystemCompiler::hasOptimizer() const
-{
-  return false;
-}
+bool SystemCompiler::hasOptimizer() const { return false; }
 
 // ----------------------------------------------------------------------------
 // ------------------------------- generate IR --------------------------------
 // ----------------------------------------------------------------------------
-std::string SystemCompiler::generateIR(const std::vector<std::string> &src,
-                                       const std::vector<std::string> &func,
-                                       const std::string &versionID,
-                                       const opt_list_t options) const
-{
+std::filesystem::path
+SystemCompiler::generateIR(const std::vector<std::filesystem::path> &src,
+                           const std::vector<std::string> &func,
+                           const std::string &versionID,
+                           const opt_list_t options) {
   // NO LLVM-IR support enabled by default
   if (hasIRSupport()) {
     // system call - command construction
-    std::string command = installDirectory + "/" + callString;
+    std::string command = (installDirectory / callString).string();
     std::string IRFile = Compiler::getBitcodeFileName(versionID);
     command = command + " -c -emit-llvm -o " + IRFile;
     // does not work with gcc
     for (auto &o : options) {
       command = command + " " + getOptionString(o);
     }
-    for (const auto & src_file : src) {
-      command = command + " " + src_file;
+    for (const auto &src_file : src) {
+      command = command + " " + src_file.string();
     }
     Compiler::log_exec(command);
     if (exists(IRFile)) {
@@ -92,10 +80,10 @@ std::string SystemCompiler::generateIR(const std::vector<std::string> &src,
 // ----------------------------------------------------------------------------
 // ----------------------------- run IR optimizer -----------------------------
 // ----------------------------------------------------------------------------
-std::string SystemCompiler::runOptimizer(const std::string &src_IR,
-                                         const std::string &versionID,
-                                         const opt_list_t options) const
-{
+std::filesystem::path
+SystemCompiler::runOptimizer(const std::filesystem::path &src_IR,
+                             const std::string &versionID,
+                             const opt_list_t options) const {
   std::string error = "SystemCompiler::runOptimizer: ";
   error = error + "System compiler does not support optimizer";
   Compiler::unsupported(error);
@@ -105,20 +93,21 @@ std::string SystemCompiler::runOptimizer(const std::string &src_IR,
 // ----------------------------------------------------------------------------
 // ------------------------------- generate bin -------------------------------
 // ----------------------------------------------------------------------------
-std::string SystemCompiler::generateBin(const std::vector<std::string> &src,
-                                        const std::vector<std::string> &func,
-                                        const std::string &versionID,
-                                        const opt_list_t options) const
-{
+std::filesystem::path
+SystemCompiler::generateBin(const std::vector<std::filesystem::path> &src,
+                            const std::vector<std::string> &func,
+                            const std::string &versionID,
+                            const opt_list_t options) {
   // system call - command construction
-  std::string command = installDirectory + "/" + callString;
-  std::string binaryFile = Compiler::getSharedObjectFileName(versionID);
-  command = command + " -fpic -shared -o " + binaryFile;
+  std::string command = (installDirectory / callString).string();
+  std::filesystem::path binaryFile =
+      Compiler::getSharedObjectFileName(versionID);
+  command = command + " -fpic -shared -o " + binaryFile.string();
   for (const auto &o : options) {
     command = command + " " + getOptionString(o);
   }
-  for (const auto & src_file : src) {
-    command = command + " " + src_file;
+  for (const auto &src_file : src) {
+    command = command + " " + src_file.string();
   }
   log_exec(command);
   if (exists(binaryFile)) {
@@ -130,16 +119,14 @@ std::string SystemCompiler::generateBin(const std::vector<std::string> &src,
 // ----------------------------------------------------------------------------
 // -------------- convert the Option into a command line string ---------------
 // ----------------------------------------------------------------------------
-inline std::string SystemCompiler::getOptionString(const Option &o) const
-{
+inline std::string SystemCompiler::getOptionString(const Option &o) const {
   std::string tmp_val = o.getValue();
   if (tmp_val.length() > 2 &&
       // escape whitespaces with double quotes
       (tmp_val.find(" ") != std::string::npos ||
        tmp_val.find("\t") != std::string::npos) &&
       // ...but not if already within quotes
-      !(tmp_val[0] == tmp_val[tmp_val.length() - 1] && tmp_val[0] == '\"'))
-  {
+      !(tmp_val[0] == tmp_val[tmp_val.length() - 1] && tmp_val[0] == '\"')) {
     tmp_val = "\"" + tmp_val + "\"";
   }
   return o.getPrefix() + tmp_val;

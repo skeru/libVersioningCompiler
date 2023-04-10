@@ -1,0 +1,131 @@
+language: cpp
+dist: focal
+
+matrix:
+  include:
+    - os: linux
+      addons:
+        apt:
+          packages:
+            - cmake
+            - gcc-10
+            - g++-10
+            - libstdc++-10-dev
+            - libz-dev
+            - uuid-dev
+      env:
+        - ENV_SETUP="CC=gcc-10 && CXX=g++-10 && CLANG_EXE_NAME=clang"
+        - BEFORE_INSTALL=""
+        - RUN_TESTS="sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100 && sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100 && sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && cd build && chmod +x libVC_testUtils && ./libVC_testUtils"
+    - os: linux
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-focal-15
+            - sourceline: "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-15 main"
+              key_url: "https://apt.llvm.org/llvm-snapshot.gpg.key"
+          packages:
+            - cmake
+            - gcc-10
+            - g++-10
+            - libstdc++-10-dev
+            - libz-dev
+            - uuid-dev
+            - clang-15
+            - lldb-15
+            - lld-15
+            - clangd-15
+            - clang-format-15
+            - clang-tools-15
+            - llvm-15-dev
+            - lld-15
+            - lldb-15
+            - llvm-15-tools
+            - libomp-15-dev
+            - libc++-15-dev
+            - libc++abi-15-dev
+            - libclang-common-15-dev
+            - libclang-15-dev
+            - libclang-cpp15-dev
+            - libunwind-15-dev
+      env:
+        - ENV_SETUP="CC=clang-15 && CXX=clang-15 && CLANG_EXE_NAME=clang-15"
+        - BEFORE_INSTALL=""
+        - RUN_TESTS="sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100 && sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 100 && sudo update-alternatives --install /usr/bin/opt opt /usr/bin/opt-15 100  && cd build && chmod +x libVC_test libVC_testJit libVC_testUtils && ./libVC_testUtils"
+    - os: linux
+      addons:
+        apt:
+          sources:
+              - llvm-toolchain-focal-14
+              - sourceline: "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-14 main"
+                key_url: "https://apt.llvm.org/llvm-snapshot.gpg.key"
+          packages:
+              - cmake
+              - gcc-10
+              - g++-10
+              - libstdc++-10-dev
+              - libz-dev
+              - uuid-dev
+              - clang-14
+              - lldb-14
+              - lld-14
+              - clangd-14
+              - clang-format-14
+              - clang-tools-14
+              - llvm-14-dev
+              - lld-14
+              - lldb-14
+              - llvm-14-tools
+              - libomp-14-dev
+              - libc++-14-dev
+              - libc++abi-14-dev
+              - libclang-common-14-dev
+              - libclang-14-dev
+              - libclang-cpp14-dev
+              - libunwind-14-dev
+      env:
+          - ENV_SETUP="CC=clang-14 && CXX=clang-14 && CLANG_EXE_NAME=clang-14 && TEST_TOOLS_BINARY_DIR=/usr/lib/llvm-14/bin/"
+          - BEFORE_INSTALL=""
+          - RUN_TESTS="sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100 && sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 100 && sudo update-alternatives --install /usr/bin/opt opt /usr/bin/opt-14 100 && cd build && chmod +x libVC_test libVC_testJit libVC_testUtils && ./libVC_testUtils"
+    - os: linux
+      addons:
+        apt:
+          sources:
+              - llvm-toolchain-focal-13
+              - sourceline: "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-13 main"
+                key_url: "https://apt.llvm.org/llvm-snapshot.gpg.key"
+          packages:
+              - cmake
+              - gcc-10
+              - g++-10
+              - libstdc++-10-dev
+              - libz-dev
+              - uuid-dev
+              - clang-13
+              - lldb-13
+              - lld-13
+              - clangd-13
+              - clang-format-13
+              - clang-tools-13
+              - llvm-13-dev
+              - lld-13
+              - lldb-13
+              - llvm-13-tools
+              - libomp-13-dev
+              - libc++-13-dev
+              - libc++abi-13-dev
+              - libclang-common-13-dev
+              - libclang-13-dev
+              - libclang-cpp13-dev
+              - libunwind-13-dev
+      env:
+          - ENV_SETUP="CC=clang-13 && CXX=clang-13 && CLANG_EXE_NAME=clang-13"
+          - BEFORE_INSTALL=""
+          - RUN_TESTS="sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100 && sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-13 100 && sudo update-alternatives --install /usr/bin/opt opt /usr/bin/opt-13 100 && cd build && chmod +x libVC_test libVC_testJit libVC_testUtils && ./libVC_testUtils"
+
+before_install:
+  - eval "${ENV_SETUP}" && eval "${BEFORE_INSTALL}"
+
+
+script:
+  - cmake -D LIBCLANG_FIND_VERBOSE=1 -DCLANG_EXE_NAME=$CLANG_EXE_NAME -D LLVM_FIND_VERBOSE=1 -D CMAKE_VERBOSE_MAKEFILE=1 -S . -B build && cmake --build build -v && eval "${RUN_TESTS}"
