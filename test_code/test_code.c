@@ -22,7 +22,7 @@
 
 #ifdef TEST_FUNCTION
 
-float global_var = -1;
+float global_var = -1.0f;
 
 /**
  * Test function for the versioning compiler library.
