@@ -406,6 +406,7 @@ JITCompiler::runOptimizer(const std::filesystem::path &src_IR,
         s_ostream.str() + "\n");
     return failureFileName;
   }
+
   // Enable testing of whole program devirtualization on this module by invoking
   // the facility for updating public visibility to linkage unit visibility when
   // specified by an internal option. This is normally done during LTO which is
