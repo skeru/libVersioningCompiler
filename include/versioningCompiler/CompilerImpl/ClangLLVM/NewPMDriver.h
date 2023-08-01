@@ -16,6 +16,7 @@
 /// opt.cpp.
 ///
 //===----------------------------------------------------------------------===//
+// This is a copy of the ``new" pass manager implementation in LLVM, with the following modifications
 // Added macro comments to make it work from LLVM 13 to LLVM 16
 
 #ifndef LIB_VERSIONING_COMPILER_CLANG_LLVM_TOOLS_OPT_NEWPMDRIVER_H
