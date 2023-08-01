@@ -335,8 +335,7 @@ JITCompiler::runOptimizer(const std::filesystem::path &src_IR,
   }
   std::unique_ptr<ToolOutputFile> RemarksFile = std::move(*RemarksFileOrErr);
 
-// Figure out what stream we are supposed to write to...
-// EDIT: we move this section to the new pass manager
+// Selection of stream we are supposed to write to moved to the new pass manager
 
 // Load the input module....
 #if LLVM_VERSION_MAJOR < 16
