@@ -173,7 +173,8 @@ if(ENABLE_CLANG_AS_LIB)
   )
 
   set(VC_LIB_HDR3
-      ${VC_LIB_HDR_PREFIX3}/OptUtils.hpp ${VC_LIB_HDR_PREFIX3}/NewPMDriver.h
+      ${VC_LIB_HDR_PREFIX3}/OptUtils.hpp
+      ${VC_LIB_HDR_PREFIX3}/NewPMDriver.h
       ${VC_LIB_HDR_PREFIX3}/FileLogDiagnosticConsumer.hpp
       ${VC_LIB_HDR_PREFIX3}/LLVMInstanceManager.hpp)
 endif(ENABLE_CLANG_AS_LIB)
