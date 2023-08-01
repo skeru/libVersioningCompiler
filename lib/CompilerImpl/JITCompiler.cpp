@@ -262,15 +262,19 @@ JITCompiler::runOptimizer(const std::filesystem::path &src_IR,
 
   // command line options are static and should be accessed exclusively
   opt_parse_mtx.lock();
+
   // Clean old opt values
   resetOptOptions();
+  
   // Parse invoking params
   llvm::cl::ParseCommandLineOptions(argc,
                                     const_cast<const char **>(argv.data()),
                                     "JITCompiler::runOptimizer");
+
   // Set input and output files, like if they had been parsed from the cli
   InputFilename = src_IR.string();
   OutputFilename = optBCfilename.string();
+  
   // parse plugins, this was done in opt.cpp in the main function.
   // From now on, we can almost follow what is being done in opt.cpp
   // By remembering to modify return values and error reporting accordingly.
@@ -284,9 +288,12 @@ JITCompiler::runOptimizer(const std::filesystem::path &src_IR,
     }
     PluginList.emplace_back(Plugin.get());
   });
+
   using namespace llvm;
+
   // Prepare the context, in opt.cpp is simply Context
   LLVMContext optContext;
+  
   // If `-passes=` is specified, use NPM (new pass manager).
   // If `-enable-new-pm` is specified and there are no codegen passes, use NPM.
   // e.g. `-enable-new-pm -sroa` will use NPM.
