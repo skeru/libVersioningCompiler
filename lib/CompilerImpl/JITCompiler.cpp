@@ -365,6 +365,7 @@ JITCompiler::runOptimizer(const std::filesystem::path &src_IR,
     M = parseIRFile(InputFilename, Err, optContext,
                     llvm::ParserCallbacks(SetDataLayout));
 #endif
+
   if (!M) {
     std::string parsing_error_str;
     llvm::raw_string_ostream s_ostream(parsing_error_str);
@@ -380,6 +381,7 @@ JITCompiler::runOptimizer(const std::filesystem::path &src_IR,
   if (StripDebug) {
     llvm::StripDebugInfo(*M);
   }
+
   // Erase module-level named metadata, if requested.
   if (StripNamedMetadata) {
     while (!M->named_metadata_empty()) {
@@ -387,6 +389,7 @@ JITCompiler::runOptimizer(const std::filesystem::path &src_IR,
       M->eraseNamedMetadata(NMD);
     }
   }
+
   // If we are supposed to override the target triple or data layout, do so now.
   if (!TargetTriple.empty())
     M->setTargetTriple(Triple::normalize(TargetTriple));
