@@ -16,6 +16,8 @@
 /// opt.cpp.
 ///
 //===----------------------------------------------------------------------===//
+// This is a copy of the ``new" pass manager implementation in LLVM, with the following modifications
+// Added macro comments to make it work from LLVM 13 to LLVM 16
 
 #ifndef LIB_VERSIONING_COMPILER_CLANG_LLVM_TOOLS_OPT_NEWPMDRIVER_H
 #define LIB_VERSIONING_COMPILER_CLANG_LLVM_TOOLS_OPT_NEWPMDRIVER_H
@@ -27,9 +29,7 @@
 namespace llvm {
 class StringRef;
 class Module;
-#if LLVM_VERSION_MAJOR > 14
 class PassPlugin;
-#endif
 class TargetMachine;
 class ToolOutputFile;
 class TargetLibraryInfoImpl;
@@ -48,7 +48,7 @@ enum OutputKind {
   OK_OutputBitcode,
   OK_OutputThinLTOBitcode,
 };
-enum VerifierKind { VK_NoVerifier, VK_VerifyInAndOut, VK_VerifyEachPass };
+enum VerifierKind { VK_NoVerifier, VK_VerifyOut, VK_VerifyEachPass };
 enum PGOKind { NoPGO, InstrGen, InstrUse, SampleUse };
 enum CSPGOKind { NoCSPGO, CSInstrGen, CSInstrUse };
 } // namespace opt_tool
@@ -64,27 +64,16 @@ void printPasses(raw_ostream &OS);
 ///
 /// ThinLTOLinkOut is only used when OK is OK_OutputThinLTOBitcode, and can be
 /// nullptr.
-#if LLVM_VERSION_MAJOR > 14
 bool runPassPipeline(StringRef Arg0, Module &M, TargetMachine *TM,
                      TargetLibraryInfoImpl *TLII, ToolOutputFile *Out,
                      ToolOutputFile *ThinLinkOut, ToolOutputFile *OptRemarkFile,
-                     StringRef PassPipeline, ArrayRef<StringRef> PassInfos,
-                     ArrayRef<PassPlugin> PassPlugins, opt_tool::OutputKind OK,
-                     opt_tool::VerifierKind VK,
-                     bool ShouldPreserveAssemblyUseListOrder,
-                     bool ShouldPreserveBitcodeUseListOrder,
-                     bool EmitSummaryIndex, bool EmitModuleHash,
-                     bool EnableDebugify, bool VerifyDIPreserve);
-#else
-bool runPassPipeline(StringRef Arg0, Module &M, TargetMachine *TM,
-                     TargetLibraryInfoImpl *TLII, ToolOutputFile *Out,
-                     ToolOutputFile *ThinLinkOut, ToolOutputFile *OptRemarkFile,
-                     StringRef PassPipeline, ArrayRef<StringRef> PassInfos,
+                     StringRef PassPipeline, ArrayRef<PassPlugin> PassPlugins,
                      opt_tool::OutputKind OK, opt_tool::VerifierKind VK,
                      bool ShouldPreserveAssemblyUseListOrder,
                      bool ShouldPreserveBitcodeUseListOrder,
                      bool EmitSummaryIndex, bool EmitModuleHash,
-                     bool EnableDebugify);
-#endif
+                     bool EnableDebugify, bool VerifyDIPreserve);
+                    
+
 } // namespace llvm
 #endif

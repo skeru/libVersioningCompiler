@@ -62,6 +62,7 @@ std::shared_ptr<llvm::Triple> LLVMInstanceManager::getDefaultTriple() const {
 // ---------------------------------------------------------------------------
 // ----------------------------- initializeLLVM -----------------------------
 // ---------------------------------------------------------------------------
+// Most of this comes from the LLVM's opt.cpp's main function
 void LLVMInstanceManager::initializeLLVM() {
   llvm::InitializeAllTargetInfos();
   llvm::InitializeAllTargets();
@@ -97,6 +98,15 @@ void LLVMInstanceManager::initializeLLVM() {
   llvm::initializeTarget(passRegistry);
   // For codegen passes, only passes that do IR to IR transformation are
   // supported.
+#if LLVM_VERSION_MAJOR >= 16
+  llvm::initializeExpandLargeDivRemLegacyPassPass(passRegistry);
+  llvm::initializeExpandLargeFpConvertLegacyPassPass(passRegistry);
+#endif
+  llvm::initializeExpandMemCmpPassPass(passRegistry);
+  llvm::initializeScalarizeMaskedMemIntrinLegacyPassPass(passRegistry);
+#if LLVM_VERSION_MAJOR > 14
+  llvm::initializeSelectOptimizePass(passRegistry);
+#endif
   llvm::initializeCodeGenPreparePass(passRegistry);
   llvm::initializeAtomicExpandPass(passRegistry);
   llvm::initializeRewriteSymbolsLegacyPassPass(passRegistry);
@@ -106,12 +116,28 @@ void LLVMInstanceManager::initializeLLVM() {
   llvm::initializeSjLjEHPreparePass(passRegistry);
   llvm::initializePreISelIntrinsicLoweringLegacyPassPass(passRegistry);
   llvm::initializeGlobalMergePass(passRegistry);
+  llvm::initializeIndirectBrExpandPassPass(passRegistry);
+  llvm::initializeInterleavedLoadCombinePass(passRegistry);
   llvm::initializeInterleavedAccessPass(passRegistry);
 #if LLVM_VERSION_MAJOR < 15
   llvm::initializeEntryExitInstrumenterPass(passRegistry);
   llvm::initializePostInlineEntryExitInstrumenterPass(passRegistry);
 #endif
   llvm::initializeUnreachableBlockElimLegacyPassPass(passRegistry);
+  llvm::initializeExpandReductionsPass(passRegistry);
+  llvm::initializeExpandVectorPredicationPass(passRegistry);
+  llvm::initializeWasmEHPreparePass(passRegistry);
+  llvm::initializeWriteBitcodePassPass(passRegistry);
+  llvm::initializeHardwareLoopsPass(passRegistry);
+#if LLVM_VERSION_MAJOR < 16
+  llvm::initializeTypePromotionPass(passRegistry);
+#endif
+  llvm::initializeReplaceWithVeclibLegacyPass(passRegistry);
+#if LLVM_VERSION_MAJOR > 14  
+  llvm::initializeJMCInstrumenterPass(passRegistry);
+#endif  
+  llvm::initializeUnreachableBlockElimLegacyPassPass(passRegistry);
+
 
   // remember default target triple , not suitable for cross compiling
   // https://reviews.llvm.org/D34446
