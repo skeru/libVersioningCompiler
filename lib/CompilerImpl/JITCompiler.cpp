@@ -622,7 +622,7 @@ JITCompiler::runOptimizer(const std::filesystem::path &src_IR,
     }
 
     // #ifdef VC_DEBUG
-    //  Before executing passes, print the final values of the LLVM options.
+    // Before executing passes, print the final values of the LLVM options.
     llvm::cl::PrintOptionValues();
     // #endif
 
