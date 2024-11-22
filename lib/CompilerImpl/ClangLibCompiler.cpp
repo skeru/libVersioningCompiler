@@ -347,8 +347,9 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   // Override function attributes based on CPUStr, FeaturesStr,
   // and command line flags.
   // This also causes the program to segfault if executed, hence it is commented out
-  // FIXME llvm::codegen::setFunctionAttributes(optCPUStr, optFeaturesStr, *module);
-
+#if LLVM_VERSION_MAJOR < 18
+  llvm::codegen::setFunctionAttributes(optCPUStr, optFeaturesStr, *module);
+#endif
   // Create a PassManager to hold and optimize the collection of passes we are
   // about to build.
   llvm::legacy::PassManager Passes;
