@@ -38,6 +38,8 @@
 
 if(NOT LLVM_FOUND)
   set(LLVM_KNOWN_MAJOR_VERSIONS
+      19
+      18
       17
       16
       15

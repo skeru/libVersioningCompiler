@@ -13,6 +13,8 @@
 # Find the latest llvm version, unless LLVM_FOUND is yet set
 if(NOT LLVM_FOUND)
   set(LLVM_KNOWN_MAJOR_VERSIONS
+      19
+      18
       17
       16
       15
@@ -48,7 +50,7 @@ endif(NOT LLVM_FOUND)
 
 find_path(
   LIBCLANG_INCLUDE_DIRS clang-c/Index.h
-  PATHS ${LLVM_INCLUDE_DIR}
+  PATHS ${LLVM_INCLUDE_DIR} /usr/include
   NO_DEFAULT_PATH
   PATH_SUFFIXES LLVM/include # Windows package from http://llvm.org/releases/
   DOC "The path to the directory that contains clang-c/Index.h")
