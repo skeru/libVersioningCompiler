@@ -286,26 +286,57 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   llvm::Triple moduleTriple(module->getTargetTriple());
   std::string optCPUStr, optFeaturesStr;
   llvm::TargetMachine *optTMachine = nullptr;
+
+  // All the functions contained in the else will cause the program to segfault if executed
+#if LLVM_VERSION_MAJOR >= 18
+  const llvm::TargetOptions Options = llvm::TargetOptions();
+  optCPUStr = sys::getHostCPUName().str();
+  llvm::StringMap<bool> features = llvm::sys::getHostCPUFeatures();
+#else
   const llvm::TargetOptions Options =
       llvm::codegen::InitTargetOptionsFromCodeGenFlags(moduleTriple);
-  // llvm static helper function
-  std::string lookupError;
-  if (moduleTriple.getArch()) {
-    optCPUStr = llvm::codegen::getCPUStr(); // llvm static helper function
-    optFeaturesStr =
-        llvm::codegen::getFeaturesStr(); // llvm static helper function
-  }
+  std::string optCPUStr = llvm::codegen::getCPUStr();
 
+  llvm::StringMap<bool> features;
+  llvm::sys::getHostCPUFeatures(features);
+  optFeaturesStr =
+         llvm::codegen::getFeaturesStr(); // llvm static helper function
+#endif
+   // llvm static helper function
+   std::string lookupError;
+   if (moduleTriple.getArch()) {
+     optCPUStr = sys::getHostCPUName().str();
+    std::string featuresStr;
+    for (const auto &feature : features) {
+      if (feature.second) {
+        if (!featuresStr.empty())
+          featuresStr += ",";
+        featuresStr += feature.first().str();
+      }
+    }
+    optFeaturesStr = featuresStr;
+  }
+#if LLVM_VERSION_MAJOR >= 18
+  const llvm::Target *TheTarget = llvm::TargetRegistry::lookupTarget(
+      "", moduleTriple, lookupError);
+#else
   const llvm::Target *TheTarget = llvm::TargetRegistry::lookupTarget(
       llvm::codegen::getMArch(), moduleTriple, lookupError);
+#endif
   // Some modules don't specify a triple, and this is okay.
   if (!TheTarget) {
     optTMachine = nullptr;
   } else {
+#if LLVM_VERSION_MAJOR < 18
+    std::optional<Reloc::Model> reloc = std::make_optional<Reloc::Model>(llvm::codegen::getRelocModel());
+#else
+    std::optional<Reloc::Model> reloc = std::make_optional<Reloc::Model>(Reloc::Model::Static);
+#endif
+    std::optional<CodeModel::Model> code_model = std::make_optional<CodeModel::Model>(CodeModel::Model::Small);
     optTMachine = TheTarget->createTargetMachine(
         moduleTriple.getTriple(), optCPUStr, optFeaturesStr, Options,
-        llvm::codegen::getRelocModel(),
-        llvm::CodeModel::Small, // llvm::codegen::getCodeModel returns zero
+        reloc,
+        code_model, // llvm::codegen::getCodeModel returns zero
                                 // (casted to Tiny), which is wrong! Going with
                                 // small which is the default model for majority
                                 // of supported targets
@@ -315,7 +346,8 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   std::unique_ptr<llvm::TargetMachine> actualTM(optTMachine);
   // Override function attributes based on CPUStr, FeaturesStr,
   // and command line flags.
-  llvm::codegen::setFunctionAttributes(optCPUStr, optFeaturesStr, *module);
+  // This also causes the program to segfault if executed, hence it is commented out
+  // FIXME llvm::codegen::setFunctionAttributes(optCPUStr, optFeaturesStr, *module);
 
   // Create a PassManager to hold and optimize the collection of passes we are
   // about to build.
@@ -471,8 +503,12 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   } 
 #endif
   else {
+#if LLVM_VERSION_MAJOR < 16
     Passes.add(createBitcodeWriterPass(*OS, PreserveBitcodeUseListOrder,
                                        EmitSummaryIndex, EmitModuleHash));
+#else
+    Passes.add(createBitcodeWriterPass(*OS, PreserveBitcodeUseListOrder));
+#endif
   }
 
 #ifdef VC_DEBUG
