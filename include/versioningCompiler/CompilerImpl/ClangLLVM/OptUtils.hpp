@@ -31,7 +31,19 @@
 
 // opt includes
 #include "NewPMDriver.h"
+#if LLVM_VERSION_MAJOR >= 18
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/TargetParser/Triple.h"
+#include "llvm/TargetParser/SubtargetFeature.h"
+#include "llvm/TargetParser/Host.h"
+#include "llvm/Passes/PassPlugin.h"
+#include "llvm/IR/PassManager.h"
+#else
 #include "llvm/ADT/Triple.h"
+#include "llvm/MC/SubtargetFeature.h"
+#include "llvm/Support/Host.h"
+#include "llvm/Passes/PassBuilder.h"
+#endif
 #include "llvm/Analysis/LoopPass.h"
 #include "llvm/Analysis/RegionPass.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
@@ -50,10 +62,8 @@
 #include "llvm/InitializePasses.h"
 #include "llvm/LinkAllIR.h"
 #include "llvm/LinkAllPasses.h"
-#include "llvm/MC/SubtargetFeature.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Host.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/PluginLoader.h"
 #include "llvm/Support/Signals.h"
@@ -64,7 +74,6 @@
 #include "llvm/Transforms/Coroutines.h"
 #endif
 #include "llvm/Transforms/IPO/AlwaysInliner.h"
-#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 
 using namespace llvm;

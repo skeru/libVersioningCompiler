@@ -25,7 +25,13 @@
 #define LIB_VERSIONING_COMPILER_CLANG_LLVM_LLVM_INSTANCE_MANAGER
 
 #include "llvm/ADT/APInt.h"
+#if LLVM_VERSION_MAJOR < 18
 #include "llvm/ADT/Triple.h"
+#include "llvm/Support/Host.h"
+#else
+#include "llvm/TargetParser/Triple.h"
+#include "llvm/TargetParser/Host.h"
+#endif
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/LLVMContext.h"
@@ -33,7 +39,6 @@
 #include "llvm/IR/PassManager.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/PassRegistry.h"
-#include "llvm/Support/Host.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Path.h"
