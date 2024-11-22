@@ -165,7 +165,7 @@ JITCompiler::generateIR(const std::vector<std::filesystem::path> &src,
   }
   Compiler::log_string(log_str);
 
-  driver::Driver NikiLauda(_llvmManager->getClangExePath().string(),
+  clang::driver::Driver NikiLauda(_llvmManager->getClangExePath().string(),
                            _llvmManager->getDefaultTriple()->str(),
                            *_diagEngine);
   NikiLauda.setTitle("clang as a library");
@@ -178,14 +178,14 @@ JITCompiler::generateIR(const std::vector<std::filesystem::path> &src,
   NikiLauda.CCPrintOptions = false;
 #endif
 
-  std::unique_ptr<driver::Compilation> C(NikiLauda.BuildCompilation(cmd_str));
+  std::unique_ptr<clang::driver::Compilation> C(NikiLauda.BuildCompilation(cmd_str));
   if (!C) {
     report_error("clang::driver::Compilation not created");
     Compiler::unlockMutex(logFile);
     return failureFileName;
   }
 
-  llvm::SmallVector<std::pair<int, const driver::Command *>, 1> failCmd;
+  llvm::SmallVector<std::pair<int, const clang::driver::Command *>, 1> failCmd;
   const auto res = NikiLauda.ExecuteCompilation(*C, failCmd);
   Compiler::unlockMutex(logFile);
 
