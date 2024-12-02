@@ -101,6 +101,11 @@ if(ENABLE_CLANG_AS_LIB)
   set(VC_DEPS_EXTRA_LINK_FLAGS "${LLVM_LFLAGS}")
 endif(ENABLE_CLANG_AS_LIB)
 
+if(ENABLE_JIT AND NOT ENABLE_CLANG_AS_LIB)
+  message(WARNING "JITCompiler requires Clang-as-a-library. Disabling JITCompiler")
+  set(ENABLE_JIT OFF)
+endif()
+
 list(REMOVE_DUPLICATES VC_LIB_DEPS)
 
 #############################################
