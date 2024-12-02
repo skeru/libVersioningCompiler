@@ -31,18 +31,18 @@
 
 // opt includes
 #include "NewPMDriver.h"
-#if LLVM_VERSION_MAJOR >= 18
+#if LLVM_VERSION_MAJOR < 18
+#include "llvm/ADT/Triple.h"
+#include "llvm/MC/SubtargetFeature.h"
+#include "llvm/Support/Host.h"
+#include "llvm/Passes/PassBuilder.h"
+#else
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/TargetParser/Triple.h"
 #include "llvm/TargetParser/SubtargetFeature.h"
 #include "llvm/TargetParser/Host.h"
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/IR/PassManager.h"
-#else
-#include "llvm/ADT/Triple.h"
-#include "llvm/MC/SubtargetFeature.h"
-#include "llvm/Support/Host.h"
-#include "llvm/Passes/PassBuilder.h"
 #endif
 #include "llvm/Analysis/LoopPass.h"
 #include "llvm/Analysis/RegionPass.h"

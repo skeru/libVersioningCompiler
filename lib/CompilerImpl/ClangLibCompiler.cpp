@@ -288,11 +288,7 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   llvm::TargetMachine *optTMachine = nullptr;
 
   // All the functions contained in the else will cause the program to segfault if executed
-#if LLVM_VERSION_MAJOR >= 18
-  const llvm::TargetOptions Options = llvm::TargetOptions();
-  optCPUStr = sys::getHostCPUName().str();
-  llvm::StringMap<bool> features = llvm::sys::getHostCPUFeatures();
-#else
+#if LLVM_VERSION_MAJOR < 18
   const llvm::TargetOptions Options =
       llvm::codegen::InitTargetOptionsFromCodeGenFlags(moduleTriple);
   std::string optCPUStr = llvm::codegen::getCPUStr();
@@ -301,6 +297,10 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   llvm::sys::getHostCPUFeatures(features);
   optFeaturesStr =
          llvm::codegen::getFeaturesStr(); // llvm static helper function
+#else
+  const llvm::TargetOptions Options = llvm::TargetOptions();
+  optCPUStr = sys::getHostCPUName().str();
+  llvm::StringMap<bool> features = llvm::sys::getHostCPUFeatures();
 #endif
    // llvm static helper function
    std::string lookupError;
@@ -316,12 +316,12 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
     }
     optFeaturesStr = featuresStr;
   }
-#if LLVM_VERSION_MAJOR >= 18
-  const llvm::Target *TheTarget = llvm::TargetRegistry::lookupTarget(
-      "", moduleTriple, lookupError);
-#else
+#if LLVM_VERSION_MAJOR < 18
   const llvm::Target *TheTarget = llvm::TargetRegistry::lookupTarget(
       llvm::codegen::getMArch(), moduleTriple, lookupError);
+#else
+  const llvm::Target *TheTarget = llvm::TargetRegistry::lookupTarget(
+      "", moduleTriple, lookupError);
 #endif
   // Some modules don't specify a triple, and this is okay.
   if (!TheTarget) {
@@ -498,13 +498,13 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
     }
     Passes.add(createPrintModulePass(*OS, "", PreserveAssemblyUseListOrder));
   } 
-#if LLVM_VERSION_MAJOR < 16
+#if LLVM_VERSION_MAJOR < 18
   else if (OutputThinLTOBC) {
     Passes.add(createWriteThinLTOBitcodePass(*OS));
   } 
 #endif
   else {
-#if LLVM_VERSION_MAJOR < 16
+#if LLVM_VERSION_MAJOR < 18
     Passes.add(createBitcodeWriterPass(*OS, PreserveBitcodeUseListOrder,
                                        EmitSummaryIndex, EmitModuleHash));
 #else
