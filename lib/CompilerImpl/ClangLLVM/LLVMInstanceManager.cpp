@@ -100,9 +100,14 @@ void LLVMInstanceManager::initializeLLVM() {
 #if LLVM_VERSION_MAJOR < 18
   llvm::initializeAtomicExpandPass(passRegistry);
   llvm::initializeCodeGenPreparePass(passRegistry);
-  llvm::initializeRewriteSymbols(passRegistry); // not sure about LLVM 16 or 17, not available in LLVM versions 18/19
+  llvm::initializeRewriteSymbols(passRegistry); // not available from LLVM 17 and upwards
+#else
+#if LLVM_VERSION_MAJOR < 19
+  // This has been renamed to AtomicExpandLegacyPass in LLVM 19
+  llvm::initializeAtomicExpandPass(passRegistry);
 #else
   llvm::initializeAtomicExpandLegacyPass(passRegistry);
+#endif
   llvm::initializeCodeGenPrepareLegacyPassPass(passRegistry);
 #endif
   llvm::initializeWinEHPreparePass(passRegistry);
