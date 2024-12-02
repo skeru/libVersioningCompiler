@@ -142,6 +142,7 @@ ClangLibCompiler::generateIR(const std::vector<std::filesystem::path> &src,
     log_str = log_str + arg + " ";
   }
   Compiler::log_string(log_str);
+
   clang::driver::Driver NikiLauda(_llvmManager->getClangExePath().string(),
                            _llvmManager->getDefaultTriple()->str(),
                            *_diagEngine);
@@ -287,7 +288,7 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   std::string optCPUStr, optFeaturesStr;
   llvm::TargetMachine *optTMachine = nullptr;
 
-  // All the functions contained in the else will cause the program to segfault if executed
+  // All the functions contained in the #if will cause the program to segfault if executed for versions greater or equal to LLVM 18
 #if LLVM_VERSION_MAJOR < 18
   const llvm::TargetOptions Options =
       llvm::codegen::InitTargetOptionsFromCodeGenFlags(moduleTriple);
@@ -327,6 +328,7 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   if (!TheTarget) {
     optTMachine = nullptr;
   } else {
+    // the getRelocModel() function will cause the program to segfault if executed for versions greater or equal to LLVM 18
 #if LLVM_VERSION_MAJOR < 18
     std::optional<Reloc::Model> reloc = std::make_optional<Reloc::Model>(llvm::codegen::getRelocModel());
 #else
@@ -346,7 +348,7 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   std::unique_ptr<llvm::TargetMachine> actualTM(optTMachine);
   // Override function attributes based on CPUStr, FeaturesStr,
   // and command line flags.
-  // This also causes the program to segfault if executed, hence it is commented out
+  // This also causes the program to segfault if executed, hence it is available only in older LLVM versions
 #if LLVM_VERSION_MAJOR < 18
   llvm::codegen::setFunctionAttributes(optCPUStr, optFeaturesStr, *module);
 #endif
