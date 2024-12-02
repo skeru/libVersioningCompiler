@@ -288,11 +288,12 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   std::string optCPUStr, optFeaturesStr;
   llvm::TargetMachine *optTMachine = nullptr;
 
-  // All the functions contained in the #if will cause the program to segfault if executed for versions greater or equal to LLVM 18
+  // All the functions in llvm::codegen contained in the #if will cause the program to segfault
+  // if executed for versions greater or equal to LLVM 18
 #if LLVM_VERSION_MAJOR < 18
   const llvm::TargetOptions Options =
       llvm::codegen::InitTargetOptionsFromCodeGenFlags(moduleTriple);
-  std::string optCPUStr = llvm::codegen::getCPUStr();
+  optCPUStr = llvm::codegen::getCPUStr();
 
   llvm::StringMap<bool> features;
   llvm::sys::getHostCPUFeatures(features);
@@ -301,7 +302,14 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
 #else
   const llvm::TargetOptions Options = llvm::TargetOptions();
   optCPUStr = sys::getHostCPUName().str();
+#if LLVM_VERSION_MAJOR < 19
+  // on LLVM 19 and later, getHostCPUFeatures returns StringMap<bool> directly,
+  // while on LLVM 18 and earlier it gets its return value as a passed argument
+  llvm::StringMap<bool> features;
+  llvm::sys::getHostCPUFeatures(features);
+#else
   llvm::StringMap<bool> features = llvm::sys::getHostCPUFeatures();
+#endif
 #endif
    // llvm static helper function
    std::string lookupError;
