@@ -2,6 +2,9 @@
 # Developed by : Stefano Cherubin, Davide Gadioli
 #                PhD student, Politecnico di Milano
 #                <first_name>.<family_name>@polimi.it
+#                Alessandro Vacca
+#                MSc student, Politecnico di Milano
+#                <first_name>2.<family_name>@mail.polimi.it
 #
 # This file is part of libVersioningCompiler
 #

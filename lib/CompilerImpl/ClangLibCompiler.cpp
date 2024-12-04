@@ -5,6 +5,9 @@
  *                Moreno Giussani
  *                Ms student, Politecnico di Milano
  *                <first_name>.<family_name>@mail.polimi.it
+ *                Alessandro Vacca
+ *                MSc student, Politecnico di Milano
+ *                <first_name>2.<family_name>@mail.polimi.it
  *
  * This file is part of libVersioningCompiler
  *
