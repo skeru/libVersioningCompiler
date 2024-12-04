@@ -105,7 +105,7 @@ if(ENABLE_CLANG_AS_LIB)
 endif(ENABLE_CLANG_AS_LIB)
 
 if(ENABLE_JIT AND NOT ENABLE_CLANG_AS_LIB)
-  message(WARNING "JITCompiler requires Clang-as-a-library. Disabling JITCompiler")
+  message(WARNING "The JITCompiler implementation requires LLVM/Clang integration, which has been disabled. JITCompiler is being disabled.")
   set(ENABLE_JIT OFF)
 endif()
 
