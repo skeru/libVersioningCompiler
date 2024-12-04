@@ -253,7 +253,7 @@ endif(NOT CPP_LIBRARY)
 #----- Sources
 
 # It does make no sense building it if there is no LLVM, given that the JIT implementation relies on LLVM.
-if(ENABLE_CLANG_AS_LIB AND ENABLE_JIT)
+if(ENABLE_JIT)
   set(VC_TESTJIT_APP_SRC TestJit.cpp)
   set(VC_EXEJIT_NAME libVC_testJit)
   add_executable(${VC_EXEJIT_NAME} ${VC_TESTJIT_APP_SRC})
@@ -269,7 +269,7 @@ if(ENABLE_CLANG_AS_LIB AND ENABLE_JIT)
   if(CMAKE_BUILD_TYPE MATCHES DEBUG)
     target_compile_definitions(${VC_EXEJIT_NAME} PRIVATE -DVC_DEBUG)
   endif(CMAKE_BUILD_TYPE MATCHES DEBUG)
-endif(ENABLE_CLANG_AS_LIB AND ENABLE_JIT)
+endif(ENABLE_JIT)
 
 # Test.cpp
 #----- Sources
@@ -320,6 +320,6 @@ endif(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
 install(TARGETS ${VC_EXE_NAME} DESTINATION bin/test)
 install(TARGETS ${VC_EXEUTILS_NAME} DESTINATION bin/test)
-if(ENABLE_CLANG_AS_LIB AND ENABLE_JIT)
+if(ENABLE_JIT)
   install(TARGETS ${VC_EXEJIT_NAME} DESTINATION bin/test)
-endif(ENABLE_CLANG_AS_LIB AND ENABLE_JIT)
+endif(ENABLE_JIT)
