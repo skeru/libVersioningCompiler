@@ -343,16 +343,15 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
 #if LLVM_VERSION_MAJOR < 18
     std::optional<Reloc::Model> reloc = std::make_optional<Reloc::Model>(llvm::codegen::getRelocModel());
 #else
+    // llvm::codegen::getCodeModel returns zero (casted to Tiny), which is wrong!
+    // Going with small which is the default model for majority of supported targets
     std::optional<Reloc::Model> reloc = std::make_optional<Reloc::Model>(Reloc::Model::Static);
 #endif
     std::optional<CodeModel::Model> code_model = std::make_optional<CodeModel::Model>(CodeModel::Model::Small);
     optTMachine = TheTarget->createTargetMachine(
         moduleTriple.getTriple(), optCPUStr, optFeaturesStr, Options,
         reloc,
-        code_model, // llvm::codegen::getCodeModel returns zero
-                                // (casted to Tiny), which is wrong! Going with
-                                // small which is the default model for majority
-                                // of supported targets
+        code_model,
         GetCodeGenOptLevel());
   }
 
