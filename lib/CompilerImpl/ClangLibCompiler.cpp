@@ -291,18 +291,6 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   std::string optCPUStr, optFeaturesStr;
   llvm::TargetMachine *optTMachine = nullptr;
 
-  // All the functions in llvm::codegen contained in the #if will cause the program to segfault
-  // if executed for versions greater or equal to LLVM 18
-#if LLVM_VERSION_MAJOR < 18
-  const llvm::TargetOptions Options =
-      llvm::codegen::InitTargetOptionsFromCodeGenFlags(moduleTriple);
-  optCPUStr = llvm::codegen::getCPUStr();
-
-  llvm::StringMap<bool> features;
-  llvm::sys::getHostCPUFeatures(features);
-  optFeaturesStr =
-         llvm::codegen::getFeaturesStr(); // llvm static helper function
-#else
   const llvm::TargetOptions Options = llvm::TargetOptions();
   optCPUStr = sys::getHostCPUName().str();
 #if LLVM_VERSION_MAJOR < 19
@@ -312,7 +300,6 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   llvm::sys::getHostCPUFeatures(features);
 #else
   llvm::StringMap<bool> features = llvm::sys::getHostCPUFeatures();
-#endif
 #endif
    // llvm static helper function
    std::string lookupError;
@@ -339,14 +326,9 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   if (!TheTarget) {
     optTMachine = nullptr;
   } else {
-    // the getRelocModel() function will cause the program to segfault if executed for versions greater or equal to LLVM 18
-#if LLVM_VERSION_MAJOR < 18
-    std::optional<Reloc::Model> reloc = std::make_optional<Reloc::Model>(llvm::codegen::getRelocModel());
-#else
     // llvm::codegen::getCodeModel returns zero (casted to Tiny), which is wrong!
     // Going with small which is the default model for majority of supported targets
     std::optional<Reloc::Model> reloc = std::make_optional<Reloc::Model>(Reloc::Model::Static);
-#endif
     std::optional<CodeModel::Model> code_model = std::make_optional<CodeModel::Model>(CodeModel::Model::Small);
     optTMachine = TheTarget->createTargetMachine(
         moduleTriple.getTriple(), optCPUStr, optFeaturesStr, Options,
