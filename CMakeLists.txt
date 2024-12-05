@@ -175,14 +175,11 @@ if(ENABLE_CLANG_AS_LIB)
   if(ENABLE_JIT)
     list(APPEND VC_LIB_SRC
             ${SRC_PREFIX}/CompilerImpl/JITCompiler.cpp)
-  endif()
-
-  set(VC_LIB_HDR2 ${VC_LIB_HDR2} ${VC_LIB_HDR_PREFIX2}/ClangLibCompiler.hpp)
-
-  if(ENABLE_JIT)
     list(APPEND VC_LIB_HDR2
             ${VC_LIB_HDR_PREFIX2}/JITCompiler.hpp)
   endif()
+
+  set(VC_LIB_HDR2 ${VC_LIB_HDR2} ${VC_LIB_HDR_PREFIX2}/ClangLibCompiler.hpp)
 
   set(VC_LIB_HDR_PREFIX3
       ${CMAKE_CURRENT_SOURCE_DIR}/include/versioningCompiler/CompilerImpl/ClangLLVM
