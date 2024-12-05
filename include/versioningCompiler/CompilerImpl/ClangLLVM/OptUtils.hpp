@@ -330,7 +330,6 @@ static inline void addPass(legacy::PassManagerBase &PM, Pass *P) {
 /// OptLevel.
 ///
 /// OptLevel - Optimization Level
-// Legacy code, kept for compatibility with older versions of LLVM
 #if LLVM_VERSION_MAJOR < 18
 static void AddOptimizationPasses(legacy::PassManagerBase &MPM,
                                   legacy::FunctionPassManager &FPM,
