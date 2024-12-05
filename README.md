@@ -116,7 +116,7 @@ If you want to build libVersioningCompiler using verbose flags and a custom comp
 
 ```bash
 cd libVersioningCompiler
-CXX="/opt/clang-14/bin/clang" cmake -D CMAKE_VERBOSE_MAKEFILE=1 -D LIBCLANG_FIND_VERBOSE=1 -D LLVM_FIND_VERBOSE=1 -D LLVM_FIND_VERBOSE=1 -S . -B build
+CXX="/opt/clang-14/bin/clang" cmake -D CMAKE_VERBOSE_MAKEFILE=1 -D LIBCLANG_FIND_VERBOSE=1 -D LLVM_FIND_VERBOSE=1 -D LLVM_FIND_VERBOSE=1 -D JIT_ENABLE=0 -S . -B build
 cmake --build build -v
 ```
 
