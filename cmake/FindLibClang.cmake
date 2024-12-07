@@ -50,7 +50,7 @@ endif(NOT LLVM_FOUND)
 
 find_path(
   LIBCLANG_INCLUDE_DIRS clang-c/Index.h
-  PATHS ${LLVM_INCLUDE_DIR} /usr/include
+  PATHS ${LLVM_INCLUDE_DIR}
   NO_DEFAULT_PATH
   PATH_SUFFIXES LLVM/include # Windows package from http://llvm.org/releases/
   DOC "The path to the directory that contains clang-c/Index.h")
