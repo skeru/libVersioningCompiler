@@ -300,15 +300,15 @@ vc::compiler_ptr_t gcc = vc::make_compiler<vc::SystemCompiler>(
                                         );
 
 // custom installation of LLVM/clang
-// Clang as compiler and LLVM's opt as optimizer
+// Clang as compiler and LLVM opt as optimizer
 vc::compiler_ptr_t clang = vc::make_compiler<vc::SystemCompilerOptimizer>(
                                             "llvm/clang",
                                             std::filesystem::u8path("clang"),
                                             std::filesystem::u8path("opt"),
                                             std::filesystem::u8path("."),
                                             std::filesystem::u8path("./test.log"),
-                                            std::filesystem::u8path("/usr/bin"), // clang path
-                                            std::filesystem::u8path("/usr/bin")  // opt path
+                                            std::filesystem::u8path("/usr/bin"), // compiler path
+                                            std::filesystem::u8path("/usr/bin")  // optimizer path
                                           );
 ```
 
