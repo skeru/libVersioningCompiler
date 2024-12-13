@@ -5,6 +5,9 @@
  *                Moreno Giussani
  *                Ms student, Politecnico di Milano
  *                <first_name>.<family_name>@mail.polimi.it
+ *                Alessandro Vacca
+ *                MSc student, Politecnico di Milano
+ *                <first_name>2.<family_name>@mail.polimi.it
  *
  * This file is part of libVersioningCompiler
  *
@@ -31,7 +34,19 @@
 
 // opt includes
 #include "NewPMDriver.h"
+#if LLVM_VERSION_MAJOR < 18
 #include "llvm/ADT/Triple.h"
+#include "llvm/MC/SubtargetFeature.h"
+#include "llvm/Support/Host.h"
+#include "llvm/Passes/PassBuilder.h"
+#else
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/TargetParser/Triple.h"
+#include "llvm/TargetParser/SubtargetFeature.h"
+#include "llvm/TargetParser/Host.h"
+#include "llvm/Passes/PassPlugin.h"
+#include "llvm/IR/PassManager.h"
+#endif
 #include "llvm/Analysis/LoopPass.h"
 #include "llvm/Analysis/RegionPass.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
@@ -50,10 +65,8 @@
 #include "llvm/InitializePasses.h"
 #include "llvm/LinkAllIR.h"
 #include "llvm/LinkAllPasses.h"
-#include "llvm/MC/SubtargetFeature.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Host.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/PluginLoader.h"
 #include "llvm/Support/Signals.h"
@@ -64,7 +77,6 @@
 #include "llvm/Transforms/Coroutines.h"
 #endif
 #include "llvm/Transforms/IPO/AlwaysInliner.h"
-#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 
 using namespace llvm;
@@ -318,6 +330,7 @@ static inline void addPass(legacy::PassManagerBase &PM, Pass *P) {
 /// OptLevel.
 ///
 /// OptLevel - Optimization Level
+#if LLVM_VERSION_MAJOR < 18
 static void AddOptimizationPasses(legacy::PassManagerBase &MPM,
                                   legacy::FunctionPassManager &FPM,
                                   TargetMachine *TM, uint64_t OptLevel,
@@ -407,10 +420,74 @@ static void AddStandardLinkPasses(legacy::PassManagerBase &PM) {
 #endif
   return;
 }
+#else
+static void AddOptimizationPasses(llvm::legacy::PassManager &PM, llvm::legacy::FunctionPassManager &FPM, llvm::TargetMachine *TM, uint64_t OptLevel, uint64_t SizeLevel) {
+    if (!NoVerify || VerifyEach) {
+        // Verify that input is correct
+        PM.add(llvm::createVerifierPass());
+    }
+
+    llvm::PassBuilder PB(TM);
+    llvm::OptimizationLevel OLevel = llvm::OptimizationLevel::O0;
+    switch (OptLevel) {
+        case 1: OLevel = llvm::OptimizationLevel::O1; break;
+        case 2: OLevel = (SizeLevel == 1) ? llvm::OptimizationLevel::Os :
+            (SizeLevel == 2) ? llvm::OptimizationLevel::Oz : llvm::OptimizationLevel::O2; break;
+        case 3: OLevel = llvm::OptimizationLevel::O3; break;
+        default: break;
+    }
+
+    llvm::LoopAnalysisManager LAM;
+    llvm::FunctionAnalysisManager FAM;
+    llvm::CGSCCAnalysisManager CGAM;
+    llvm::ModuleAnalysisManager MAM;
+
+    PB.registerModuleAnalyses(MAM);
+    PB.registerCGSCCAnalyses(CGAM);
+    PB.registerFunctionAnalyses(FAM);
+    PB.registerLoopAnalyses(LAM);
+    PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+
+    // Initialize the FunctionPassManager
+    FPM.doInitialization();
+
+    // Add optimization passes to the FunctionPassManager
+    PB.buildFunctionSimplificationPipeline(OLevel, llvm::ThinOrFullLTOPhase::None);
+    PB.buildModuleOptimizationPipeline(OLevel, llvm::ThinOrFullLTOPhase::None);
+
+    // Finalize the FunctionPassManager
+    FPM.doFinalization();
+
+    // Add the FunctionPassManager to the PassManager
+    PM.add(llvm::createVerifierPass());
+}
+
+static void AddStandardLinkPasses(llvm::legacy::PassManager &PM) {
+    llvm::PassBuilder PB;
+    llvm::OptimizationLevel OLevel = llvm::OptimizationLevel::O0;
+
+    llvm::LoopAnalysisManager LAM;
+    llvm::FunctionAnalysisManager FAM;
+    llvm::CGSCCAnalysisManager CGAM;
+    llvm::ModuleAnalysisManager MAM;
+
+    PB.registerModuleAnalyses(MAM);
+    PB.registerCGSCCAnalyses(CGAM);
+    PB.registerFunctionAnalyses(FAM);
+    PB.registerLoopAnalyses(LAM);
+    PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+
+    PM.add(llvm::createVerifierPass());
+
+    PB.buildLTOPreLinkDefaultPipeline(OLevel);
+}
+
+#endif
 
 // ---------------------------------------------------------------------------
 // -------------------- CodeGen-related helper functions ---------------------
 // ---------------------------------------------------------------------------
+#if LLVM_VERSION_MAJOR < 18
 static CodeGenOpt::Level GetCodeGenOptLevel() {
   if (CodeGenOptLevel.getNumOccurrences()) {
     return static_cast<CodeGenOpt::Level>(unsigned(CodeGenOptLevel));
@@ -426,6 +503,23 @@ static CodeGenOpt::Level GetCodeGenOptLevel() {
   }
   return CodeGenOpt::None;
 }
+#else
+static llvm::CodeGenOptLevel GetCodeGenOptLevel() {
+    if (::CodeGenOptLevel.getNumOccurrences()) {
+        return static_cast<llvm::CodeGenOptLevel>(unsigned(::CodeGenOptLevel));
+    }
+    if (OptLevelO1) {
+        return CodeGenOptLevel::Less;
+    }
+    if (OptLevelO2) {
+        return CodeGenOptLevel::Default;
+    }
+    if (OptLevelO3) {
+        return CodeGenOptLevel::Aggressive;
+    }
+    return CodeGenOptLevel::None;
+}
+#endif
 
 #endif /* end of include guard: LIB_VERSIONING_COMPILER_CLANG_LLVM_OPT_UTILS   \
         */

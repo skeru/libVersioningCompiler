@@ -13,13 +13,12 @@ An introductory video is available on [YouTube](https://www.youtube.com/watch?v=
 
 libVersioningCompiler requires:
 
-- Ubuntu 20.04 LTS or greater / MacOS (tested with Monterey) / Archlinux / a linux distribution
+- Ubuntu 20.04 LTS or greater / MacOS (tested with Sonoma) / Arch Linux or Manjaro / a linux distribution
 - any compiler compliant to the C++17 standard
 - cmake 3.20 or greater
 - zlib
 - libuuid
-- (OPTIONAL) LLVM 13 or greater (tested up to LLVM 15)
-- (OPTIONAL) libclang-13-dev or greater (tested up to libclang-15-dev)
+- (OPTIONAL) LLVM 18 or greater (tested up to LLVM 19)
 
 Compiling without the OPTIONAL dependencies will disable some features,
 like the Clang-as-a-library compiler implementation.
@@ -42,7 +41,7 @@ To install the required libraries
 sudo apt-get install --yes build-essential cmake zlib1g-dev uuid-dev
 ```
 
-Then optionally install [llvm](https://llvm.org/) 13 or greater (tested up to LLVM 15) and libclang-13-dev or greater (tested up to libclang-15-dev), either using [LLVM installer](https://apt.llvm.org/#llvmsh) or via [Ubuntu packages](https://packages.ubuntu.com/search?keywords=llvm).
+Then optionally install [llvm](https://llvm.org/) 18 or greater (tested up to LLVM 19) and libclang (if needed, on many distributions it come bundled with LLVM/Clang), either using [LLVM installer](https://apt.llvm.org/#llvmsh) or via [Ubuntu packages](https://packages.ubuntu.com/search?keywords=llvm).
 
 If you use the LLVM installer, with LLVM major version `${LLVM_V}`:
 
@@ -60,7 +59,7 @@ Eventually, update the preferred clang and llvm version:
 [optional][sudo] update-alternatives --install /usr/bin/opt opt /usr/bin/opt-${LLVM_V} 100
 ```
 
-### Archlinux
+### Arch Linux / Manjaro
 
 ```bash
 sudo pacman -S cmake llvm zlib [clang]
@@ -117,7 +116,7 @@ If you want to build libVersioningCompiler using verbose flags and a custom comp
 
 ```bash
 cd libVersioningCompiler
-CXX="/opt/clang-14/bin/clang" cmake -D CMAKE_VERBOSE_MAKEFILE=1 -D LIBCLANG_FIND_VERBOSE=1 -D LLVM_FIND_VERBOSE=1 -D LLVM_FIND_VERBOSE=1 -S . -B build
+CXX="/usr/bin/clang" cmake -D CMAKE_VERBOSE_MAKEFILE=1 -D LIBCLANG_FIND_VERBOSE=1 -D LLVM_FIND_VERBOSE=1 -D LLVM_FIND_VERBOSE=1 -D JIT_ENABLE=0 -S . -B build
 cmake --build build -v
 ```
 
@@ -129,8 +128,9 @@ cmake  \
 -D LLVM_LIBRARY_DIR="/opt/x86_64-linux-gnu-llvm-static/lib" \
 -D LLVM_INCLUDE_DIR="/opt/x86_64-linux-gnu-llvm-static/include" \
 -D LLVM_TOOLS_BINARY_DIR="/opt/x86_64-linux-gnu-llvm-static/bin" \
--D LLVM_VERSION_MAJOR=15 \
--D LLVM_PACKAGE_VERSION="15.0.6" \
+-D LLVM_VERSION_MAJOR=18 \
+-D LLVM_PACKAGE_VERSION="18.1.3" \
+-D ENABLE_JIT=0 \
  -S . -B build
 cmake --build build
 ```
@@ -142,6 +142,7 @@ Explanation:
 - `LLVM_INCLUDE_DIR` specifies where to find llvm headers
 - `LLVM_TOOLS_BINARY_DIR` specifies where to find llvm binaries (llvm-config, opt etc)
 - `LLVM_VERSION_MAJOR` and `LLVM_PACKAGE_VERSION` must be specified because FindLLVM.cmake is (usually) not included into llvm static builds
+- `ENABLE_JIT` Option to include or exclude the JITCompiler, currently not ported to LLVM 18 and upwards
 
 Libclang will be found too after defining those variables.
 
@@ -156,14 +157,21 @@ cmake  \
 -D LLVM_LIBRARY_DIR="/opt/homebrew/opt/llvm/lib" \
 -D LLVM_INCLUDE_DIR="/opt/homebrew/opt/llvm/include" \
 -D LLVM_TOOLS_BINARY_DIR="/opt/homebrew/opt/llvm/bin" \
--D LLVM_VERSION_MAJOR=15 \ # Update this if required
+-D LLVM_VERSION_MAJOR=18 \ # Update this if required
 -D LLVM_SHARED_MODE="static" \
--D LLVM_PACKAGE_VERSION="15.0.7" \ # Update this accordingly to /opt/homebrew/opt/llvm/bin/llvm-config --version
+-D LLVM_PACKAGE_VERSION="18.1.3" \ # Update this accordingly to /opt/homebrew/opt/llvm/bin/llvm-config --version
+-D ENABLE_JIT=0 \
  -S . -B build
 
  cmake --build build -v
 ```
+## Compatibility with LLVM versions prior to 18
+The project has legacy versions that are compatible with LLVM 13 to 15. Instructions are provided inside the repository. In order to go back to the legacy libVersioningCompiler versions:
 
+```bash
+cd ${LIBVC_ROOT}
+git checkout b085535f83dc051edeede68905d2eca6f5cdd65c
+```
 ## Essential classes
 
 - Version :
@@ -292,15 +300,15 @@ vc::compiler_ptr_t gcc = vc::make_compiler<vc::SystemCompiler>(
                                         );
 
 // custom installation of LLVM/clang
-// /opt/clang-13/bin/clang as compiler and /opt/clang-13/bin/opt as optimizer
+// Clang as compiler and LLVM opt as optimizer
 vc::compiler_ptr_t clang = vc::make_compiler<vc::SystemCompilerOptimizer>(
                                             "llvm/clang",
                                             std::filesystem::u8path("clang"),
                                             std::filesystem::u8path("opt"),
                                             std::filesystem::u8path("."),
                                             std::filesystem::u8path("./test.log"),
-                                            std::filesystem::u8path("/opt/clang-13/bin"),
-                                            std::filesystem::u8path("/opt/clang-13/bin)"
+                                            std::filesystem::u8path("/usr/bin"), // compiler path
+                                            std::filesystem::u8path("/usr/bin")  // optimizer path
                                           );
 ```
 

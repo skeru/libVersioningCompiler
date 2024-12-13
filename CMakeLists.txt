@@ -2,6 +2,9 @@
 # Developed by : Stefano Cherubin, Davide Gadioli
 #                PhD student, Politecnico di Milano
 #                <first_name>.<family_name>@polimi.it
+#                Alessandro Vacca
+#                MSc student, Politecnico di Milano
+#                <first_name>2.<family_name>@mail.polimi.it
 #
 # This file is part of libVersioningCompiler
 #
@@ -27,6 +30,9 @@ project(
   DESCRIPTION
     "library for runtime compilation and dynamic loading of a C/C++ function"
   LANGUAGES CXX C)
+
+# Add the option to enable or disable the JIT compiler (default=OFF), as it has not been adapted to LLVM >= 18
+option(ENABLE_JIT "Enable JIT compilation support" OFF)
 
 #----- Set the name of the Version Compiler library
 set(VC_LIB_NAME "VersioningCompiler")
@@ -68,7 +74,7 @@ if(LLVM_FOUND)
   link_directories(${LLVM_LIBRARY_DIR})
 endif(LLVM_FOUND)
 
-set(LLVM_VERSION_MIN_REQUIRED "13.0.0")
+set(LLVM_VERSION_MIN_REQUIRED "18.0.0")
 
 if(LLVM_FOUND
    AND (NOT (LLVM_PACKAGE_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED))
@@ -97,6 +103,11 @@ if(ENABLE_CLANG_AS_LIB)
 
   set(VC_DEPS_EXTRA_LINK_FLAGS "${LLVM_LFLAGS}")
 endif(ENABLE_CLANG_AS_LIB)
+
+if(ENABLE_JIT AND NOT ENABLE_CLANG_AS_LIB)
+  message(WARNING "The JITCompiler implementation requires LLVM/Clang integration, which has been disabled. JITCompiler is being disabled.")
+  set(ENABLE_JIT OFF)
+endif()
 
 list(REMOVE_DUPLICATES VC_LIB_DEPS)
 
@@ -139,9 +150,10 @@ set(VC_LIB_SRC
 set(VC_LIB_HDR_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/include/versioningCompiler)
 set(VC_LIB_HDR1
     ${VC_LIB_HDR_PREFIX}/Version.hpp ${VC_LIB_HDR_PREFIX}/Option.hpp
-    ${VC_LIB_HDR_PREFIX}/Compiler.hpp ${VC_LIB_HDR_PREFIX}/Utils.hpp
-    ${VC_LIB_HDR_PREFIX}/DebugUtils.hpp ${VC_LIB_HDR_PREFIX}/JITUtils.hpp)
-
+    ${VC_LIB_HDR_PREFIX}/Compiler.hpp ${VC_LIB_HDR_PREFIX}/Utils.hpp)
+if(ENABLE_JIT)
+  list(APPEND VC_LIB_HDR1 ${VC_LIB_HDR_PREFIX}/JITUtils.hpp)
+endif()
 set(VC_LIB_HDR_PREFIX2
     ${CMAKE_CURRENT_SOURCE_DIR}/include/versioningCompiler/CompilerImpl)
 set(VC_LIB_HDR2
@@ -156,13 +168,18 @@ if(ENABLE_CLANG_AS_LIB)
 
   set(VC_LIB_SRC
       ${VC_LIB_SRC}
-      ${SRC_PREFIX}/CompilerImpl/JITCompiler.cpp
       ${SRC_PREFIX}/CompilerImpl/ClangLibCompiler.cpp
       ${SRC_PREFIX}/CompilerImpl/ClangLLVM/FileLogDiagnosticConsumer.cpp
       ${SRC_PREFIX}/CompilerImpl/ClangLLVM/LLVMInstanceManager.cpp)
 
-  set(VC_LIB_HDR2 ${VC_LIB_HDR2} ${VC_LIB_HDR_PREFIX2}/JITCompiler.hpp
-                  ${VC_LIB_HDR_PREFIX2}/ClangLibCompiler.hpp)
+  if(ENABLE_JIT)
+    list(APPEND VC_LIB_SRC
+            ${SRC_PREFIX}/CompilerImpl/JITCompiler.cpp)
+    list(APPEND VC_LIB_HDR2
+            ${VC_LIB_HDR_PREFIX2}/JITCompiler.hpp)
+  endif()
+
+  set(VC_LIB_HDR2 ${VC_LIB_HDR2} ${VC_LIB_HDR_PREFIX2}/ClangLibCompiler.hpp)
 
   set(VC_LIB_HDR_PREFIX3
       ${CMAKE_CURRENT_SOURCE_DIR}/include/versioningCompiler/CompilerImpl/ClangLLVM
@@ -233,7 +250,7 @@ endif(NOT CPP_LIBRARY)
 #----- Sources
 
 # It does make no sense building it if there is no LLVM, given that the JIT implementation relies on LLVM.
-if(ENABLE_CLANG_AS_LIB)
+if(ENABLE_JIT)
   set(VC_TESTJIT_APP_SRC TestJit.cpp)
   set(VC_EXEJIT_NAME libVC_testJit)
   add_executable(${VC_EXEJIT_NAME} ${VC_TESTJIT_APP_SRC})
@@ -249,7 +266,7 @@ if(ENABLE_CLANG_AS_LIB)
   if(CMAKE_BUILD_TYPE MATCHES DEBUG)
     target_compile_definitions(${VC_EXEJIT_NAME} PRIVATE -DVC_DEBUG)
   endif(CMAKE_BUILD_TYPE MATCHES DEBUG)
-endif(ENABLE_CLANG_AS_LIB)
+endif(ENABLE_JIT)
 
 # Test.cpp
 #----- Sources
@@ -300,6 +317,6 @@ endif(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
 install(TARGETS ${VC_EXE_NAME} DESTINATION bin/test)
 install(TARGETS ${VC_EXEUTILS_NAME} DESTINATION bin/test)
-if(ENABLE_CLANG_AS_LIB)
+if(ENABLE_JIT)
   install(TARGETS ${VC_EXEJIT_NAME} DESTINATION bin/test)
-endif(ENABLE_CLANG_AS_LIB)
+endif(ENABLE_JIT)

@@ -5,6 +5,9 @@
  *                Moreno Giussani
  *                Ms student, Politecnico di Milano
  *                <first_name>.<family_name>@mail.polimi.it
+ *                Alessandro Vacca
+ *                MSc student, Politecnico di Milano
+ *                <first_name>2.<family_name>@mail.polimi.it
  *
  * This file is part of libVersioningCompiler
  *
@@ -143,7 +146,7 @@ ClangLibCompiler::generateIR(const std::vector<std::filesystem::path> &src,
   }
   Compiler::log_string(log_str);
 
-  driver::Driver NikiLauda(_llvmManager->getClangExePath().string(),
+  clang::driver::Driver NikiLauda(_llvmManager->getClangExePath().string(),
                            _llvmManager->getDefaultTriple()->str(),
                            *_diagEngine);
   NikiLauda.setTitle("clang as a library");
@@ -156,14 +159,14 @@ ClangLibCompiler::generateIR(const std::vector<std::filesystem::path> &src,
   NikiLauda.CCPrintOptions = false;
 #endif
 
-  std::unique_ptr<driver::Compilation> C(NikiLauda.BuildCompilation(cmd_str));
+  std::unique_ptr<clang::driver::Compilation> C(NikiLauda.BuildCompilation(cmd_str));
   if (!C) {
     report_error("clang::driver::Compilation not created");
     Compiler::unlockMutex(logFile);
     return failureFileName;
   }
 
-  llvm::SmallVector<std::pair<int, const driver::Command *>, 1> failCmd;
+  llvm::SmallVector<std::pair<int, const clang::driver::Command *>, 1> failCmd;
   const auto res = NikiLauda.ExecuteCompilation(*C, failCmd);
   Compiler::unlockMutex(logFile);
 
@@ -287,37 +290,60 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   llvm::Triple moduleTriple(module->getTargetTriple());
   std::string optCPUStr, optFeaturesStr;
   llvm::TargetMachine *optTMachine = nullptr;
-  const llvm::TargetOptions Options =
-      llvm::codegen::InitTargetOptionsFromCodeGenFlags(moduleTriple);
-  // llvm static helper function
-  std::string lookupError;
-  if (moduleTriple.getArch()) {
-    optCPUStr = llvm::codegen::getCPUStr(); // llvm static helper function
-    optFeaturesStr =
-        llvm::codegen::getFeaturesStr(); // llvm static helper function
-  }
 
+  const llvm::TargetOptions Options = llvm::TargetOptions();
+  optCPUStr = sys::getHostCPUName().str();
+#if LLVM_VERSION_MAJOR < 19
+  // on LLVM 19 and later, getHostCPUFeatures returns StringMap<bool> directly,
+  // while on LLVM 18 and earlier it gets its return value as a passed argument
+  llvm::StringMap<bool> features;
+  llvm::sys::getHostCPUFeatures(features);
+#else
+  llvm::StringMap<bool> features = llvm::sys::getHostCPUFeatures();
+#endif
+   // llvm static helper function
+   std::string lookupError;
+   if (moduleTriple.getArch()) {
+     optCPUStr = sys::getHostCPUName().str();
+    std::string featuresStr;
+    for (const auto &feature : features) {
+      if (feature.second) {
+        if (!featuresStr.empty())
+          featuresStr += ",";
+        featuresStr += feature.first().str();
+      }
+    }
+    optFeaturesStr = featuresStr;
+  }
+#if LLVM_VERSION_MAJOR < 18
   const llvm::Target *TheTarget = llvm::TargetRegistry::lookupTarget(
       llvm::codegen::getMArch(), moduleTriple, lookupError);
+#else
+  const llvm::Target *TheTarget = llvm::TargetRegistry::lookupTarget(
+      "", moduleTriple, lookupError);
+#endif
   // Some modules don't specify a triple, and this is okay.
   if (!TheTarget) {
     optTMachine = nullptr;
   } else {
+    // llvm::codegen::getCodeModel returns zero (casted to Tiny), which is wrong!
+    // Going with small which is the default model for majority of supported targets
+    std::optional<Reloc::Model> reloc = std::make_optional<Reloc::Model>(Reloc::Model::Static);
+    std::optional<CodeModel::Model> code_model = std::make_optional<CodeModel::Model>(CodeModel::Model::Small);
     optTMachine = TheTarget->createTargetMachine(
         moduleTriple.getTriple(), optCPUStr, optFeaturesStr, Options,
-        llvm::codegen::getRelocModel(),
-        llvm::CodeModel::Small, // llvm::codegen::getCodeModel returns zero
-                                // (casted to Tiny), which is wrong! Going with
-                                // small which is the default model for majority
-                                // of supported targets
+        reloc,
+        code_model,
         GetCodeGenOptLevel());
   }
 
   std::unique_ptr<llvm::TargetMachine> actualTM(optTMachine);
   // Override function attributes based on CPUStr, FeaturesStr,
   // and command line flags.
+  // This also causes the program to segfault if executed, hence it is available only in older LLVM versions
+#if LLVM_VERSION_MAJOR < 18
   llvm::codegen::setFunctionAttributes(optCPUStr, optFeaturesStr, *module);
-
+#endif
   // Create a PassManager to hold and optimize the collection of passes we are
   // about to build.
   llvm::legacy::PassManager Passes;
@@ -466,14 +492,18 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
     }
     Passes.add(createPrintModulePass(*OS, "", PreserveAssemblyUseListOrder));
   } 
-#if LLVM_VERSION_MAJOR < 16
+#if LLVM_VERSION_MAJOR < 18
   else if (OutputThinLTOBC) {
     Passes.add(createWriteThinLTOBitcodePass(*OS));
   } 
 #endif
   else {
+#if LLVM_VERSION_MAJOR < 18
     Passes.add(createBitcodeWriterPass(*OS, PreserveBitcodeUseListOrder,
                                        EmitSummaryIndex, EmitModuleHash));
+#else
+    Passes.add(createBitcodeWriterPass(*OS, PreserveBitcodeUseListOrder));
+#endif
   }
 
 #ifdef VC_DEBUG
@@ -584,7 +614,7 @@ ClangLibCompiler::generateBin(const std::vector<std::filesystem::path> &src,
   }
   Compiler::log_string(log_str);
 
-  driver::Driver NikiLauda(_llvmManager->getClangExePath().string(),
+  clang::driver::Driver NikiLauda(_llvmManager->getClangExePath().string(),
                            _llvmManager->getDefaultTriple()->str(),
                            *_diagEngine);
   NikiLauda.setTitle("clang as a library");
@@ -596,13 +626,13 @@ ClangLibCompiler::generateBin(const std::vector<std::filesystem::path> &src,
   NikiLauda.CCPrintOptions = false;
 #endif
 
-  std::unique_ptr<driver::Compilation> C(NikiLauda.BuildCompilation(cmd_str));
+  std::unique_ptr<clang::driver::Compilation> C(NikiLauda.BuildCompilation(cmd_str));
   if (!C) {
     report_error("clang::driver::Compilation not created");
     return failureFileName;
   }
 
-  llvm::SmallVector<std::pair<int, const driver::Command *>, 1> failCmd;
+  llvm::SmallVector<std::pair<int, const clang::driver::Command *>, 1> failCmd;
   const auto res = NikiLauda.ExecuteCompilation(*C, failCmd);
 
   if (exists(libFileName)) {

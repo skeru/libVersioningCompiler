@@ -5,6 +5,9 @@
  *                Moreno Giussani
  *                Ms student, Politecnico di Milano
  *                <first_name>.<family_name>@mail.polimi.it
+ *                Alessandro Vacca
+ *                MSc student, Politecnico di Milano
+ *                <first_name>2.<family_name>@mail.polimi.it
  *
  * This file is part of libVersioningCompiler
  *
@@ -97,9 +100,19 @@ void LLVMInstanceManager::initializeLLVM() {
   llvm::initializeTarget(passRegistry);
   // For codegen passes, only passes that do IR to IR transformation are
   // supported.
-  llvm::initializeCodeGenPreparePass(passRegistry);
+#if LLVM_VERSION_MAJOR < 18
   llvm::initializeAtomicExpandPass(passRegistry);
-  llvm::initializeRewriteSymbolsLegacyPassPass(passRegistry);
+  llvm::initializeCodeGenPreparePass(passRegistry);
+  llvm::initializeRewriteSymbols(passRegistry);
+#else
+#if LLVM_VERSION_MAJOR < 19
+  // This has been renamed to AtomicExpandLegacyPass in LLVM 19
+  llvm::initializeAtomicExpandPass(passRegistry);
+#else
+  llvm::initializeAtomicExpandLegacyPass(passRegistry);
+#endif
+  llvm::initializeCodeGenPrepareLegacyPassPass(passRegistry);
+#endif
   llvm::initializeWinEHPreparePass(passRegistry);
   llvm::initializeDwarfEHPrepareLegacyPassPass(passRegistry);
   llvm::initializeSafeStackLegacyPassPass(passRegistry);
