@@ -26,7 +26,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(
   libVersioningCompiler
-  VERSION 3.0
+  VERSION 3.1
   DESCRIPTION
     "library for runtime compilation and dynamic loading of a C/C++ function"
   LANGUAGES CXX C)

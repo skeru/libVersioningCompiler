@@ -1,0 +1,12 @@
+Changelog
+===
+
+Version 3.1
+---
+
+2024-12-16
+
+- Bump min LLVM version to release 18.x
+- Support LLVM version release 19.x
+- Remove obsolete TAFFO support
+- Disable obsolete support for JITCompiler. Please use Clang as a Library instead.
