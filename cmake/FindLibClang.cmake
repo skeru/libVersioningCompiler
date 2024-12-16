@@ -11,59 +11,69 @@
 #               The path to the directory containing libclang.
 
 # Find the latest llvm version, unless LLVM_FOUND is yet set
-if(NOT LLVM_FOUND)
-  set(LLVM_KNOWN_MAJOR_VERSIONS
-      19
-      18
-      17
-      16
-      15
-      14
-      13
-      12
-      11
-      10
-      9
-      8
-      7
-      6.0
-      5.0
-      4.0
-      3.9
-      3.8)
-  foreach(ver ${LLVM_KNOWN_MAJOR_VERSIONS})
-    find_package(LLVM ${ver} QUIET)
-    if(LLVM_FOUND)
-      # Call the main findLLVM.cmake to check LLVM setup and set some flags such
-      # as: LLVM_LIBRARY_DIR, LLVM_INCLUDE_DIR, LLVM_TOOLS_BINARY_DIR,
-      # LLVM_VERSION_MAJOR, LLVM_PACKAGE_VERSION
-      if(LLVM_FIND_VERBOSE)
-        find_package(LLVM ${ver} CONFIG)
-      else(LLVM_FIND_VERBOSE)
-        find_package(LLVM ${ver} CONFIG QUIET)
-      endif(LLVM_FIND_VERBOSE)
-      break() # Exit on the first version found (they are sorted in descending
-              # order)
-    endif(LLVM_FOUND)
-  endforeach(ver ${LLVM_KNOWN_VERSIONS})
-endif(NOT LLVM_FOUND)
 
-find_path(
-  LIBCLANG_INCLUDE_DIRS clang-c/Index.h
-  PATHS ${LLVM_INCLUDE_DIR}
-  NO_DEFAULT_PATH
-  PATH_SUFFIXES LLVM/include # Windows package from http://llvm.org/releases/
-  DOC "The path to the directory that contains clang-c/Index.h")
-# Find LLVM Config
+find_package(LLVM_config QUIET)
 
 if(NOT LLVM_CONFIG_EXECUTABLE)
+  if(LIBCLANG_FIND_VERBOSE)
+    message(STATUS "FindLibClang is looking for llvm-config...")
+  endif(LIBCLANG_FIND_VERBOSE)
   find_program(
     LLVM_CONFIG_EXECUTABLE
     NAMES "llvm-config-${LLVM_VERSION_MAJOR}" "llvm-config"
     DOC "llvm-config executable"
-    PATHS ${LLVM_TOOLS_BINARY_DIR}
+    PATHS ${LLVM_TOOLS_BINARY_DIR} /usr/bin
     NO_DEFAULT_PATH)
 endif(NOT LLVM_CONFIG_EXECUTABLE)
+
+if(NOT LLVM_INCLUDE_DIR)
+  message(STATUS "FindLibClang did not find LLVM include directories")
+else(NOT LLVM_INCLUDE_DIR)
+  if(LIBCLANG_FIND_VERBOSE)
+    message(STATUS "Looking for clang headers in = ${LLVM_INCLUDE_DIR}")
+  endif(LIBCLANG_FIND_VERBOSE)
+  find_path(
+    LIBCLANG_INCLUDE_DIRS clang-c/Index.h
+    PATHS ${LLVM_INCLUDE_DIR}
+    NO_DEFAULT_PATH
+    PATH_SUFFIXES LLVM/include # Windows package from http://llvm.org/releases/
+    DOC "The path to the directory that contains clang-c/Index.h"
+  )
+endif(NOT LLVM_INCLUDE_DIR)
+
+if (LIBCLANG_INCLUDE_DIRS)
+set(LibClang_FOUND TRUE)
+set(LIBCLANG_FOUND TRUE)
+else(LIBCLANG_INCLUDE_DIRS)
+  message(STATUS "LibClang could not find its include")
+endif(LIBCLANG_INCLUDE_DIRS)
+
+
+# Find LLVM Config
+if(NOT LLVM_CONFIG_EXECUTABLE)
+  set(LLVM_PATH_CANDIDATES "${LLVM_ROOT}")
+  list(APPEND LLVM_PATH_CANDIDATES "${LLVM_TOOLS_BINARY_DIR}") # Manually specified by user
+  list(APPEND LLVM_PATH_CANDIDATES "/usr/bin/") # Ubuntu
+  list(APPEND LLVM_PATH_CANDIDATES "/opt/homebrew/opt/llvm/") # Manjaro
+  list(APPEND LLVM_PATH_CANDIDATES "/usr/local/Cellar/llvm/") # Homebrew Cellar
+  if(LIBCLANG_FIND_VERBOSE)
+    message(STATUS "FindLibClang is looking for llvm-config...")
+  endif(LIBCLANG_FIND_VERBOSE)
+  find_program(
+    LLVM_CONFIG_EXECUTABLE
+    NAMES "llvm-config-${LLVM_VERSION_MAJOR}" "llvm-config"
+    DOC "llvm-config executable"
+    PATHS ${LLVM_PATH_CANDIDATES}
+    NO_DEFAULT_PATH)
+endif(NOT LLVM_CONFIG_EXECUTABLE)
+
+if(LIBCLANG_FIND_VERBOSE)
+  if(NOT LLVM_CONFIG_EXECUTABLE)
+    message(WARNING "FindLibClang could not find llvm-config.")
+  endif(NOT LLVM_CONFIG_EXECUTABLE)
+  message(STATUS "LIBCLANG_INCLUDE_DIRS = ${LIBCLANG_INCLUDE_DIRS}")
+endif(LIBCLANG_FIND_VERBOSE)
+
 # check if is being linked as shared or not
 if(NOT LLVM_SHARED_MODE)
   execute_process(
@@ -77,6 +87,9 @@ endif(NOT LLVM_SHARED_MODE)
 # On Windows with MSVC, the import library uses the ".imp" file extension
 # instead of the common ".lib"
 if(MSVC)
+  if(LIBCLANG_FIND_VERBOSE)
+    message(STATUS "Looking for libclang in windows mode")
+  endif(LIBCLANG_FIND_VERBOSE)
   find_file(
     LIBCLANG_LIBRARY
     libclang-${LLVM_VERSION}.imp
@@ -92,6 +105,9 @@ if(MSVC)
     DOC "The file that corresponds to the libclang library.")
 else(MSVC)
   if(LLVM_SHARED_MODE STREQUAL "shared")
+    if(LIBCLANG_FIND_VERBOSE)
+      message(STATUS "Looking for libclang in shared mode")
+    endif(LIBCLANG_FIND_VERBOSE)
     find_library(
       LIBCLANG_LIBRARY
       NAMES libclang-${LLVM_VERSION}.so.1 libclang-${LLVM_VERSION_MAJOR}.so.1
@@ -101,6 +117,9 @@ else(MSVC)
       NO_DEFAULT_PATH
       DOC "The file that corresponds to the libclang library.")
   else(LLVM_SHARED_MODE STREQUAL "shared")
+    if(LIBCLANG_FIND_VERBOSE)
+      message(STATUS "Looking for libclang in static mode")
+    endif(LIBCLANG_FIND_VERBOSE)
     # Look for libclang library, giving higher priority to statically linked
     # libraries (.a,.lib)
     find_library(
@@ -111,6 +130,7 @@ else(MSVC)
       DOC "The file that corresponds to the libclang library.")
   endif(LLVM_SHARED_MODE STREQUAL "shared")
 endif(MSVC)
+
 if(NOT LIBCLANG_LIBRARY)
   message(STATUS "LibClang library ... = NOT FOUND")
 else()
@@ -158,11 +178,17 @@ endmacro(FIND_AND_ADD_CLANG_LIB)
 
 set(LIBCLANG_LIBRARIES)
 
+if(NOT LLVM_FOUND)
+  if(LIBCLANG_FIND_VERBOSE)
+    message(WARNING "LLVM has not been found. Avoid searching for LibClang.")
+  endif(LIBCLANG_FIND_VERBOSE)
+else(NOT LLVM_FOUND)
+# Only Look for Clang libraries if LLVM somehow been found
 find_and_add_clang_lib(clang-cpp)
 if(NOT CLANG_clang-cpp_LIB)
-  message(
-    WARNING
-      "Cannot find library libclang! Attempting to find the single libraries!")
+  if(LIBCLANG_FIND_VERBOSE)
+    message(WARNING "Cannot find library libclang! Attempting to find the single libraries!")
+  endif(LIBCLANG_FIND_VERBOSE)
   find_and_add_clang_lib(clang NAMES clang libclang)
   # Clang shared library provides just the limited C interface, so it can not be
   # used.  We look for the static libraries.
@@ -181,7 +207,6 @@ endif(NOT CLANG_clang-cpp_LIB)
 list(REMOVE_DUPLICATES LIBCLANG_LIBRARY_DIR)
 # -----------------------------------------------------------------------------
 # Actions taken when all components have been found
-
 if(LIBCLANG_INCLUDE_DIRS AND LIBCLANG_LIBRARY)
   set(LIBCLANG_FOUND TRUE)
 else(LIBCLANG_INCLUDE_DIRS AND LIBCLANG_LIBRARY)
@@ -195,11 +220,16 @@ else(LIBCLANG_INCLUDE_DIRS AND LIBCLANG_LIBRARY)
   endif(LIBCLANG_FIND_VERBOSE)
 endif(LIBCLANG_INCLUDE_DIRS AND LIBCLANG_LIBRARY)
 
+endif(NOT LLVM_FOUND)
+
+# Wrap up
+
 if(LIBCLANG_FOUND)
   if(LIBCLANG_FIND_VERBOSE)
     message(STATUS "Found components for libClang")
-    message(STATUS "LibClang headers dirs= ${LIBCLANG_INCLUDE_DIRS}")
-    message(STATUS "LibClang libs path . = ${LIBCLANG_LIBRARIES}")
+    message(STATUS "LibClang headers dirs = ${LIBCLANG_INCLUDE_DIRS}")
+    message(STATUS "LibClang libs path .. = ${LIBCLANG_LIBRARY_DIR}")
+    message(STATUS "LibClang libs ....... = ${LIBCLANG_LIBRARIES}")
   endif(LIBCLANG_FIND_VERBOSE)
 else(LIBCLANG_FOUND)
   if(LIBCLANG_FIND_REQUIRED)

@@ -38,6 +38,7 @@
 
 if(NOT LLVM_FOUND)
   set(LLVM_KNOWN_MAJOR_VERSIONS
+      19.1
       19
       18
       17
@@ -63,22 +64,63 @@ if(NOT LLVM_FOUND)
       # as: LLVM_LIBRARY_DIR, LLVM_INCLUDE_DIR, LLVM_TOOLS_BINARY_DIR,
       # LLVM_VERSION_MAJOR, LLVM_PACKAGE_VERSION
       if(LLVM_FIND_VERBOSE)
+        message(STATUS "Package LLVM found with default cmake finder for version ${ver}")
         find_package(LLVM ${ver} CONFIG)
       else(LLVM_FIND_VERBOSE)
         find_package(LLVM ${ver} CONFIG QUIET)
       endif(LLVM_FIND_VERBOSE)
       set(LLVM_config_FOUND TRUE)
       break()
+    else(LLVM_FOUND)
+      set(LLVM_PATH_CANDIDATES "${LLVM_ROOT}")
+      list(APPEND LLVM_PATH_CANDIDATES "${LLVM_TOOLS_BINARY_DIR}") # Manually specified by user
+      list(APPEND LLVM_PATH_CANDIDATES "/usr/bin/") # Ubuntu
+      list(APPEND LLVM_PATH_CANDIDATES "/opt/homebrew/opt/llvm/") # Manjaro
+      list(APPEND LLVM_PATH_CANDIDATES "/usr/local/Cellar/llvm@${ver}/") # Homebrew Cellar
+
+      if(LLVM_FIND_VERBOSE)
+        message(STATUS "LLVM not found by cmake default finder for version ${ver}.")
+        message(STATUS "Moving on to deep search in known install paths for version ${ver}.")
+      endif(LLVM_FIND_VERBOSE)
+      if(NOT LLVM_CONFIG_EXECUTABLE)
+         find_program(
+           LLVM_CONFIG_EXECUTABLE
+           NAMES "llvm-config-${ver}"
+           DOC "llvm-config executable with version filename"
+           PATHS ${LLVM_PATH_CANDIDATES}
+           NO_DEFAULT_PATH)
+      else(NOT LLVM_CONFIG_EXECUTABLE)
+        message(STATUS "Using manually provided LLVM_CONFIG_EXECUTABLE: ${LLVM_CONFIG_EXECUTABLE}.")
+        set(LLVM_config_FOUND TRUE)
+        set(LLVM_FOUND TRUE)
+        break()
+      endif(NOT LLVM_CONFIG_EXECUTABLE)
     endif(LLVM_FOUND)
+    if(NOT LLVM_CONFIG_EXECUTABLE)
+      if(LLVM_FIND_VERBOSE)
+        message(STATUS "LLVM config exe not found for version ${ver}")
+      endif(LLVM_FIND_VERBOSE)
+    else(NOT LLVM_CONFIG_EXECUTABLE)
+      set(LLVM_VERSION_MAJOR ${ver})
+      message(STATUS "Found LLVM version ${ver}")
+      set(LLVM_config_FOUND TRUE)
+      set(LLVM_FOUND TRUE)
+      break()
+    endif(NOT LLVM_CONFIG_EXECUTABLE)
   endforeach(ver ${LLVM_KNOWN_VERSIONS})
 endif(NOT LLVM_FOUND)
 
 if(NOT LLVM_CONFIG_EXECUTABLE)
+  set(LLVM_PATH_CANDIDATES "${LLVM_ROOT}")
+  list(APPEND LLVM_PATH_CANDIDATES "${LLVM_TOOLS_BINARY_DIR}") # Manually specified by user
+  list(APPEND LLVM_PATH_CANDIDATES "/usr/bin/") # Ubuntu
+  list(APPEND LLVM_PATH_CANDIDATES "/opt/homebrew/opt/llvm/") # Manjaro
+  list(APPEND LLVM_PATH_CANDIDATES "/usr/local/Cellar/llvm/") # Homebrew Cellar
   find_program(
     LLVM_CONFIG_EXECUTABLE
     NAMES "llvm-config-${LLVM_VERSION_MAJOR}" "llvm-config"
-    DOC "llvm-config executable"
-    PATHS ${LLVM_TOOLS_BINARY_DIR}
+    DOC "llvm-config executable, including versionless filename"
+    PATHS ${LLVM_PATH_CANDIDATES}
     NO_DEFAULT_PATH)
 endif(NOT LLVM_CONFIG_EXECUTABLE)
 
@@ -166,6 +208,36 @@ if(NOT LLVM_TOOLS_BINARY_DIR)
     OUTPUT_STRIP_TRAILING_WHITESPACE)
 endif(NOT LLVM_TOOLS_BINARY_DIR)
 
+if(NOT LLVM_INCLUDE_DIR)
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --includedir
+    OUTPUT_VARIABLE LLVM_INCLUDE_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  separate_arguments(LLVM_INCLUDE_DIR)
+endif(NOT LLVM_INCLUDE_DIR)
+
+if(NOT LLVM_LIBRARY_DIR)
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --libdir
+    OUTPUT_VARIABLE LLVM_LIBRARY_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  separate_arguments(LLVM_LIBRARY_DIR)
+endif(NOT LLVM_LIBRARY_DIR)
+
+if(NOT LLVM_PACKAGE_VERSION)
+  execute_process(
+    COMMAND ${LLVM_CONFIG_EXECUTABLE} --version
+    OUTPUT_VARIABLE LLVM_PACKAGE_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif(NOT LLVM_PACKAGE_VERSION)
+
+# pick only major
+if((NOT LLVM_VERSION_MAJOR) AND (NOT LLVM_VERSION_MAJOR-NOTFOUND))
+  string(REGEX MATCH "([0-9]*)\..*" LLVM_VERSION_MAJOR ${LLVM_PACKAGE_VERSION})
+  #set(LLVM_VERSION_MAJOR ${LLVM_PACKAGE_VERSION})
+endif((NOT LLVM_VERSION_MAJOR) AND (NOT LLVM_VERSION_MAJOR-NOTFOUND))
+
+
 if(NOT CLANG_EXE_NAME)
   find_program(
     CLANG_EXE_FULLPATH
@@ -180,7 +252,7 @@ if(NOT OPT_EXE_NAME)
     OPT_EXE_FULLPATH
     NAMES "opt-${LLVM_VERSION_MAJOR}" "opt"
     DOC "opt executable"
-    PATHS ${LLVM_TOOLS_BINARY_DIR}
+    PATHS ${LLVM_TOOLS_BINARY_DIR} /usr/bin
     NO_DEFAULT_PATH)
   get_filename_component(OPT_EXE_NAME ${OPT_EXE_FULLPATH} NAME)
 endif(NOT OPT_EXE_NAME)
@@ -239,22 +311,42 @@ endif(LLVM_FIND_VERBOSE)
 
 # Required to adjust imports based on the llvm major version
 if(LLVM_VERSION_MAJOR)
-  add_definitions(-DLLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR})
+  add_compile_definitions(LLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR})
+  list(REMOVE_DUPLICATES COMPILE_DEFINITIONS)
 endif(LLVM_VERSION_MAJOR)
 # Required to adjust paths without having runtime penalties for string
 # composition
 if(NOT CLANG_EXE_FULLPATH-NOTFOUND)
-  add_definitions(-DCLANG_EXE_FULLPATH="${CLANG_EXE_FULLPATH}")
+  add_compile_definitions(CLANG_EXE_FULLPATH="${CLANG_EXE_FULLPATH}")
 endif(NOT CLANG_EXE_FULLPATH-NOTFOUND)
 if(NOT OPT_EXE_FULLPATH-NOTFOUND)
-  add_definitions(-DOPT_EXE_FULLPATH="${OPT_EXE_FULLPATH}")
+  if(LLVM_FIND_VERBOSE)
+    message(STATUS "OPT_EXE_FULLPATH ..... = ${OPT_EXE_FULLPATH}")
+  endif(LLVM_FIND_VERBOSE)
+  add_compile_definitions(OPT_EXE_FULLPATH="${OPT_EXE_FULLPATH}")
 endif(NOT OPT_EXE_FULLPATH-NOTFOUND)
 if(NOT CLANG_EXE_NAME-NOTFOUND)
-  add_definitions(-DCLANG_EXE_NAME="${CLANG_EXE_NAME}")
+  add_compile_definitions(CLANG_EXE_NAME="${CLANG_EXE_NAME}")
 endif(NOT CLANG_EXE_NAME-NOTFOUND)
 if(NOT OPT_EXE_NAME-NOTFOUND)
-  add_definitions(-DOPT_EXE_NAME="${OPT_EXE_NAME}")
+  if(LLVM_FIND_VERBOSE)
+    message(STATUS "OPT ..... = ${OPT_EXE_NAME}")
+  endif(LLVM_FIND_VERBOSE)
+  add_compile_definitions(OPT_EXE_NAME="${OPT_EXE_NAME}")
+else(NOT OPT_EXE_NAME-NOTFOUND)
+  if(LLVM_FIND_VERBOSE)
+    message(STATUS "OPT_EXE not found")
+  endif(LLVM_FIND_VERBOSE)
 endif(NOT OPT_EXE_NAME-NOTFOUND)
+if(NOT LLVM_INCLUDE_DIR-NOTFOUND)
+  if(LLVM_FIND_VERBOSE)
+    message(STATUS "LLVM_INCLUDE_DIR ..... = ${LLVM_INCLUDE_DIR}")
+  endif(LLVM_FIND_VERBOSE)
+else(NOT LLVM_INCLUDE_DIR-NOTFOUND)
+  if(LLVM_FIND_VERBOSE)
+    message(STATUS "LLVM_INCLUDE_DIR not found")
+  endif(LLVM_FIND_VERBOSE)
+endif(NOT LLVM_INCLUDE_DIR-NOTFOUND)
 
 mark_as_advanced(
   LLVM_FOUND

@@ -60,19 +60,19 @@ find_package(UUID REQUIRED)
 include_directories(${UUID_INCLUDE_DIR})
 link_directories(${UUID_LIBRARY})
 
-# LibClang library
-find_package(LibClang)
-if(LIBCLANG_FOUND)
-  include_directories(${LIBCLANG_INCLUDE_DIRS})
-  link_directories(${LIBCLANG_LIBRARY_DIR})
-endif(LIBCLANG_FOUND)
-
 # LLVM library
 find_package(LLVM_config)
 if(LLVM_FOUND)
   include_directories(${LLVM_INCLUDE_DIR})
   link_directories(${LLVM_LIBRARY_DIR})
 endif(LLVM_FOUND)
+
+# LibClang library
+find_package(LibClang)
+if(LIBCLANG_FOUND)
+  include_directories(${LIBCLANG_INCLUDE_DIRS})
+  link_directories(${LIBCLANG_LIBRARY_DIR})
+endif(LIBCLANG_FOUND)
 
 set(LLVM_VERSION_MIN_REQUIRED "18.0.0")
 
@@ -284,6 +284,7 @@ target_compile_definitions(
   ${VC_EXE_NAME} PRIVATE -DLLVM_TOOLS_BINARY_DIR="${LLVM_TOOLS_BINARY_DIR}")
 
 if(ENABLE_CLANG_AS_LIB)
+  target_link_directories(${VC_EXE_NAME} PUBLIC ${LIBCLANG_LIBRARY_DIR})
   target_compile_definitions(${VC_EXE_NAME} PRIVATE -DHAVE_CLANG_AS_LIB)
 endif(ENABLE_CLANG_AS_LIB)
 if(CMAKE_BUILD_TYPE MATCHES DEBUG)
