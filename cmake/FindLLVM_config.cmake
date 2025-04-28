@@ -38,6 +38,7 @@
 
 if(NOT LLVM_FOUND)
   set(LLVM_KNOWN_MAJOR_VERSIONS
+      20
       19.1
       19
       18
@@ -77,6 +78,7 @@ if(NOT LLVM_FOUND)
       list(APPEND LLVM_PATH_CANDIDATES "/usr/bin/") # Ubuntu
       list(APPEND LLVM_PATH_CANDIDATES "/opt/homebrew/opt/llvm/") # Manjaro
       list(APPEND LLVM_PATH_CANDIDATES "/usr/local/Cellar/llvm@${ver}/") # Homebrew Cellar
+      list(APPEND LLVM_PATH_CANDIDATES "/opt/llvm-${ver}/bin") #Multiple vers. custom install
 
       if(LLVM_FIND_VERBOSE)
         message(STATUS "LLVM not found by cmake default finder for version ${ver}.")
@@ -85,7 +87,7 @@ if(NOT LLVM_FOUND)
       if(NOT LLVM_CONFIG_EXECUTABLE)
          find_program(
            LLVM_CONFIG_EXECUTABLE
-           NAMES "llvm-config-${ver}"
+           NAMES "llvm-config-${ver}" "llvm-config"
            DOC "llvm-config executable with version filename"
            PATHS ${LLVM_PATH_CANDIDATES}
            NO_DEFAULT_PATH)
@@ -116,6 +118,8 @@ if(NOT LLVM_CONFIG_EXECUTABLE)
   list(APPEND LLVM_PATH_CANDIDATES "/usr/bin/") # Ubuntu
   list(APPEND LLVM_PATH_CANDIDATES "/opt/homebrew/opt/llvm/") # Manjaro
   list(APPEND LLVM_PATH_CANDIDATES "/usr/local/Cellar/llvm/") # Homebrew Cellar
+  list(APPEND LLVM_PATH_CANDIDATES "/opt/llvm-${ver}/bin") #Multiple vers. custom install
+  
   find_program(
     LLVM_CONFIG_EXECUTABLE
     NAMES "llvm-config-${LLVM_VERSION_MAJOR}" "llvm-config"

@@ -34,11 +34,12 @@
 
 // opt includes
 #include "NewPMDriver.h"
-#if LLVM_VERSION_MAJOR < 18
+#if LLVM_VERSION_MAJOR < 17
 #include "llvm/ADT/Triple.h"
 #include "llvm/MC/SubtargetFeature.h"
 #include "llvm/Support/Host.h"
 #include "llvm/Passes/PassBuilder.h"
+#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #else
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/TargetParser/Triple.h"
@@ -330,7 +331,7 @@ static inline void addPass(legacy::PassManagerBase &PM, Pass *P) {
 /// OptLevel.
 ///
 /// OptLevel - Optimization Level
-#if LLVM_VERSION_MAJOR < 18
+#if LLVM_VERSION_MAJOR < 17
 static void AddOptimizationPasses(legacy::PassManagerBase &MPM,
                                   legacy::FunctionPassManager &FPM,
                                   TargetMachine *TM, uint64_t OptLevel,

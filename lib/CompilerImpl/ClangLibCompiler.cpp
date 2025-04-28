@@ -37,6 +37,9 @@
 #include "clang/Frontend/CompilerInvocation.h"
 
 #include <vector>
+#if LLVM_VERSION_MAJOR < 17
+#include "llvm/ADT/Optional.h"
+#endif
 
 #ifndef OPT_EXE_FULLPATH
 #define OPT_EXE_FULLPATH "opt"
@@ -315,7 +318,7 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
     }
     optFeaturesStr = featuresStr;
   }
-#if LLVM_VERSION_MAJOR < 18
+#if LLVM_VERSION_MAJOR < 15
   const llvm::Target *TheTarget = llvm::TargetRegistry::lookupTarget(
       llvm::codegen::getMArch(), moduleTriple, lookupError);
 #else
@@ -328,8 +331,13 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   } else {
     // llvm::codegen::getCodeModel returns zero (casted to Tiny), which is wrong!
     // Going with small which is the default model for majority of supported targets
-    std::optional<Reloc::Model> reloc = std::make_optional<Reloc::Model>(Reloc::Model::Static);
-    std::optional<CodeModel::Model> code_model = std::make_optional<CodeModel::Model>(CodeModel::Model::Small);
+    #if LLVM_VERSION_MAJOR < 17
+      llvm::Optional<Reloc::Model> reloc = llvm::Optional<Reloc::Model>(Reloc::Model::Static);
+      llvm::Optional<CodeModel::Model> code_model = llvm::Optional<CodeModel::Model>(CodeModel::Model::Small);
+    #else
+      std::optional<Reloc::Model> reloc = std::make_optional<Reloc::Model>(Reloc::Model::Static);
+      std::optional<CodeModel::Model> code_model = std::make_optional<CodeModel::Model>(CodeModel::Model::Small);
+    #endif
     optTMachine = TheTarget->createTargetMachine(
         moduleTriple.getTriple(), optCPUStr, optFeaturesStr, Options,
         reloc,
@@ -341,7 +349,7 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   // Override function attributes based on CPUStr, FeaturesStr,
   // and command line flags.
   // This also causes the program to segfault if executed, hence it is available only in older LLVM versions
-#if LLVM_VERSION_MAJOR < 18
+#if LLVM_VERSION_MAJOR < 15
   llvm::codegen::setFunctionAttributes(optCPUStr, optFeaturesStr, *module);
 #endif
   // Create a PassManager to hold and optimize the collection of passes we are
@@ -492,7 +500,7 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
     }
     Passes.add(createPrintModulePass(*OS, "", PreserveAssemblyUseListOrder));
   } 
-#if LLVM_VERSION_MAJOR < 18
+#if LLVM_VERSION_MAJOR < 16
   else if (OutputThinLTOBC) {
     Passes.add(createWriteThinLTOBitcodePass(*OS));
   } 

@@ -110,6 +110,7 @@ static void printDiagnosticOptions(llvm::raw_ostream &logStream,
     // inferred by checking whether the default mapping is to an error) then
     // flag it as such. Note that diagnostics could also have been mapped by a
     // pragma, but we don't currently have a way to distinguish this.
+    /*
     if (Level == DiagnosticsEngine::Error &&
         DiagnosticIDs::isBuiltinWarningOrExtension(Info.getID()) &&
         !DiagnosticIDs::isDefaultMappingAsError(Info.getID())) {
@@ -126,6 +127,7 @@ static void printDiagnosticOptions(llvm::raw_ostream &logStream,
         logStream << "=" << OptValue;
       Started = true;
     }
+    */
   }
 
   // If the user wants to see category information, include it too.
