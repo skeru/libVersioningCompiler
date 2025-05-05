@@ -172,7 +172,7 @@ if(NOT LLVM_FOUND)
       list(APPEND LLVM_PATH_CANDIDATES "/usr/bin/") # Ubuntu
       list(APPEND LLVM_PATH_CANDIDATES "/opt/homebrew/opt/llvm/") # Manjaro
       list(APPEND LLVM_PATH_CANDIDATES "/usr/local/Cellar/llvm@${ver}/") # Homebrew Cellar
-      list(APPEND LLVM_PATH_CANDIDATES "/opt/llvm-${ver}/bin") #Archlinux
+      list(APPEND LLVM_PATH_CANDIDATES "/opt/llvm-${ver}/bin") #Multiple vers. custom install
 
       if(LLVM_FIND_VERBOSE)
         message(STATUS "LLVM not found by cmake default finder for version ${ver}.")
@@ -212,7 +212,7 @@ if(NOT LLVM_CONFIG_EXECUTABLE)
   list(APPEND LLVM_PATH_CANDIDATES "/usr/bin/") # Ubuntu
   list(APPEND LLVM_PATH_CANDIDATES "/opt/homebrew/opt/llvm/") # Manjaro
   list(APPEND LLVM_PATH_CANDIDATES "/usr/local/Cellar/llvm/") # Homebrew Cellar
-  list(APPEND LLVM_PATH_CANDIDATES "/opt/llvm-${ver}/bin") #Archlinux
+  list(APPEND LLVM_PATH_CANDIDATES "/opt/llvm-${ver}/bin") #Multiple vers. custom install
   
   find_program(
     LLVM_CONFIG_EXECUTABLE
@@ -448,38 +448,6 @@ else(NOT LLVM_INCLUDE_DIR-NOTFOUND)
 endif(NOT LLVM_INCLUDE_DIR-NOTFOUND)
 
 # -----------------------------------------------------------------------------
-# Check LLVM version
-
-set(LLVM_VERSION_MIN_REQUIRED "13.0.0")
-
-if(LLVM_FOUND
-   AND (NOT (LLVM_PACKAGE_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED))
-   AND LIBCLANG_FOUND)
-  set(ENABLE_CLANG_AS_LIB TRUE)
-  if(NOT HAVE_CLANG_LIB_COMPILER AND LibVersioningCompiler_FIND_VERBOSE)
-    message(WARNING "Clang-as-a-library can be enabled\
- however it is not installed.\n\
- Please re-install libVersioningCompiler to enable it")
-  endif(NOT HAVE_CLANG_LIB_COMPILER AND LibVersioningCompiler_FIND_VERBOSE)
-else()
-  set (ENABLE_CLANG_AS_LIB FALSE )
-  if (LibVersioningCompiler_FIND_VERBOSE)
-    if (NOT LLVM_FOUND)
-      message( WARNING "LLVM not detected" )
-    else(NOT LLVM_FOUND)
-      if(LLVM_PACKAGE_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED)
-        message( WARNING "You are using an obsolete version of LLVM:\
-  \n\t${LLVM_PACKAGE_VERSION} detected.\t\
-  Minimum required is ${LLVM_VERSION_MIN_REQUIRED}" )
-      else(LLVM_PACKAGE_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED)
-        message( WARNING "LibClang not detected" )
-      endif (LLVM_PACKAGE_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED)
-    endif (NOT LLVM_FOUND)
-    message( WARNING "Clang-as-a-library disabled" )
-  endif (LibVersioningCompiler_FIND_VERBOSE)
-endif()
-
-# -----------------------------------------------------------------------------
 # Try to find libclang
 #
 # Once done this will define:
@@ -656,13 +624,37 @@ endif(LIBCLANG_INCLUDE_DIRS AND LIBCLANG_LIBRARY)
 
 endif(NOT LLVM_FOUND)
 
-# Make variable coherent
-if (HAVE_CLANG_LIB_COMPILER AND NOT ENABLE_CLANG_AS_LIB)
-  set (HAVE_CLANG_LIB_COMPILER FALSE)
-endif (HAVE_CLANG_LIB_COMPILER AND NOT ENABLE_CLANG_AS_LIB)
-if (ENABLE_CLANG_AS_LIB AND NOT HAVE_CLANG_LIB_COMPILER)
-  set (ENABLE_CLANG_AS_LIB FALSE)
-endif (ENABLE_CLANG_AS_LIB AND NOT HAVE_CLANG_LIB_COMPILER)
+# -----------------------------------------------------------------------------
+# Check LLVM version
+
+set(LLVM_VERSION_MIN_REQUIRED "13.0.0")
+
+if(LLVM_FOUND
+   AND (NOT (LLVM_PACKAGE_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED))
+   AND LIBCLANG_FOUND)
+  set(ENABLE_CLANG_AS_LIB TRUE)
+  if(NOT HAVE_CLANG_LIB_COMPILER AND LibVersioningCompiler_FIND_VERBOSE)
+    message(WARNING "Clang-as-a-library can be enabled\
+ however it is not installed.\n\
+ Please re-install libVersioningCompiler to enable it")
+  endif(NOT HAVE_CLANG_LIB_COMPILER AND LibVersioningCompiler_FIND_VERBOSE)
+else()
+  set (ENABLE_CLANG_AS_LIB FALSE )
+  if (LibVersioningCompiler_FIND_VERBOSE)
+    if (NOT LLVM_FOUND)
+      message( WARNING "LLVM not detected" )
+    else(NOT LLVM_FOUND)
+      if(LLVM_PACKAGE_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED)
+        message( WARNING "You are using an obsolete version of LLVM:\
+  \n\t${LLVM_PACKAGE_VERSION} detected.\t\
+  Minimum required is ${LLVM_VERSION_MIN_REQUIRED}" )
+      else(LLVM_PACKAGE_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED)
+        message( WARNING "LibClang not detected" )
+      endif (LLVM_PACKAGE_VERSION VERSION_LESS LLVM_VERSION_MIN_REQUIRED)
+    endif (NOT LLVM_FOUND)
+    message( WARNING "Clang-as-a-library disabled" )
+  endif (LibVersioningCompiler_FIND_VERBOSE)
+endif()
 
 # -----------------------------------------------------------------------------
 # compose the real list of paths
