@@ -110,7 +110,24 @@ static void printDiagnosticOptions(llvm::raw_ostream &logStream,
     // inferred by checking whether the default mapping is to an error) then
     // flag it as such. Note that diagnostics could also have been mapped by a
     // pragma, but we don't currently have a way to distinguish this.
-    #if LLVM_VERSION_MAJOR >= 20
+    #if LLVM_VERSION_MAJOR < 20
+      if (Level == DiagnosticsEngine::Error &&
+          DiagnosticIDs::isBuiltinWarningOrExtension(Info.getID()) &&
+          !DiagnosticIDs::isDefaultMappingAsError(Info.getID())) {
+        logStream << " [-Werror";
+        Started = true;
+      }
+
+      StringRef Opt = DiagnosticIDs::getWarningOptionForDiag(Info.getID());
+      if (!Opt.empty()) {
+        logStream << (Started ? "," : " [")
+                  << (Level == DiagnosticsEngine::Remark ? "-R" : "-W") << Opt;
+        StringRef OptValue = Info.getDiags()->getFlagValue();
+        if (!OptValue.empty())
+          logStream << "=" << OptValue;
+        Started = true;
+      }
+    #else  
       //From LLVM version 20, isWarningOrExtension and isDefaultMappingAsError 
       //are no longer static method
       clang::DiagnosticIDs diagIDs;
@@ -125,25 +142,8 @@ static void printDiagnosticOptions(llvm::raw_ostream &logStream,
       if (!Opt.empty()) {
         logStream << (Started ? "," : " [")
                   << (Level == DiagnosticsEngine::Remark ? "-R" : "-W") << Opt;
-        StringRef OptValue = Info.getFlagValue(); 
-        //getFlagValue is moved from DiagnosticsEngine to just Diagnostic
-        if (!OptValue.empty())
-          logStream << "=" << OptValue;
-        Started = true;
-      }
-    #else
-      if (Level == DiagnosticsEngine::Error &&
-          DiagnosticIDs::isBuiltinWarningOrExtension(Info.getID()) &&
-          !DiagnosticIDs::isDefaultMappingAsError(Info.getID())) {
-        logStream << " [-Werror";
-        Started = true;
-      }
-
-      StringRef Opt = DiagnosticIDs::getWarningOptionForDiag(Info.getID());
-      if (!Opt.empty()) {
-        logStream << (Started ? "," : " [")
-                  << (Level == DiagnosticsEngine::Remark ? "-R" : "-W") << Opt;
-        StringRef OptValue = Info.getDiags()->getFlagValue();
+        //getFlagValue is moved from DiagnosticsEngine to just Diagnostic          
+        StringRef OptValue = Info.getFlagValue();   
         if (!OptValue.empty())
           logStream << "=" << OptValue;
         Started = true;

@@ -103,9 +103,8 @@ void LLVMInstanceManager::initializeLLVM() {
 #if LLVM_VERSION_MAJOR < 17
   llvm::initializeAtomicExpandPass(passRegistry);
   llvm::initializeCodeGenPreparePass(passRegistry);
-  //llvm::initializeRewriteSymbols(passRegistry);
   llvm::initializeRewriteSymbolsLegacyPassPass(passRegistry);
-#elif LLVM_VERSION_MAJOR == 17
+#elif LLVM_VERSION_MAJOR < 18
   llvm::initializeAtomicExpandPass(passRegistry);
   llvm::initializeCodeGenPreparePass(passRegistry);
 #else

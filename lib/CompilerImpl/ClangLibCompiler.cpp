@@ -36,6 +36,8 @@
 #include "clang/Driver/Job.h"
 #include "clang/Frontend/CompilerInvocation.h"
 
+#include "llvm/CodeGen/CommandFlags.h"
+
 #include <vector>
 #if LLVM_VERSION_MAJOR < 17
 #include "llvm/ADT/Optional.h"
