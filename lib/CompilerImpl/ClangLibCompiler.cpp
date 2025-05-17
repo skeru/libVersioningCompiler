@@ -348,12 +348,7 @@ ClangLibCompiler::runOptimizer(const std::filesystem::path &src_IR,
   }
 
   std::unique_ptr<llvm::TargetMachine> actualTM(optTMachine);
-  // Override function attributes based on CPUStr, FeaturesStr,
-  // and command line flags.
-  // This also causes the program to segfault if executed, hence it is available only in older LLVM versions
-#if LLVM_VERSION_MAJOR < 15
-  llvm::codegen::setFunctionAttributes(optCPUStr, optFeaturesStr, *module);
-#endif
+  
   // Create a PassManager to hold and optimize the collection of passes we are
   // about to build.
   llvm::legacy::PassManager Passes;

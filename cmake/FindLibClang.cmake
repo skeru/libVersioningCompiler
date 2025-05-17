@@ -1,7 +1,7 @@
 # Try to find libclang
 #
 # Once done this will define:
-# - LIBCLANG_FOUND / LibClang_FOUND
+# - LIBCLANG_FOUND
 #               System has libclang.
 # - LIBCLANG_INCLUDE_DIRS
 #               The libclang include directories.

@@ -82,9 +82,6 @@ void LLVMInstanceManager::initializeLLVM() {
   // Initialize passes
   llvm::PassRegistry &passRegistry = *llvm::PassRegistry::getPassRegistry();
   llvm::initializeCore(passRegistry);
-#if LLVM_VERSION_MAJOR < 15
-  llvm::initializeCoroutines(passRegistry);
-#endif
   llvm::initializeScalarOpts(passRegistry);
 #if LLVM_VERSION_MAJOR < 16
   llvm::initializeObjCARCOpts(passRegistry);
@@ -123,10 +120,6 @@ void LLVMInstanceManager::initializeLLVM() {
   llvm::initializePreISelIntrinsicLoweringLegacyPassPass(passRegistry);
   llvm::initializeGlobalMergePass(passRegistry);
   llvm::initializeInterleavedAccessPass(passRegistry);
-#if LLVM_VERSION_MAJOR < 15
-  llvm::initializeEntryExitInstrumenterPass(passRegistry);
-  llvm::initializePostInlineEntryExitInstrumenterPass(passRegistry);
-#endif
   llvm::initializeUnreachableBlockElimLegacyPassPass(passRegistry);
 
   // remember default target triple , not suitable for cross compiling
