@@ -82,9 +82,6 @@ void LLVMInstanceManager::initializeLLVM() {
   // Initialize passes
   llvm::PassRegistry &passRegistry = *llvm::PassRegistry::getPassRegistry();
   llvm::initializeCore(passRegistry);
-#if LLVM_VERSION_MAJOR < 15
-  llvm::initializeCoroutines(passRegistry);
-#endif
   llvm::initializeScalarOpts(passRegistry);
 #if LLVM_VERSION_MAJOR < 16
   llvm::initializeObjCARCOpts(passRegistry);
@@ -100,10 +97,13 @@ void LLVMInstanceManager::initializeLLVM() {
   llvm::initializeTarget(passRegistry);
   // For codegen passes, only passes that do IR to IR transformation are
   // supported.
-#if LLVM_VERSION_MAJOR < 18
+#if LLVM_VERSION_MAJOR < 17
   llvm::initializeAtomicExpandPass(passRegistry);
   llvm::initializeCodeGenPreparePass(passRegistry);
-  llvm::initializeRewriteSymbols(passRegistry);
+  llvm::initializeRewriteSymbolsLegacyPassPass(passRegistry);
+#elif LLVM_VERSION_MAJOR < 18
+  llvm::initializeAtomicExpandPass(passRegistry);
+  llvm::initializeCodeGenPreparePass(passRegistry);
 #else
 #if LLVM_VERSION_MAJOR < 19
   // This has been renamed to AtomicExpandLegacyPass in LLVM 19
@@ -120,10 +120,6 @@ void LLVMInstanceManager::initializeLLVM() {
   llvm::initializePreISelIntrinsicLoweringLegacyPassPass(passRegistry);
   llvm::initializeGlobalMergePass(passRegistry);
   llvm::initializeInterleavedAccessPass(passRegistry);
-#if LLVM_VERSION_MAJOR < 15
-  llvm::initializeEntryExitInstrumenterPass(passRegistry);
-  llvm::initializePostInlineEntryExitInstrumenterPass(passRegistry);
-#endif
   llvm::initializeUnreachableBlockElimLegacyPassPass(passRegistry);
 
   // remember default target triple , not suitable for cross compiling

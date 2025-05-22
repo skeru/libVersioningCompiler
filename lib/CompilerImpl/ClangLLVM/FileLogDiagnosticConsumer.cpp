@@ -110,22 +110,45 @@ static void printDiagnosticOptions(llvm::raw_ostream &logStream,
     // inferred by checking whether the default mapping is to an error) then
     // flag it as such. Note that diagnostics could also have been mapped by a
     // pragma, but we don't currently have a way to distinguish this.
-    if (Level == DiagnosticsEngine::Error &&
-        DiagnosticIDs::isBuiltinWarningOrExtension(Info.getID()) &&
-        !DiagnosticIDs::isDefaultMappingAsError(Info.getID())) {
-      logStream << " [-Werror";
-      Started = true;
-    }
+    #if LLVM_VERSION_MAJOR < 20
+      if (Level == DiagnosticsEngine::Error &&
+          DiagnosticIDs::isBuiltinWarningOrExtension(Info.getID()) &&
+          !DiagnosticIDs::isDefaultMappingAsError(Info.getID())) {
+        logStream << " [-Werror";
+        Started = true;
+      }
 
-    StringRef Opt = DiagnosticIDs::getWarningOptionForDiag(Info.getID());
-    if (!Opt.empty()) {
-      logStream << (Started ? "," : " [")
-                << (Level == DiagnosticsEngine::Remark ? "-R" : "-W") << Opt;
-      StringRef OptValue = Info.getDiags()->getFlagValue();
-      if (!OptValue.empty())
-        logStream << "=" << OptValue;
-      Started = true;
-    }
+      StringRef Opt = DiagnosticIDs::getWarningOptionForDiag(Info.getID());
+      if (!Opt.empty()) {
+        logStream << (Started ? "," : " [")
+                  << (Level == DiagnosticsEngine::Remark ? "-R" : "-W") << Opt;
+        StringRef OptValue = Info.getDiags()->getFlagValue();
+        if (!OptValue.empty())
+          logStream << "=" << OptValue;
+        Started = true;
+      }
+    #else  
+      //From LLVM version 20, isWarningOrExtension and isDefaultMappingAsError 
+      //are no longer static method
+      clang::DiagnosticIDs diagIDs;
+      if (Level == DiagnosticsEngine::Error &&
+          diagIDs.isWarningOrExtension(Info.getID()) &&
+          !diagIDs.isDefaultMappingAsError(Info.getID())) {
+        logStream << " [-Werror";
+        Started = true;
+      }
+
+      StringRef Opt = diagIDs.getWarningOptionForDiag(Info.getID());
+      if (!Opt.empty()) {
+        logStream << (Started ? "," : " [")
+                  << (Level == DiagnosticsEngine::Remark ? "-R" : "-W") << Opt;
+        //getFlagValue is moved from DiagnosticsEngine to just Diagnostic          
+        StringRef OptValue = Info.getFlagValue();   
+        if (!OptValue.empty())
+          logStream << "=" << OptValue;
+        Started = true;
+      }
+    #endif
   }
 
   // If the user wants to see category information, include it too.
@@ -193,11 +216,7 @@ void FileLogDiagnosticConsumer::HandleDiagnostic(DiagnosticsEngine::Level Level,
     FileID FID = SM.getMainFileID();
     if (FID.isValid()) {
       const FileEntry *FE = SM.getFileEntryForID(FID);
-#if LLVM_VERSION_MAJOR < 15
-      if (FE && FE->isValid())
-#else
       if (FE)
-#endif
 #if LLVM_VERSION_MAJOR < 18
         MainFilename = std::string(FE->getName());
 #else

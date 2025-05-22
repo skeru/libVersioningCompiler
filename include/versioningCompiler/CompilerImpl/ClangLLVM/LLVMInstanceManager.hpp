@@ -25,7 +25,7 @@
 #define LIB_VERSIONING_COMPILER_CLANG_LLVM_LLVM_INSTANCE_MANAGER
 
 #include "llvm/ADT/APInt.h"
-#if LLVM_VERSION_MAJOR < 18
+#if LLVM_VERSION_MAJOR < 17
 #include "llvm/ADT/Triple.h"
 #include "llvm/Support/Host.h"
 #else

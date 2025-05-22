@@ -1,7 +1,7 @@
 # Try to find libclang
 #
 # Once done this will define:
-# - LIBCLANG_FOUND / LibClang_FOUND
+# - LIBCLANG_FOUND
 #               System has libclang.
 # - LIBCLANG_INCLUDE_DIRS
 #               The libclang include directories.
@@ -20,7 +20,7 @@ if(NOT LLVM_CONFIG_EXECUTABLE)
   endif(LIBCLANG_FIND_VERBOSE)
   find_program(
     LLVM_CONFIG_EXECUTABLE
-    NAMES "llvm-config-${LLVM_VERSION_MAJOR}" "llvm-config"
+    NAMES "llvm-config"
     DOC "llvm-config executable"
     PATHS ${LLVM_TOOLS_BINARY_DIR} /usr/bin
     NO_DEFAULT_PATH)
@@ -42,8 +42,7 @@ else(NOT LLVM_INCLUDE_DIR)
 endif(NOT LLVM_INCLUDE_DIR)
 
 if (LIBCLANG_INCLUDE_DIRS)
-set(LibClang_FOUND TRUE)
-set(LIBCLANG_FOUND TRUE)
+  set(LIBCLANG_FOUND TRUE)
 else(LIBCLANG_INCLUDE_DIRS)
   message(STATUS "LibClang could not find its include")
 endif(LIBCLANG_INCLUDE_DIRS)
@@ -237,9 +236,5 @@ else(LIBCLANG_FOUND)
   endif(LIBCLANG_FIND_REQUIRED)
 endif(LIBCLANG_FOUND)
 
-if(LIBCLANG_FOUND)
-  set(LibClang_FOUND TRUE)
-endif(LIBCLANG_FOUND)
-
-mark_as_advanced(LibClang_FOUND LIBCLANG_FOUND LIBCLANG_INCLUDE_DIRS
+mark_as_advanced(LIBCLANG_FOUND LIBCLANG_INCLUDE_DIRS
                  LIBCLANG_LIBRARIES LIBCLANG_LIBRARY_DIR)

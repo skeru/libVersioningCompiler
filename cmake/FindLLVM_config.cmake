@@ -38,6 +38,8 @@
 
 if(NOT LLVM_FOUND)
   set(LLVM_KNOWN_MAJOR_VERSIONS
+      20.1
+      20
       19.1
       19
       18
@@ -58,13 +60,16 @@ if(NOT LLVM_FOUND)
       3.9
       3.8)
   foreach(ver ${LLVM_KNOWN_MAJOR_VERSIONS})
-    find_package(LLVM ${ver} QUIET)
+    if(NOT LLVM_CONFIG_EXECUTABLE AND NOT LLVM_TOOLS_BINARY_DIR)
+      find_package(LLVM ${ver} QUIET)
+    endif(NOT LLVM_CONFIG_EXECUTABLE AND NOT LLVM_TOOLS_BINARY_DIR)
     if(LLVM_FOUND)
       # Call the main findLLVM.cmake to check LLVM setup and set some flags such
       # as: LLVM_LIBRARY_DIR, LLVM_INCLUDE_DIR, LLVM_TOOLS_BINARY_DIR,
       # LLVM_VERSION_MAJOR, LLVM_PACKAGE_VERSION
       if(LLVM_FIND_VERBOSE)
         message(STATUS "Package LLVM found with default cmake finder for version ${ver}")
+        message(STATUS "Moving on to look for llvm-config executable")
         find_package(LLVM ${ver} CONFIG)
       else(LLVM_FIND_VERBOSE)
         find_package(LLVM ${ver} CONFIG QUIET)
@@ -116,12 +121,17 @@ if(NOT LLVM_CONFIG_EXECUTABLE)
   list(APPEND LLVM_PATH_CANDIDATES "/usr/bin/") # Ubuntu
   list(APPEND LLVM_PATH_CANDIDATES "/opt/homebrew/opt/llvm/") # Manjaro
   list(APPEND LLVM_PATH_CANDIDATES "/usr/local/Cellar/llvm/") # Homebrew Cellar
+  
   find_program(
     LLVM_CONFIG_EXECUTABLE
-    NAMES "llvm-config-${LLVM_VERSION_MAJOR}" "llvm-config"
+    NAMES "llvm-config"
     DOC "llvm-config executable, including versionless filename"
     PATHS ${LLVM_PATH_CANDIDATES}
     NO_DEFAULT_PATH)
+
+    message(STATUS "Found LLVM version")
+    set(LLVM_config_FOUND TRUE)
+    set(LLVM_FOUND TRUE)
 endif(NOT LLVM_CONFIG_EXECUTABLE)
 
 if(LLVM_CONFIG_EXECUTABLE)
@@ -233,8 +243,7 @@ endif(NOT LLVM_PACKAGE_VERSION)
 
 # pick only major
 if((NOT LLVM_VERSION_MAJOR) AND (NOT LLVM_VERSION_MAJOR-NOTFOUND))
-  string(REGEX MATCH "([0-9]*)\..*" LLVM_VERSION_MAJOR ${LLVM_PACKAGE_VERSION})
-  #set(LLVM_VERSION_MAJOR ${LLVM_PACKAGE_VERSION})
+  string(REGEX REPLACE "^([0-9]+)\..*" "\\1" LLVM_VERSION_MAJOR ${LLVM_PACKAGE_VERSION})
 endif((NOT LLVM_VERSION_MAJOR) AND (NOT LLVM_VERSION_MAJOR-NOTFOUND))
 
 
