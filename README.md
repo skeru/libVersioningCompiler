@@ -5,45 +5,56 @@ a specified C/C++ function.
 It also provides support for versioning of the compiled functions.
 
 This software is distributed under the LGPLv3 license.
-See LICENSE.txt and LICENSE.LESSER.txt for the full text of the license.
+See [LICENSE.txt](LICENSE.txt) and [LICENSE.LESSER.txt](LICENSE.LESSER.txt) for full license details.
 
 An introductory video is available on [YouTube](https://www.youtube.com/watch?v=1p8IajxOgoY).
 
 ## Dependencies
 
-libVersioningCompiler requires:
+To build and use libVersioningCompiler, the following are required:
 
-- Ubuntu 20.04 LTS or greater / MacOS (tested with Sonoma) / Arch Linux or Manjaro / a linux distribution
-- any compiler compliant to the C++17 standard
-- cmake 3.20 or greater
-- zlib
-- libuuid
-- (OPTIONAL) LLVM 18 or greater (tested up to LLVM 19)
+- Operating System:
+  - Ubuntu 20.04 LTS or newer
+  - Arch Linux, Manjaro or Fedora
+  - macOS (tested on Sonoma)
 
-Compiling without the OPTIONAL dependencies will disable some features,
-like the Clang-as-a-library compiler implementation.
+- Build Tools & Libraries:
+  - A C++17-compliant compiler
+  - CMake ≥ 3.20
+  - zlib
+  - libuuid
+
+- Optional: LLVM ≥ 15 (tested up to LLVM 20)
+
+Compiling without LLVM certain features (e.g., Clang-as-a-library) will be unavailable.
 
 ## How to install the dependencies
 
 ### Ubuntu
 
-To install the latest cmake (required in ubuntu focal) from Kitware:
+For Ubuntu Noble, add the Kitware repository:
 
 ```bash
 sudo apt-get install --yes ca-certificates gnupg software-properties-common wget
 wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
-sudo apt-add-repository 'deb https://apt.kitware.com/ubuntu/ focal main'
+sudo apt-add-repository 'deb https://apt.kitware.com/ubuntu/ noble main'
 ```
 
-To install the required libraries
+Install CMake via Snap and the dependencies:
 
 ```bash
-sudo apt-get install --yes build-essential cmake zlib1g-dev uuid-dev
+sudo snap install cmake --classic
+sudo apt-get install --yes build-essential zlib1g-dev uuid-dev
 ```
 
-Then optionally install [llvm](https://llvm.org/) 18 or greater (tested up to LLVM 19) and libclang (if needed, on many distributions it come bundled with LLVM/Clang), either using [LLVM installer](https://apt.llvm.org/#llvmsh) or via [Ubuntu packages](https://packages.ubuntu.com/search?keywords=llvm).
+For Ubuntu Focal the procedure is the same, however, change `noble` to `focal` and Snap is not needed anymore.
 
-If you use the LLVM installer, with LLVM major version `${LLVM_V}`:
+
+#### Optional: Install LLVM and Clang
+
+Install [LLVM](https://llvm.org/) 15 or greater (tested up to LLVM 20) and libclang (if needed, on many distributions it come bundled with LLVM/Clang), either using [LLVM installer](https://apt.llvm.org/#llvmsh) or via [Ubuntu packages](https://packages.ubuntu.com/search?keywords=llvm).
+
+To install via the installer (replace `${LLVM_V}` with the version number):
 
 ```bash
 wget https://apt.llvm.org/llvm.sh
@@ -51,7 +62,7 @@ chmod +x llvm.sh
 [sudo] ./llvm.sh ${LLVM_V} all
 ```
 
-Eventually, update the preferred clang and llvm version:
+Eventually, set the preferred LLVM/Clang version:
 
 ```bash
 [optional][sudo] update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${LLVM_V} 100
@@ -61,31 +72,53 @@ Eventually, update the preferred clang and llvm version:
 
 ### Arch Linux / Manjaro
 
+Install the necessary packages:
+
 ```bash
 sudo pacman -S cmake llvm zlib [clang]
 ```
 
-uuid should not be required to be installed from AUR.
+Note: `libuuid` is usually included by default and doesn't require separate installation.
 
 ### MacOS
 
-Install [homebrew](https://brew.sh), then:
+Install [homebrew](https://brew.sh) if not already installed, then:
 
 ```bash
 brew install cmake ossp-uuid zlib [llvm]
 ```
 
+Replace `[llvm]` with `llvm` if you wish to install it.
+
 ## How to install libVersioningCompiler
 
 If you want to install libVersioningCompiler, install the dependencies, then, assuming cloned the repository in `${LIBVC_ROOT}`, do:
 
-```
+```bash
 cd ${LIBVC_ROOT}
 cmake -S . -Bbuild [-DCMAKE_INSTALL_PREFIX="/path/to/your/custom/install/folder/"] [-G "make/Ninja/whatever generator"]
 cmake --build build
 ./build/libVC_testUtils &&./build/libVC_test &&./build/libVC_testJit
 [sudo] cmake --build build --target install
 ```
+
+### Using a custom LLVM installation
+
+To build libVersioningCompiler with a custom LLVM installation, follow the same steps as the standard build, but modify the second line of the process using one of the following options:
+
+```bash
+# Option 1: Specify the LLVM binaries directory
+cmake -S . -B build -DLLVM_TOOLS_BINARY_DIR="/path/to/llvm/bin" \ 
+    [-DCMAKE_INSTALL_PREFIX="/path/to/your/custom/install/folder/"] \ 
+    [-G "make/Ninja/whatever generator"]
+
+# Option 2: Specify the exact path to llvm-config
+cmake -S . -B build -DLLVM_CONFIG_EXECUTABLE="/path/to/llvm/bin/llvm-config" \ 
+    [-DCMAKE_INSTALL_PREFIX="/path/to/your/custom/install/folder/"] \ 
+    [-G "make/Ninja/whatever generator"]
+```
+
+### Integrating libVersioningCompiler into other projects
 
 Please note that if you choose to install libVersioningCompiler in a custom
 folder, you will need the FindLibVersioningCompiler.cmake module.
@@ -112,60 +145,71 @@ libVersioningCompiler in another application you have to manually specify:
 
 ### Linux
 
-If you want to build libVersioningCompiler using verbose flags and a custom compiler, assuming libVersioningCompiler had been cloned into ./libVersioningCompiler directory:
+Assuming libVersioningCompiler had been cloned into `./libVersioningCompiler` directory:
+
+#### Option 1: Basic Build Using System Compiler
+
+If you want to build libVersioningCompiler using verbose flags and a custom compiler:
 
 ```bash
 cd libVersioningCompiler
-CXX="/usr/bin/clang" cmake -D CMAKE_VERBOSE_MAKEFILE=1 -D LIBCLANG_FIND_VERBOSE=1 -D LLVM_FIND_VERBOSE=1 -D LLVM_FIND_VERBOSE=1 -D JIT_ENABLE=0 -S . -B build
+cmake -D CMAKE_VERBOSE_MAKEFILE=1 -D LIBCLANG_FIND_VERBOSE=1 -D LLVM_FIND_VERBOSE=1 -D LLVM_FIND_VERBOSE=1 -D JIT_ENABLE=0 -S . -B build
 cmake --build build -v
 ```
 
-If you want to build libVersioningCompiler using a custom installation of llvm:
+You can optionally set a specific compiler using `CXX=/path/to/your/compiler` or `CC=/path/to/your/compiler`.
+
+#### Option 2: Build with a Custom LLVM Installation
+
+If you want to build using a custom LLVM/Clang installation, specify paths manually:
 
 ```bash
-cmake  \
+cmake -S . -B build \
 -D LLVM_FOUND=1 \
--D LLVM_LIBRARY_DIR="/opt/x86_64-linux-gnu-llvm-static/lib" \
--D LLVM_INCLUDE_DIR="/opt/x86_64-linux-gnu-llvm-static/include" \
--D LLVM_TOOLS_BINARY_DIR="/opt/x86_64-linux-gnu-llvm-static/bin" \
--D LLVM_VERSION_MAJOR=18 \
--D LLVM_PACKAGE_VERSION="18.1.3" \
--D ENABLE_JIT=0 \
- -S . -B build
-cmake --build build
+-D LLVM_LIBRARY_DIR="/path/to/llvm/lib" \
+-D LLVM_INCLUDE_DIR="/path/to/llvm/include" \
+-D LLVM_TOOLS_BINARY_DIR="/path/to/llvm/bin" \
+-D LLVM_VERSION_MAJOR=<major_version> \
+-D LLVM_PACKAGE_VERSION="<full_version>" \
+-D ENABLE_JIT=0
+
+cmake --build build -v
 ```
 
-Explanation:
+Notes:
 
-- `LLVM_FOUND=1` means to not look for a system installed llvm version
-- `LLVM_LIBRARY_DIR` specifies where to find llvm libraries
-- `LLVM_INCLUDE_DIR` specifies where to find llvm headers
-- `LLVM_TOOLS_BINARY_DIR` specifies where to find llvm binaries (llvm-config, opt etc)
-- `LLVM_VERSION_MAJOR` and `LLVM_PACKAGE_VERSION` must be specified because FindLLVM.cmake is (usually) not included into llvm static builds
-- `ENABLE_JIT` Option to include or exclude the JITCompiler, currently not ported to LLVM 18 and upwards
+- `LLVM_FOUND=1` means to not look for a system installed LLVM version
+- `LLVM_LIBRARY_DIR` specifies where to find LLVM libraries
+- `LLVM_INCLUDE_DIR` specifies where to find LLVM headers
+- `LLVM_TOOLS_BINARY_DIR` specifies where to find llvm binaries (`llvm-config`, `opt`, etc)
+- `LLVM_VERSION_MAJOR`: set to your LLVM's major version (e.g., 15, 17, 20)
+- `LLVM_PACKAGE_VERSION`: full version string returned by `llvm-config --version`
+- `ENABLE_JIT` option to include or exclude the JIT compiler, currently not ported to LLVM 18 and upwards
 
-Libclang will be found too after defining those variables.
+Libclang will be found after defining those variables.
 
 ### MacOS
 
 Tested with MacOS Monterey:
 
 ```bash
-cmake  \
--D CMAKE_VERBOSE_MAKEFILE=1 -D LIBCLANG_FIND_VERBOSE=1 -D LLVM_FIND_VERBOSE=1 -D LLVM_FIND_VERBOSE=1 \ # Verbose flags
+cmake -S . -B build \
+-D CMAKE_VERBOSE_MAKEFILE=1 -D LIBCLANG_FIND_VERBOSE=1 -D LLVM_FIND_VERBOSE=1 -D LLVM_FIND_VERBOSE=1 \
 -D LLVM_FOUND=1 \
 -D LLVM_LIBRARY_DIR="/opt/homebrew/opt/llvm/lib" \
 -D LLVM_INCLUDE_DIR="/opt/homebrew/opt/llvm/include" \
 -D LLVM_TOOLS_BINARY_DIR="/opt/homebrew/opt/llvm/bin" \
--D LLVM_VERSION_MAJOR=18 \ # Update this if required
+-D LLVM_VERSION_MAJOR=<major_version> \
 -D LLVM_SHARED_MODE="static" \
--D LLVM_PACKAGE_VERSION="18.1.3" \ # Update this accordingly to /opt/homebrew/opt/llvm/bin/llvm-config --version
--D ENABLE_JIT=0 \
- -S . -B build
+-D LLVM_PACKAGE_VERSION="$(/opt/homebrew/opt/llvm/bin/llvm-config --version)" \
+-D ENABLE_JIT=0
 
  cmake --build build -v
 ```
-## Compatibility with LLVM versions prior to 18
+
+For full customization, check the CMakeLists.txt and FindLLVM.cmake to explore available flags and module options.
+
+## Compatibility with LLVM versions prior to 15
 The project has legacy versions that are compatible with LLVM 13 to 15. Instructions are provided inside the repository. In order to go back to the legacy libVersioningCompiler versions:
 
 ```bash
