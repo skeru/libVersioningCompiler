@@ -315,6 +315,7 @@ if(LLVM_FIND_VERBOSE)
   endif(LLVM_FIND_VERBOSE)
 endif(LLVM_FIND_VERBOSE)
 
+add_compile_definitions(LLVM_FOUND=${LLVM_FOUND})
 # Required to adjust imports based on the llvm major version
 if(LLVM_VERSION_MAJOR)
   add_compile_definitions(LLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR})

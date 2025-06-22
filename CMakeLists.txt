@@ -284,8 +284,6 @@ target_compile_definitions(${VC_EXE_NAME}
 target_compile_definitions(
   ${VC_EXE_NAME} PRIVATE -DLLVM_TOOLS_BINARY_DIR="${LLVM_TOOLS_BINARY_DIR}")
 
-target_compile_definitions(${VC_EXE_NAME} PRIVATE -DLLVM_FOUND)
-
 get_filename_component(COMPILER_BIN "${CMAKE_C_COMPILER}" NAME)    
 get_filename_component(COMPILER_DIR "${CMAKE_C_COMPILER}" DIRECTORY)
 
