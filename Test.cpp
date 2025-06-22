@@ -63,6 +63,14 @@
 #define LLVM_VERSION_MAJOR 0
 #endif
 
+#ifndef DEFAULT_COMPILER_DIR
+#define DEFAULT_COMPILER_DIR "/usr/bin"
+#endif
+
+#ifndef DEFAULT_COMPILER_NAME
+#define DEFAULT_COMPILER_NAME "gcc"
+#endif
+
 // someone should provide the signature of the function now versioning
 // in the form of function pointer type.
 typedef int (*signature_t)(int);
@@ -99,10 +107,10 @@ int main(int argc, char const *argv[]) {
   // Setting both callStrings and install path as absolute path would cause to
   // ignore the install path! See
   // https://en.cppreference.com/w/cpp/filesystem/path/append
-  vc::compiler_ptr_t gcc = vc::make_compiler<vc::SystemCompiler>(
-      "gcc", std::filesystem::u8path("gcc"), std::filesystem::u8path("."),
+  vc::compiler_ptr_t default_comp = vc::make_compiler<vc::SystemCompiler>(
+      "default_comp", std::filesystem::u8path(DEFAULT_COMPILER_NAME), std::filesystem::u8path("."),
       std::filesystem::u8path("./test.log"),
-      std::filesystem::u8path("/usr/bin"), false);
+      std::filesystem::u8path(DEFAULT_COMPILER_DIR), false);
   // FAQ: I have a separate install folder for LLVM/clang.
   // ANS: Here it is an example of how to handle that case.
   vc::compiler_ptr_t clang = vc::make_compiler<vc::SystemCompilerOptimizer>(
@@ -128,7 +136,7 @@ int main(int argc, char const *argv[]) {
   // start configuring version v2
   // want to reuse the same parameters as Version v. Use the same builder.
   // just modify the compiler...
-  builder._compiler = gcc;
+  builder._compiler = default_comp;
   // builder._autoremoveFilesEnable = false; // uncomment this to keep the
   // intermediate files
   // ...and the option list
@@ -140,6 +148,7 @@ int main(int argc, char const *argv[]) {
   // start configuring version v3
   // another way to clone a version: construct a builder by cloning v2
   another_builder = vc::Version::Builder(v2);
+#if LLVM_FOUND  
   another_builder.setCompiler(clang);
 #if LLVM_VERSION_MAJOR < 16
   another_builder.setOptOptions(
@@ -152,13 +161,13 @@ int main(int argc, char const *argv[]) {
                   "-passes=", "'inline,loop-unroll,mem2reg'"),
        vc::Option("fp-contract", "--fp-contract=", "fast")});
 #endif
+#endif
   vc::version_ptr_t v3 = another_builder.build();
   // end configuring version v3
 
   // start configuring version v4
 #if HAVE_CLANG_AS_LIB
   builder.setCompiler(clangAsLib);
-#endif
   builder._autoremoveFilesEnable = true;
 #if LLVM_VERSION_MAJOR < 16
   builder.setOptOptions({
@@ -169,6 +178,7 @@ int main(int argc, char const *argv[]) {
   builder.setOptOptions({
       vc::Option("mem2reg", "-passes='defaultO3,mem2reg'"),
   });
+#endif
 #endif
   vc::version_ptr_t v4 = builder.build();
   // end configuring version v4
@@ -252,7 +262,7 @@ int main(int argc, char const *argv[]) {
   std::cout << "Notify: v4 compiled." << std::endl;
 
   vc::version_ptr_t v5 = vc::Version::Builder::createFromSO(
-      v4->getFileName_bin(), TEST_FUNCTION, gcc, false,
+      v4->getFileName_bin(), TEST_FUNCTION, default_comp, false,
       {"version created from shared object"});
   if (!v5->compile()) {
     if (v5->hasGeneratedBin()) {
