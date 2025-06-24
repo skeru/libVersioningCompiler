@@ -270,7 +270,6 @@ endif(ENABLE_JIT)
 
 # Test.cpp
 #----- Sources
-
 set(VC_TEST_APP_SRC Test.cpp)
 set(VC_EXE_NAME libVC_test)
 add_executable(${VC_EXE_NAME} ${VC_TEST_APP_SRC})
@@ -283,14 +282,6 @@ target_compile_definitions(${VC_EXE_NAME}
                            PRIVATE -DFORCED_PATH_TO_TEST="${TEST_CODE_PATH}")
 target_compile_definitions(
   ${VC_EXE_NAME} PRIVATE -DLLVM_TOOLS_BINARY_DIR="${LLVM_TOOLS_BINARY_DIR}")
-
-get_filename_component(COMPILER_BIN "${CMAKE_C_COMPILER}" NAME)    
-get_filename_component(COMPILER_DIR "${CMAKE_C_COMPILER}" DIRECTORY)
-
-target_compile_definitions(${VC_EXE_NAME}
-                           PRIVATE -DDEFAULT_COMPILER_NAME="${COMPILER_BIN}")
-target_compile_definitions(${VC_EXE_NAME}
-                           PRIVATE -DDEFAULT_COMPILER_DIR="${COMPILER_DIR}")
 
 if(ENABLE_CLANG_AS_LIB)
   target_link_directories(${VC_EXE_NAME} PUBLIC ${LIBCLANG_LIBRARY_DIR})
@@ -330,3 +321,13 @@ install(TARGETS ${VC_EXEUTILS_NAME} DESTINATION bin/test)
 if(ENABLE_JIT)
   install(TARGETS ${VC_EXEJIT_NAME} DESTINATION bin/test)
 endif(ENABLE_JIT)
+
+#############################################
+#       DEFAULT COMPILER DEFINITION         #
+#############################################
+
+get_filename_component(COMPILER_BIN "${CMAKE_C_COMPILER}" NAME)    
+get_filename_component(COMPILER_DIR "${CMAKE_C_COMPILER}" DIRECTORY)
+
+add_compile_definitions(DEFAULT_COMPILER_NAME="${COMPILER_BIN}")
+add_compile_definitions(DEFAULT_COMPILER_DIR="${COMPILER_DIR}")

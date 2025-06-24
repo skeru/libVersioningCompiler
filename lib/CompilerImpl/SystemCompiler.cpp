@@ -20,15 +20,23 @@
  */
 #include "versioningCompiler/CompilerImpl/SystemCompiler.hpp"
 
+#ifndef DEFAULT_COMPILER_DIR
+#define DEFAULT_COMPILER_DIR "/usr/bin"
+#endif
+
+#ifndef DEFAULT_COMPILER_NAME
+#define DEFAULT_COMPILER_NAME "cc"
+#endif
+
 using namespace vc;
 
 // ----------------------------------------------------------------------------
 // ----------------------- zero-parameters constructor ------------------------
 // ----------------------------------------------------------------------------
 SystemCompiler::SystemCompiler()
-    : SystemCompiler("cc", std::filesystem::u8path("cc"),
+    : SystemCompiler("cc", std::filesystem::u8path(DEFAULT_COMPILER_NAME),
                      std::filesystem::u8path("."), std::filesystem::u8path(""),
-                     std::filesystem::u8path("/usr/bin")) {}
+                     std::filesystem::u8path(DEFAULT_COMPILER_DIR)) {}
 
 // ----------------------------------------------------------------------------
 // --------------------------- detailed constructor ---------------------------

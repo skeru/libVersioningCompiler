@@ -20,13 +20,13 @@ To build and use libVersioningCompiler, the following are required:
 
 - Build Tools & Libraries:
   - A C++17-compliant compiler
-  - CMake ≥ 3.20
+  - CMake 3.20 or newer
   - zlib
   - libuuid
 
-- Optional: LLVM ≥ 15 (tested up to LLVM 20)
+- Optional: LLVM 15.0 or newer (tested up to LLVM 20.0)
 
-Compiling without LLVM certain features (e.g., Clang-as-a-library) will be unavailable.
+Compiling this library without LLVM will make certain features unavailable (e.g., Clang-as-a-library).
 
 ## How to install the dependencies
 
@@ -85,10 +85,10 @@ Note: `libuuid` is usually included by default and doesn't require separate inst
 Install [homebrew](https://brew.sh) if not already installed, then:
 
 ```bash
-brew install cmake ossp-uuid zlib [llvm]
+brew install cmake ossp-uuid zlib llvm
 ```
 
-Replace `[llvm]` with `llvm` if you wish to install it.
+If you don't need LLVM, you can remove `llvm` from the command. To install a specific version (e.g. LLVM 17), use `llvm@17` instead, if not specified, it will install the latest stable LLVM version.
 
 ## How to install libVersioningCompiler
 
@@ -104,15 +104,15 @@ cmake --build build
 
 ### Using a custom LLVM installation
 
-To build libVersioningCompiler with a custom LLVM installation, follow the same steps as the standard build, but modify the second line of the process using one of the following options:
+To build libVersioningCompiler with a custom LLVM installation, follow the same steps as the standard build, but modify the second line of the process using one of the following alternative methods:
 
 ```bash
-# Option 1: Specify the LLVM binaries directory
+# Method 1: Specify the LLVM binaries directory
 cmake -S . -B build -DLLVM_TOOLS_BINARY_DIR="/path/to/llvm/bin" \ 
     [-DCMAKE_INSTALL_PREFIX="/path/to/your/custom/install/folder/"] \ 
     [-G "make/Ninja/whatever generator"]
 
-# Option 2: Specify the exact path to llvm-config
+# Method 2: Specify the exact path to llvm-config
 cmake -S . -B build -DLLVM_CONFIG_EXECUTABLE="/path/to/llvm/bin/llvm-config" \ 
     [-DCMAKE_INSTALL_PREFIX="/path/to/your/custom/install/folder/"] \ 
     [-G "make/Ninja/whatever generator"]
@@ -147,7 +147,7 @@ libVersioningCompiler in another application you have to manually specify:
 
 Assuming libVersioningCompiler had been cloned into `./libVersioningCompiler` directory:
 
-#### Option 1: Basic Build Using System Compiler
+#### Method 1: Basic Build Using System Compiler
 
 If you want to build libVersioningCompiler using verbose flags and a custom compiler:
 
@@ -159,7 +159,7 @@ cmake --build build -v
 
 You can optionally set a specific compiler using `CXX=/path/to/your/compiler` or `CC=/path/to/your/compiler`.
 
-#### Option 2: Build with a Custom LLVM Installation
+#### Method 2: Build with a Custom LLVM Installation
 
 If you want to build using a custom LLVM/Clang installation, specify paths manually:
 
@@ -173,7 +173,7 @@ cmake -S . -B build \
 -D LLVM_PACKAGE_VERSION="<full_version>" \
 -D ENABLE_JIT=0
 
-cmake --build build -v
+cmake --build build
 ```
 
 Notes:
@@ -209,13 +209,6 @@ cmake -S . -B build \
 
 For full customization, check the CMakeLists.txt and FindLLVM.cmake to explore available flags and module options.
 
-## Compatibility with LLVM versions prior to 15
-The project has legacy versions that are compatible with LLVM 13 to 15. Instructions are provided inside the repository. In order to go back to the legacy libVersioningCompiler versions:
-
-```bash
-cd ${LIBVC_ROOT}
-git checkout b085535f83dc051edeede68905d2eca6f5cdd65c
-```
 ## Essential classes
 
 - Version :

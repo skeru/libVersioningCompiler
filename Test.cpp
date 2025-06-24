@@ -71,6 +71,10 @@
 #define DEFAULT_COMPILER_NAME "gcc"
 #endif
 
+#ifndef LLVM_FOUND
+#define LLVM_FOUND 0
+#endif
+
 // someone should provide the signature of the function now versioning
 // in the form of function pointer type.
 typedef int (*signature_t)(int);
