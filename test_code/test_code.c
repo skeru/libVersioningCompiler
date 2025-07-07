@@ -19,6 +19,7 @@
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
 #include <stdio.h>
+#include <math.h>
 
 #ifdef TEST_FUNCTION
 
@@ -32,7 +33,6 @@ float test_function(int x) {
   float y = x;
   y = y * y;
   global_var = y;
-  //printf("I'm a test function printing a number x^2 = %.3f\n", y);
   return  y;
 }
 
@@ -47,8 +47,20 @@ float test_function2(int x) {
   } else {
     y = x * x * x;
   }
-  //printf("I'm a test function printing an old number = %.3f\n", y);
   return  y;
+}
+
+/**
+ * Test function for the versioning compiler library.
+ * In the test, this function is compiled and loaded dynamically.
+ */
+void test_function3(float expected){
+  if (fabs(expected - global_var) < 1e-5) {
+    printf("PASSED\n");
+  }else{
+    printf("FAILED: global variable = %.3f, got = %.3f\n", global_var, expected);
+  }
+  return;
 }
 
 #endif /* TEST_FUNCTION */

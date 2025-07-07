@@ -81,6 +81,13 @@ void *compileAndGetSymbol(version_ptr_t &v) {
   return nullptr;
 }
 
+std::vector<void *> compileAndGetSymbols(version_ptr_t &v) {
+  v->compile();
+  if (v->hasLoadedSymbol())
+    return v->getSymbols();
+  return {};
+}
+
 } // end namespace vc
 
 #endif /* end of include guard: LIB_VERSIONING_COMPILER_UTILS_HPP */
