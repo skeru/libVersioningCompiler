@@ -39,7 +39,8 @@ public:
                  const std::filesystem::path &log = "",
                  const std::filesystem::path &installDir =
                      std::filesystem::u8path("/usr/bin"),
-                 bool supportsIR = false);
+                 bool supportsIR = false,
+                 bool truncatedLog = false);
 
   inline virtual ~SystemCompiler() {}
 

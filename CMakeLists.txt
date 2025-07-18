@@ -313,6 +313,20 @@ if(CMAKE_BUILD_TYPE MATCHES DEBUG)
 endif(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
 #############################################
+#               TARGET TEST                 #
+#############################################
+
+enable_testing()
+add_test(NAME run_libVC_test COMMAND libVC_test)
+set_tests_properties(run_libVC_test PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+add_test(NAME run_libVC_testUtils COMMAND libVC_testUtils)
+set_tests_properties(run_libVC_testUtils PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+if(ENABLE_JIT)
+  add_test(NAME run_libVC_testJit COMMAND libVC_testJit)
+  set_tests_properties(run_libVC_testJit PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+endif(ENABLE_JIT)
+
+#############################################
 #            INSTALL TEST BIN               #
 #############################################
 

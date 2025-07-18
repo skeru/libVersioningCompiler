@@ -35,10 +35,11 @@ Compiler::Compiler(const std::string &compilerID,
                    const std::filesystem::path &compilerCallString,
                    const std::filesystem::path &libWorkingDir,
                    const std::filesystem::path &log,
-                   const std::filesystem::path &installDir, bool supportIR)
+                   const std::filesystem::path &installDir, 
+                   bool supportIR, bool truncateLog)
     : id(compilerID), callString(compilerCallString), logFile(log),
       libWorkingDirectory(libWorkingDir), installDirectory(installDir),
-      hasSupportIR(supportIR) {
+      hasSupportIR(supportIR), hasTruncatedLog(truncateLog){
   addReferenceToLogFile(logFile);
 }
 
@@ -63,7 +64,13 @@ void Compiler::log_exec(const std::string &command) const {
   if (!logFile.empty()) {
     _command = _command + " 2>&1";
     lockMutex(logFile);
-    logstream.open(logFile, std::ofstream::app);
+    if (hasTruncatedLog) {
+      logstream.open(logFile, std::ofstream::out | std::ofstream::trunc);
+      hasTruncatedLog = false;
+    } else {
+      logstream.open(logFile, std::ofstream::app);
+    }
+    //logstream.open(logFile, std::ofstream::app);
     logstream << _command << std::endl;
   }
   output = popen(_command.c_str(), "r");
@@ -86,7 +93,13 @@ void Compiler::log_string(const std::string &command) const {
   std::ofstream logstream;
   if (!logFile.empty()) {
     lockMutex(logFile);
-    logstream.open(logFile, std::ofstream::app);
+    //logstream.open(logFile, std::ofstream::app);
+    if (hasTruncatedLog) {
+      logstream.open(logFile, std::ofstream::out | std::ofstream::trunc);
+      hasTruncatedLog = false;
+    } else {
+      logstream.open(logFile, std::ofstream::app);
+    }
     logstream << command << std::endl;
     logstream.close();
     unlockMutex(logFile);

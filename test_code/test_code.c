@@ -54,13 +54,13 @@ float test_function2(int x) {
  * Test function for the versioning compiler library.
  * In the test, this function is compiled and loaded dynamically.
  */
-void test_function3(float expected){
+int test_function3(float expected){
   if (fabs(expected - global_var) < 1e-5) {
     printf("PASSED\n");
-  }else{
-    printf("FAILED: global variable = %.3f, got = %.3f\n", global_var, expected);
+    return 0;
   }
-  return;
+  printf("FAILED: global variable = %.3f, got = %.3f\n", global_var, expected);
+  return 1;
 }
 
 #endif /* TEST_FUNCTION */

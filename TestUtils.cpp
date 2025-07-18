@@ -41,7 +41,8 @@
 // someone should provide the signature of the function now versioning
 // in the form of function pointer type.
 typedef float (*signature_t)(int);
-typedef void (*signature_t_new)(float);
+typedef int (*signature_t_new)(float);
+int ret_value = 0;
 
 using namespace vc; // libVersioningCompiler namespace
 
@@ -52,6 +53,8 @@ void checkResult(T result, T expected){
     std::cout << "PASSED" << std::endl;
   }else{
     std::cout << "FAILED: expected = " << expected << ", got = " << result << std::endl;
+    if(!ret_value)
+      ret_value=1;
   }
 }
 
@@ -83,8 +86,9 @@ int main(int argc, char const *argv[]) {
     std::cerr << "Error: function pointer unavailable" << std::endl;
   if (fn_ptr_new){
     std::cout << "Test 02: Version v  --> test_function3(9)\t";
-    fn_ptr_new(9.f);
+    if(fn_ptr_new(9.f) && !ret_value)
+      ret_value=1;
   } else
     std::cerr << "Error: function pointer unavailable" << std::endl;
-  return 0;
+  return ret_value;
 }

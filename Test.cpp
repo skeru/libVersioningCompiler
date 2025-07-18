@@ -31,6 +31,7 @@
 #include <vector>
 #include <cmath>
 #include <type_traits>
+#include <fstream>
 
 #ifndef FORCED_PATH_TO_TEST
 #define FORCED_PATH_TO_TEST "../libVersioningCompiler/test_code"
@@ -84,7 +85,8 @@
 // someone should provide the signature of the function now versioning
 // in the form of function pointer type.
 typedef float (*signature_t)(int);
-typedef void (*signature_t_new)(float);
+typedef int (*signature_t_new)(float);
+int ret_value = 0;
 
 template <typename T>
 void checkResult(T result, T expected){
@@ -93,11 +95,30 @@ void checkResult(T result, T expected){
     std::cout << "PASSED" << std::endl;
   }else{
     std::cout << "FAILED: expected = " << expected << ", got = " << result << std::endl;
+    if(!ret_value)
+      ret_value=1;
   }
 }
 
+int check_log_for_warning(const std::string &log_file, const std::string &expected) {
+    std::ifstream log(log_file);
+    if (!log.is_open()) {
+        std::cerr << "FAILED: unable to open log file: " << log_file << std::endl;
+        ret_value=1;
+        return 2;
+    }
+
+    std::string line;
+    while (std::getline(log, line)) {
+        if (line.find(expected) != std::string::npos) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 int main(int argc, char const *argv[]) {
-  std::cout << "\n=== libVC_test ===\n" << std::endl;;
+  std::cout << "\n=== libVC_test ===\n" << std::endl;
   // At least one builder is needed. A builder will provide the immutable
   // object Verison, which identifies a function version configuration.
   // There are more that one builder just to show different constructors.
@@ -137,6 +158,10 @@ int main(int argc, char const *argv[]) {
       "default_comp", std::filesystem::u8path(DEFAULT_COMPILER_NAME), std::filesystem::u8path("."),
       std::filesystem::u8path("./test.log"),
       std::filesystem::u8path(DEFAULT_COMPILER_DIR), false);
+  vc::compiler_ptr_t default_comp_wrn = vc::make_compiler<vc::SystemCompiler>(
+      "default_comp_wrn", std::filesystem::u8path(DEFAULT_COMPILER_NAME), std::filesystem::u8path("."),
+      std::filesystem::u8path("./test_warning.log"),
+      std::filesystem::u8path(DEFAULT_COMPILER_DIR), false,true);
   // FAQ: I have a separate install folder for LLVM/clang.
   // ANS: Here it is an example of how to handle that case.
   vc::compiler_ptr_t clang = vc::make_compiler<vc::SystemCompilerOptimizer>(
@@ -194,6 +219,14 @@ int main(int argc, char const *argv[]) {
 #endif
   vc::version_ptr_t v4 = builder.build();
   // end configuring version v4
+
+  builder._compiler = default_comp_wrn;
+  builder._autoremoveFilesEnable = false;
+  builder.options({vc::Option("o", "-O", "2"),
+                        vc::Option("werror", "-Werror"),
+                        vc::Option("wall", "-Wall"),
+                        vc::Option("wall", "-Wconversion")});
+  vc::version_ptr_t v6 = builder.build();
 
   std::cout << ">>> Compilation and IR Generation Log" << std::endl;;
 
@@ -288,6 +321,16 @@ int main(int argc, char const *argv[]) {
     return -1;
   }
   std::cout << "Notify: v5 loaded." << std::endl;
+  std::cout << "Notify: v5 compiled. Going for v6" << std::endl;
+
+  ok = v6->compile();
+  if (!ok) {
+    if (!v6->hasGeneratedBin()) {
+      std::cout << "Notify: v6 compilation failed as expected." << std::endl;
+    } else {
+      std::cerr << "Error: symbol 6 not loaded" << std::endl;
+    }
+  }
 
   std::cout << "\n>>> Test Configuration" << std::endl;
             
@@ -349,13 +392,17 @@ int main(int argc, char const *argv[]) {
     // Now check the status of the global variable for each version
     // exept for v5 which only has test_function
     std::cout << "Test 12: Version v  --> test_function3(1764)\t";
-    f2[0](1764.f);
+    if(f2[0](1764.f) && !ret_value)
+      ret_value=1;
     std::cout << "Test 13: Version v2 --> test_function3(484)\t";
-    f2[1](484.f);
+    if(f2[1](484.f) && !ret_value)
+      ret_value=1;
     std::cout << "Test 14: Version v3 --> test_function3(9)\t";
-    f2[2](9.f);
+    if(f2[2](9.f) && !ret_value)
+      ret_value=1;
     std::cout << "Test 15: Version v4 --> test_function3(9)\t";
-    f2[3](9.f);
+    if(f2[3](9.f) && !ret_value)
+      ret_value=1;
   } else {
     std::cerr << "Error function pointers unavailable" << std::endl;
   }
@@ -381,5 +428,16 @@ int main(int argc, char const *argv[]) {
   } else {
     std::cerr << "Error in folding and reloading v3" << std::endl;
   }
-  return 0;
+
+  //check warning log
+  std::cout << "Test 19: Check correct detection of warnings\t";
+  int ret_warning = check_log_for_warning("test_warning.log", "error");
+  if(ret_warning==0){
+    std::cout << "PASSED" << std::endl;
+  }else if(ret_warning==1){
+    std::cout << "FAILED: error not detected in the log file" << std::endl;
+    if(!ret_value)
+      ret_value=1;
+  }
+  return ret_value;
 }
