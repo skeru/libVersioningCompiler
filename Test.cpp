@@ -84,8 +84,8 @@
 
 // someone should provide the signature of the function now versioning
 // in the form of function pointer type.
-typedef float (*signature_t)(int);
-typedef int (*signature_t_new)(float);
+typedef float (*compute_func_t)(int);   // For test_function and test_function2
+typedef int (*validate_func_t)(float);  // For test_function3
 int ret_value = 0;
 
 template <typename T>
@@ -100,7 +100,7 @@ void checkResult(T result, T expected){
   }
 }
 
-int check_log_for_warning(const std::string &log_file, const std::string &expected) {
+int check_log_for_content(const std::string &log_file, const std::string &expected) {
     std::ifstream log(log_file);
     if (!log.is_open()) {
         std::cerr << "FAILED: unable to open log file: " << log_file << std::endl;
@@ -118,7 +118,9 @@ int check_log_for_warning(const std::string &log_file, const std::string &expect
 }
 
 int main(int argc, char const *argv[]) {
-  std::cout << "\n=== libVC_test ===\n" << std::endl;
+  std::cout << std::endl;
+  std::cout << "=== libVC_test ===" << std::endl;
+  std::cout << std::endl;
   // At least one builder is needed. A builder will provide the immutable
   // object Verison, which identifies a function version configuration.
   // There are more that one builder just to show different constructors.
@@ -220,14 +222,6 @@ int main(int argc, char const *argv[]) {
   vc::version_ptr_t v4 = builder.build();
   // end configuring version v4
 
-  builder._compiler = default_comp_wrn;
-  builder._autoremoveFilesEnable = false;
-  builder.options({vc::Option("o", "-O", "2"),
-                        vc::Option("werror", "-Werror"),
-                        vc::Option("wall", "-Wall"),
-                        vc::Option("wall", "-Wconversion")});
-  vc::version_ptr_t v6 = builder.build();
-
   std::cout << ">>> Compilation and IR Generation Log" << std::endl;;
 
   // actually compile v.
@@ -323,6 +317,16 @@ int main(int argc, char const *argv[]) {
   std::cout << "Notify: v5 loaded." << std::endl;
   std::cout << "Notify: v5 compiled. Going for v6" << std::endl;
 
+  // start configuring version v6
+  builder._compiler = default_comp_wrn;
+  builder._autoremoveFilesEnable = false;
+  builder.options({vc::Option("o", "-O", "2"),
+                        vc::Option("werror", "-Werror"),
+                        vc::Option("wall", "-Wall"),
+                        vc::Option("wall", "-Wconversion")});
+  vc::version_ptr_t v6 = builder.build();
+  // end configuring version v6
+
   ok = v6->compile();
   if (!ok) {
     if (!v6->hasGeneratedBin()) {
@@ -332,7 +336,8 @@ int main(int argc, char const *argv[]) {
     }
   }
 
-  std::cout << "\n>>> Test Configuration" << std::endl;
+  std::cout << std::endl;
+  std::cout << ">>> Test Configuration" << std::endl;
             
   std::cout << "- v:  Default system compiler with IR option -fPIC." << std::endl
             << "- v2: Based on v; changed compiler and added -O2 optimization." << std::endl
@@ -347,21 +352,21 @@ int main(int argc, char const *argv[]) {
 
   std::cout << "\n>>> Test Cases" << std::endl;
 
-  std::vector<signature_t> f;
-  f.push_back((signature_t)v->getSymbol(t_fun_index));
-  f.push_back((signature_t)v->getSymbol(second_fun_index));
-  f.push_back((signature_t)v2->getSymbol(t_fun_index));
-  f.push_back((signature_t)v3->getSymbol(t_fun_index));
-  f.push_back((signature_t)v4->getSymbol()); // equivalent to v4->getSymbol(0)
+  std::vector<compute_func_t> f;
+  f.push_back((compute_func_t)v->getSymbol(t_fun_index));
+  f.push_back((compute_func_t)v->getSymbol(second_fun_index));
+  f.push_back((compute_func_t)v2->getSymbol(t_fun_index));
+  f.push_back((compute_func_t)v3->getSymbol(t_fun_index));
+  f.push_back((compute_func_t)v4->getSymbol()); // equivalent to v4->getSymbol(0)
                                              // or v4->getSymbol(t_fun_index)
-  f.push_back((signature_t)v2->getSymbol(
+  f.push_back((compute_func_t)v2->getSymbol(
       second_fun_index)); // equivalent to v5->getSymbol(1).
-  f.push_back((signature_t)v5->getSymbol());
-  std::vector<signature_t_new> f2;
-  f2.push_back((signature_t_new)v->getSymbol(third_fun_index));
-  f2.push_back((signature_t_new)v2->getSymbol(third_fun_index));
-  f2.push_back((signature_t_new)v3->getSymbol(third_fun_index));
-  f2.push_back((signature_t_new)v4->getSymbol(third_fun_index));
+  f.push_back((compute_func_t)v5->getSymbol());
+  std::vector<validate_func_t> f2;
+  f2.push_back((validate_func_t)v->getSymbol(third_fun_index));
+  f2.push_back((validate_func_t)v2->getSymbol(third_fun_index));
+  f2.push_back((validate_func_t)v3->getSymbol(third_fun_index));
+  f2.push_back((validate_func_t)v4->getSymbol(third_fun_index));
   if (f[0]) {
     std::cout << "Test 01: Version v  --> test_function(42)\t";
     checkResult(f[0](42),1764.f); // sets v's global variable to 1764
@@ -413,10 +418,10 @@ int main(int argc, char const *argv[]) {
   v5->fold();
   std::cout << "All Versions folded, reloading v3..." << std::endl;
   v3->reload();
-  signature_t reloaded =
-      (signature_t)v3->getSymbol(); // equivalent to v3->getSymbol(t_fun_index)
-  signature_t reloaded2 = 
-      (signature_t)v3->getSymbol(1); // equivalent to v3->getSymbol(second_fun_index)
+  compute_func_t reloaded =
+      (compute_func_t)v3->getSymbol(); // equivalent to v3->getSymbol(t_fun_index)
+  compute_func_t reloaded2 = 
+      (compute_func_t)v3->getSymbol(1); // equivalent to v3->getSymbol(second_fun_index)
   if (reloaded) {
     std::cout << "Test 16: Version v3 --> test_function2(0)\t";
     checkResult(reloaded2(0),-1.f); // v3's global variable was set to 9. After folding, the version is
@@ -431,7 +436,7 @@ int main(int argc, char const *argv[]) {
 
   //check warning log
   std::cout << "Test 19: Check correct detection of warnings\t";
-  int ret_warning = check_log_for_warning("test_warning.log", "error");
+  int ret_warning = check_log_for_content("test_warning.log", "error");
   if(ret_warning==0){
     std::cout << "PASSED" << std::endl;
   }else if(ret_warning==1){

@@ -30,10 +30,12 @@ float global_var = -1.0f;
  * In the test, this function is compiled and loaded dynamically.
  */
 float test_function(int x) {
-  float y = x;
+  // Intentional implict conversion from int to float.
+  // Used to test whether the compiler detects the warning.
+  float y = x; 
   y = y * y;
   global_var = y;
-  return  y;
+  return y;
 }
 
 /**
@@ -45,9 +47,11 @@ float test_function2(int x) {
   if (!x) {
     y = global_var;
   } else {
+    // Intentional implict conversion from int to float.
+    // Used to test whether the compiler detects the warning.
     y = x * x * x;
   }
-  return  y;
+  return y;
 }
 
 /**

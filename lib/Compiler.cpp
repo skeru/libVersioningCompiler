@@ -70,7 +70,6 @@ void Compiler::log_exec(const std::string &command) const {
     } else {
       logstream.open(logFile, std::ofstream::app);
     }
-    //logstream.open(logFile, std::ofstream::app);
     logstream << _command << std::endl;
   }
   output = popen(_command.c_str(), "r");
@@ -93,7 +92,6 @@ void Compiler::log_string(const std::string &command) const {
   std::ofstream logstream;
   if (!logFile.empty()) {
     lockMutex(logFile);
-    //logstream.open(logFile, std::ofstream::app);
     if (hasTruncatedLog) {
       logstream.open(logFile, std::ofstream::out | std::ofstream::trunc);
       hasTruncatedLog = false;

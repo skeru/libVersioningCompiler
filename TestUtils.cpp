@@ -40,8 +40,8 @@
 
 // someone should provide the signature of the function now versioning
 // in the form of function pointer type.
-typedef float (*signature_t)(int);
-typedef int (*signature_t_new)(float);
+typedef float (*compute_func_t)(int);   // For test_function and test_function2
+typedef int (*validate_func_t)(float);  // For test_function3
 int ret_value = 0;
 
 using namespace vc; // libVersioningCompiler namespace
@@ -75,9 +75,9 @@ int main(int argc, char const *argv[]) {
   std::vector<std::filesystem::path> test_code_path;
   test_code_path.push_back(PATH_TO_C_TEST_CODE);
   version_ptr_t v = createVersion(test_code_path, functions, options);
-  std::vector<void *> simbols = compileAndGetSymbols(v);
-  signature_t fn_ptr = (signature_t)simbols[0];
-  signature_t_new fn_ptr_new = (signature_t_new)simbols[1];
+  std::vector<void *> simbols = compileAndGetVectorSymbols(v);
+  compute_func_t fn_ptr = (compute_func_t)simbols[0];
+  validate_func_t fn_ptr_new = (validate_func_t)simbols[1];
   std::cout << "\n>>> Test Case" << std::endl;
   if (fn_ptr){ 
     std::cout << "Test 01: Version v  --> test_function(3)\t";
