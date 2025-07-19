@@ -21,6 +21,7 @@
 #include "versioningCompiler/CompilerImpl/SystemCompiler.hpp"
 #include "versioningCompiler/CompilerImpl/SystemCompilerOptimizer.hpp"
 #include "versioningCompiler/Version.hpp"
+#include "versioningCompiler/CompilerImpl/WarningTestCompiler.hpp"
 #if HAVE_CLANG_AS_LIB
 #include "versioningCompiler/CompilerImpl/ClangLibCompiler.hpp"
 #endif
@@ -88,9 +89,7 @@ typedef float (*compute_func_t)(int);   // For test_function and test_function2
 typedef int (*validate_func_t)(float);  // For test_function3
 int ret_value = 0;
 
-template <typename T>
-void checkResult(T result, T expected){
-  static_assert(std::is_arithmetic<T>::value, "checkResult only supports numeric types");
+void checkResult(float result, float expected){
   if (std::fabs(result - expected) < 1e-5) {
     std::cout << "PASSED" << std::endl;
   }else{
@@ -160,10 +159,10 @@ int main(int argc, char const *argv[]) {
       "default_comp", std::filesystem::u8path(DEFAULT_COMPILER_NAME), std::filesystem::u8path("."),
       std::filesystem::u8path("./test.log"),
       std::filesystem::u8path(DEFAULT_COMPILER_DIR), false);
-  vc::compiler_ptr_t default_comp_wrn = vc::make_compiler<vc::SystemCompiler>(
-      "default_comp_wrn", std::filesystem::u8path(DEFAULT_COMPILER_NAME), std::filesystem::u8path("."),
+  vc::compiler_ptr_t warning_comp = vc::make_compiler<vc::WarningTestCompiler>(
+      "warning_comp", std::filesystem::u8path(DEFAULT_COMPILER_NAME), std::filesystem::u8path("."),
       std::filesystem::u8path("./test_warning.log"),
-      std::filesystem::u8path(DEFAULT_COMPILER_DIR), false,true);
+      std::filesystem::u8path(DEFAULT_COMPILER_DIR), false);
   // FAQ: I have a separate install folder for LLVM/clang.
   // ANS: Here it is an example of how to handle that case.
   vc::compiler_ptr_t clang = vc::make_compiler<vc::SystemCompilerOptimizer>(
@@ -318,7 +317,7 @@ int main(int argc, char const *argv[]) {
   std::cout << "Notify: v5 compiled. Going for v6" << std::endl;
 
   // start configuring version v6
-  builder._compiler = default_comp_wrn;
+  builder._compiler = warning_comp;
   builder._autoremoveFilesEnable = false;
   builder.options({vc::Option("o", "-O", "2"),
                         vc::Option("werror", "-Werror"),

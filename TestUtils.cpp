@@ -46,9 +46,7 @@ int ret_value = 0;
 
 using namespace vc; // libVersioningCompiler namespace
 
-template <typename T>
-void checkResult(T result, T expected){
-  static_assert(std::is_arithmetic<T>::value, "checkResult only supports numeric types");
+void checkResult(float result, float expected){
   if (std::fabs(result - expected) < 1e-5) {
     std::cout << "PASSED" << std::endl;
   }else{

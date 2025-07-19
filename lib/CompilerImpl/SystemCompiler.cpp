@@ -46,10 +46,9 @@ SystemCompiler::SystemCompiler(const std::string &compilerID,
                                const std::filesystem::path &libWorkingDir,
                                const std::filesystem::path &mylogfile,
                                const std::filesystem::path &installDir,
-                               bool supportsIR,
-                               bool truncateLog)
+                               bool supportsIR)
     : Compiler(compilerID, compilerCallString, libWorkingDir, mylogfile,
-               installDir, supportsIR, truncateLog) {}
+               installDir, supportsIR) {}
 
 // ----------------------------------------------------------------------------
 // ---------------------- optimizer support declaration -----------------------

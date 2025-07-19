@@ -47,8 +47,7 @@ public:
            const std::filesystem::path &log = "",
            const std::filesystem::path &installDir =
                std::filesystem::u8path("/usr/bin"),
-           bool supportIR = false,
-           bool truncatedLog = false);
+           bool supportIR = false);
 
   /** \brief Default destructor. */
   inline virtual ~Compiler() { removeReferenceToLogFile(logFile); }
@@ -148,13 +147,11 @@ protected:
   /** \brief flag to identify compilers with LLVM-IR bitcode support. */
   bool hasSupportIR;
 
-  mutable bool hasTruncatedLog;
-
   /** \brief Execute a system call of `command` and log the output. */
-  void log_exec(const std::string &command) const;
+  virtual void log_exec(const std::string &command) const;
 
   /** \brief Write a string into the log file. */
-  void log_string(const std::string &command) const;
+  virtual void log_string(const std::string &command) const;
 
   /** \brief Check if file name exists. */
   static bool exists(const std::filesystem::path &name);

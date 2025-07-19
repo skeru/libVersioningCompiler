@@ -144,6 +144,7 @@ set(VC_LIB_SRC
     ${SRC_PREFIX}/Compiler.cpp
     ${SRC_PREFIX}/CompilerImpl/SystemCompiler.cpp
     ${SRC_PREFIX}/CompilerImpl/SystemCompilerOptimizer.cpp
+    ${SRC_PREFIX}/CompilerImpl/WarningTestCompiler.cpp
     )
 
 #----- Headers
@@ -159,6 +160,7 @@ set(VC_LIB_HDR_PREFIX2
 set(VC_LIB_HDR2
     ${VC_LIB_HDR_PREFIX2}/SystemCompiler.hpp
     ${VC_LIB_HDR_PREFIX2}/SystemCompilerOptimizer.hpp
+    ${VC_LIB_HDR_PREFIX2}/WarningTestCompiler.hpp
     )
 
 #----- Additionl files to enable Clang-as-a-library

@@ -47,9 +47,7 @@ float test_function2(int x) {
   if (!x) {
     y = global_var;
   } else {
-    // Intentional implict conversion from int to float.
-    // Used to test whether the compiler detects the warning.
-    y = x * x * x;
+    y = (float)(x * x * x);
   }
   return y;
 }
@@ -57,6 +55,7 @@ float test_function2(int x) {
 /**
  * Test function for the versioning compiler library.
  * In the test, this function is compiled and loaded dynamically.
+ * This function features a call to an external function (printf).
  */
 int test_function3(float expected){
   if (fabs(expected - global_var) < 1e-5) {
