@@ -21,7 +21,6 @@
 #include "versioningCompiler/CompilerImpl/SystemCompiler.hpp"
 #include "versioningCompiler/CompilerImpl/SystemCompilerOptimizer.hpp"
 #include "versioningCompiler/Version.hpp"
-#include "versioningCompiler/CompilerImpl/WarningTestCompiler.hpp"
 #if HAVE_CLANG_AS_LIB
 #include "versioningCompiler/CompilerImpl/ClangLibCompiler.hpp"
 #endif
@@ -116,6 +115,13 @@ int check_log_for_content(const std::string &log_file, const std::string &expect
     return 1;
 }
 
+void delete_warning_log() {
+const std::filesystem::path log_path = std::filesystem::u8path("./test_warning.log");
+  if (std::filesystem::exists(log_path)) {
+    std::filesystem::remove(log_path);
+  }
+}
+
 int main(int argc, char const *argv[]) {
   std::cout << std::endl;
   std::cout << "=== libVC_test ===" << std::endl;
@@ -128,7 +134,7 @@ int main(int argc, char const *argv[]) {
   // the same builder by calling reset() on it, or just using another builder.
   // WARNING: builder does not call any compiler
   vc::Version::Builder builder, another_builder;
-
+  delete_warning_log();
   auto t_fun_index = builder.addFunctionName(TEST_FUNCTION); // This returns 0
   if (t_fun_index == -1)
     std::cerr << "Error: TEST_FUNCTION name not added correctly" << std::endl;
@@ -159,7 +165,7 @@ int main(int argc, char const *argv[]) {
       "default_comp", std::filesystem::u8path(DEFAULT_COMPILER_NAME), std::filesystem::u8path("."),
       std::filesystem::u8path("./test.log"),
       std::filesystem::u8path(DEFAULT_COMPILER_DIR), false);
-  vc::compiler_ptr_t warning_comp = vc::make_compiler<vc::WarningTestCompiler>(
+  vc::compiler_ptr_t warning_comp = vc::make_compiler<vc::SystemCompiler>(
       "warning_comp", std::filesystem::u8path(DEFAULT_COMPILER_NAME), std::filesystem::u8path("."),
       std::filesystem::u8path("./test_warning.log"),
       std::filesystem::u8path(DEFAULT_COMPILER_DIR), false);

@@ -148,10 +148,10 @@ protected:
   bool hasSupportIR;
 
   /** \brief Execute a system call of `command` and log the output. */
-  virtual void log_exec(const std::string &command) const;
+  void log_exec(const std::string &command) const;
 
   /** \brief Write a string into the log file. */
-  virtual void log_string(const std::string &command) const;
+  void log_string(const std::string &command) const;
 
   /** \brief Check if file name exists. */
   static bool exists(const std::filesystem::path &name);
