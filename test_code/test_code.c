@@ -20,6 +20,7 @@
  */
 #include <stdio.h>
 #include <math.h>
+#include <float.h>
 
 #ifdef TEST_FUNCTION
 
@@ -58,7 +59,7 @@ float test_function2(int x) {
  * This function features a call to an external function (printf).
  */
 int test_function3(float expected){
-  if (fabs(expected - global_var) < 1e-5) {
+  if (fabs(expected - global_var) < FLT_EPSILON) {
     printf("PASSED\n");
     return 0;
   }

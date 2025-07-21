@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <cmath>
 #include <type_traits>
+#include <limits>
 
 #ifndef FORCED_PATH_TO_TEST
 #define FORCED_PATH_TO_TEST "../libVersioningCompiler/test_code"
@@ -47,7 +48,7 @@ int ret_value = 0;
 using namespace vc; // libVersioningCompiler namespace
 
 void checkResult(float result, float expected){
-  if (std::fabs(result - expected) < 1e-5) {
+  if (std::fabs(result - expected) < std::numeric_limits<float>::epsilon()) {
     std::cout << "PASSED" << std::endl;
   }else{
     std::cout << "FAILED: expected = " << expected << ", got = " << result << std::endl;

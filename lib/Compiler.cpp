@@ -39,7 +39,7 @@ Compiler::Compiler(const std::string &compilerID,
                    bool supportIR)
     : id(compilerID), callString(compilerCallString), logFile(log),
       libWorkingDirectory(libWorkingDir), installDirectory(installDir),
-      hasSupportIR(supportIR){
+      hasSupportIR(supportIR) {
   addReferenceToLogFile(logFile);
 }
 

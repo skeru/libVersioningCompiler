@@ -32,6 +32,7 @@
 #include <cmath>
 #include <type_traits>
 #include <fstream>
+#include <limits>
 
 #ifndef FORCED_PATH_TO_TEST
 #define FORCED_PATH_TO_TEST "../libVersioningCompiler/test_code"
@@ -89,7 +90,7 @@ typedef int (*validate_func_t)(float);  // For test_function3
 int ret_value = 0;
 
 void checkResult(float result, float expected){
-  if (std::fabs(result - expected) < 1e-5) {
+  if (std::fabs(result - expected) < std::numeric_limits<float>::epsilon()) {
     std::cout << "PASSED" << std::endl;
   }else{
     std::cout << "FAILED: expected = " << expected << ", got = " << result << std::endl;
@@ -396,7 +397,7 @@ int main(int argc, char const *argv[]) {
     std::cout << "Test 11: Version v5 --> test_function(3)\t";
     checkResult(f[6](3),9.f); // sets v5's global variable to 9"
   } else {
-    std::cerr << "Error function pointers unavailable" << std::endl;
+    std::cerr << "Error: function pointers unavailable" << std::endl;
   }
   if (f2[0]){
     // Now check the status of the global variable for each version
@@ -414,7 +415,7 @@ int main(int argc, char const *argv[]) {
     if(f2[3](9.f) && !ret_value)
       ret_value=1;
   } else {
-    std::cerr << "Error function pointers unavailable" << std::endl;
+    std::cerr << "Error: function pointers unavailable" << std::endl;
   }
   v->fold();
   v2->fold();
@@ -441,7 +442,7 @@ int main(int argc, char const *argv[]) {
 
   //check warning log
   std::cout << "Test 19: Check correct detection of warnings\t";
-  int ret_warning = check_log_for_content("test_warning.log", "error");
+  int ret_warning = check_log_for_content("test_warning.log", "-Werror=conversion");
   if(ret_warning==0){
     std::cout << "PASSED" << std::endl;
   }else if(ret_warning==1){
