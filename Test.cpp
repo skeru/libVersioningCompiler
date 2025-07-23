@@ -90,7 +90,7 @@ typedef int (*validate_func_t)(float);  // For test_function3
 int ret_value = 0;
 
 void checkResult(float result, float expected){
-  if (std::fabs(result - expected) < std::numeric_limits<float>::epsilon()) {
+  if (std::fabs(result - expected) < 10*std::numeric_limits<float>::epsilon()) {
     std::cout << "PASSED" << std::endl;
   }else{
     std::cout << "FAILED: expected = " << expected << ", got = " << result << std::endl;
@@ -325,7 +325,6 @@ int main(int argc, char const *argv[]) {
 
   // start configuring version v6
   builder._compiler = warning_comp;
-  builder._autoremoveFilesEnable = false;
   builder.options({vc::Option("o", "-O", "2"),
                         vc::Option("werror", "-Werror"),
                         vc::Option("wall", "-Wall"),

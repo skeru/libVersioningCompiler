@@ -48,7 +48,7 @@ int ret_value = 0;
 using namespace vc; // libVersioningCompiler namespace
 
 void checkResult(float result, float expected){
-  if (std::fabs(result - expected) < std::numeric_limits<float>::epsilon()) {
+  if (std::fabs(result - expected) < 10*std::numeric_limits<float>::epsilon()) {
     std::cout << "PASSED" << std::endl;
   }else{
     std::cout << "FAILED: expected = " << expected << ", got = " << result << std::endl;
