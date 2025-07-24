@@ -35,7 +35,8 @@ Compiler::Compiler(const std::string &compilerID,
                    const std::filesystem::path &compilerCallString,
                    const std::filesystem::path &libWorkingDir,
                    const std::filesystem::path &log,
-                   const std::filesystem::path &installDir, bool supportIR)
+                   const std::filesystem::path &installDir, 
+                   bool supportIR)
     : id(compilerID), callString(compilerCallString), logFile(log),
       libWorkingDirectory(libWorkingDir), installDirectory(installDir),
       hasSupportIR(supportIR) {

@@ -19,6 +19,8 @@
  * along with libVersioningCompiler. If not, see <http://www.gnu.org/licenses/>
  */
 #include <stdio.h>
+#include <math.h>
+#include <float.h>
 
 #ifdef TEST_FUNCTION
 
@@ -28,27 +30,41 @@ float global_var = -1.0f;
  * Test function for the versioning compiler library.
  * In the test, this function is compiled and loaded dynamically.
  */
-int test_function(int x) {
-  float y = x;
+float test_function(int x) {
+  // Intentional implict conversion from int to float.
+  // Used to test whether the compiler detects the warning.
+  float y = x; 
   y = y * y;
   global_var = y;
-  printf("I'm a test function printing a number x^2 = %.3f\n", y);
-  return 0;
+  return y;
 }
 
 /**
  * Test function for the versioning compiler library.
  * In the test, this function is compiled and loaded dynamically.
  */
-int test_function2(int x) {
+float test_function2(int x) {
   float y;
   if (!x) {
     y = global_var;
   } else {
-    y = x * x * x;
+    y = (float)(x * x * x);
   }
-  printf("I'm a test function printing an old number = %.3f\n", y);
-  return 0;
+  return y;
+}
+
+/**
+ * Test function for the versioning compiler library.
+ * In the test, this function is compiled and loaded dynamically.
+ * This function features a call to an external function (printf).
+ */
+int test_function3(float expected){
+  if (fabs(expected - global_var) < 10*FLT_EPSILON) {
+    printf("PASSED\n");
+    return 0;
+  }
+  printf("FAILED: global variable = %.3f, got = %.3f\n", global_var, expected);
+  return 1;
 }
 
 #endif /* TEST_FUNCTION */

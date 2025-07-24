@@ -313,6 +313,20 @@ if(CMAKE_BUILD_TYPE MATCHES DEBUG)
 endif(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
 #############################################
+#               TARGET TEST                 #
+#############################################
+
+enable_testing()
+add_test(NAME run_libVC_test COMMAND libVC_test)
+set_tests_properties(run_libVC_test PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+add_test(NAME run_libVC_testUtils COMMAND libVC_testUtils)
+set_tests_properties(run_libVC_testUtils PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+if(ENABLE_JIT)
+  add_test(NAME run_libVC_testJit COMMAND libVC_testJit)
+  set_tests_properties(run_libVC_testJit PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+endif(ENABLE_JIT)
+
+#############################################
 #            INSTALL TEST BIN               #
 #############################################
 
@@ -321,3 +335,13 @@ install(TARGETS ${VC_EXEUTILS_NAME} DESTINATION bin/test)
 if(ENABLE_JIT)
   install(TARGETS ${VC_EXEJIT_NAME} DESTINATION bin/test)
 endif(ENABLE_JIT)
+
+#############################################
+#       DEFAULT COMPILER DEFINITION         #
+#############################################
+
+get_filename_component(COMPILER_BIN "${CMAKE_C_COMPILER}" NAME)    
+get_filename_component(COMPILER_DIR "${CMAKE_C_COMPILER}" DIRECTORY)
+
+add_compile_definitions(DEFAULT_COMPILER_NAME="${COMPILER_BIN}")
+add_compile_definitions(DEFAULT_COMPILER_DIR="${COMPILER_DIR}")

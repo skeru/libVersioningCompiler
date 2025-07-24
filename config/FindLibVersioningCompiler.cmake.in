@@ -74,7 +74,7 @@ endif (CLANG_LIB_COMPILER_INCLUDE_PATH-NOTFOUND)
 # Check for DEPENDENCIES headers
 
 # -----------------------------------------------------------------------------
-# check for DL library
+# Check for DL library
 
 if(NOT APPLE AND NOT CMAKE_DL_LIBS)
   set(LIBVC_FOUND FALSE)
@@ -168,7 +168,6 @@ if(NOT LLVM_FOUND)
       else(LLVM_FIND_VERBOSE)
         find_package(LLVM ${ver} CONFIG QUIET)
       endif(LLVM_FIND_VERBOSE)
-      set(LLVM_config_FOUND TRUE)
       break()
     else(LLVM_FOUND)
       set(LLVM_PATH_CANDIDATES "${LLVM_ROOT}")
@@ -190,7 +189,6 @@ if(NOT LLVM_FOUND)
            NO_DEFAULT_PATH)
       else(NOT LLVM_CONFIG_EXECUTABLE)
         message(STATUS "Using manually provided LLVM_CONFIG_EXECUTABLE: ${LLVM_CONFIG_EXECUTABLE}.")
-        set(LLVM_config_FOUND TRUE)
         set(LLVM_FOUND TRUE)
         break()
       endif(NOT LLVM_CONFIG_EXECUTABLE)
@@ -202,7 +200,6 @@ if(NOT LLVM_FOUND)
     else(NOT LLVM_CONFIG_EXECUTABLE)
       set(LLVM_VERSION_MAJOR ${ver})
       message(STATUS "Found LLVM version ${ver}")
-      set(LLVM_config_FOUND TRUE)
       set(LLVM_FOUND TRUE)
       break()
     endif(NOT LLVM_CONFIG_EXECUTABLE)
@@ -223,9 +220,10 @@ if(NOT LLVM_CONFIG_EXECUTABLE)
     PATHS ${LLVM_PATH_CANDIDATES}
     NO_DEFAULT_PATH)
 
-  message(STATUS "Found LLVM version")
-  set(LLVM_config_FOUND TRUE)
-  set(LLVM_FOUND TRUE)
+    if(LLVM_CONFIG_EXECUTABLE)
+      message(STATUS "Found LLVM version")
+      set(LLVM_FOUND TRUE)
+    endif(LLVM_CONFIG_EXECUTABLE)
 endif(NOT LLVM_CONFIG_EXECUTABLE)
 
 if(LLVM_CONFIG_EXECUTABLE)
@@ -336,10 +334,9 @@ if(NOT LLVM_PACKAGE_VERSION)
 endif(NOT LLVM_PACKAGE_VERSION)
 
 # pick only major
-if((NOT LLVM_VERSION_MAJOR) AND (NOT LLVM_VERSION_MAJOR-NOTFOUND))
-  string(REGEX REPLACE "^([0-9]+)\..*" "\\1"LLVM_VERSION_MAJOR ${LLVM_PACKAGE_VERSION})
-endif((NOT LLVM_VERSION_MAJOR) AND (NOT LLVM_VERSION_MAJOR-NOTFOUND))
-
+if((LLVM_FOUND) AND (NOT LLVM_VERSION_MAJOR) AND (NOT LLVM_VERSION_MAJOR-NOTFOUND))
+  string(REGEX REPLACE "^([0-9]+)\..*" "\\1" LLVM_VERSION_MAJOR ${LLVM_PACKAGE_VERSION})
+endif((LLVM_FOUND) AND (NOT LLVM_VERSION_MAJOR) AND (NOT LLVM_VERSION_MAJOR-NOTFOUND))
 
 if(NOT CLANG_EXE_NAME)
   find_program(
@@ -411,46 +408,6 @@ if(LLVM_FIND_VERBOSE)
     endif(LLVM_SHARED_MODE)
   endif(LLVM_FIND_VERBOSE)
 endif(LLVM_FIND_VERBOSE)
-
-
-# Required to adjust imports based on the llvm major version
-if(LLVM_VERSION_MAJOR)
-  add_compile_definitions(LLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR})
-  list(REMOVE_DUPLICATES COMPILE_DEFINITIONS)
-endif(LLVM_VERSION_MAJOR)
-# Required to adjust paths without having runtime penalties for string
-# composition
-if(NOT CLANG_EXE_FULLPATH-NOTFOUND)
-  add_compile_definitions(CLANG_EXE_FULLPATH="${CLANG_EXE_FULLPATH}")
-endif(NOT CLANG_EXE_FULLPATH-NOTFOUND)
-if(NOT OPT_EXE_FULLPATH-NOTFOUND)
-  if(LLVM_FIND_VERBOSE)
-    message(STATUS "OPT_EXE_FULLPATH ..... = ${OPT_EXE_FULLPATH}")
-  endif(LLVM_FIND_VERBOSE)
-  add_compile_definitions(OPT_EXE_FULLPATH="${OPT_EXE_FULLPATH}")
-endif(NOT OPT_EXE_FULLPATH-NOTFOUND)
-if(NOT CLANG_EXE_NAME-NOTFOUND)
-  add_compile_definitions(CLANG_EXE_NAME="${CLANG_EXE_NAME}")
-endif(NOT CLANG_EXE_NAME-NOTFOUND)
-if(NOT OPT_EXE_NAME-NOTFOUND)
-  if(LLVM_FIND_VERBOSE)
-    message(STATUS "OPT ..... = ${OPT_EXE_NAME}")
-  endif(LLVM_FIND_VERBOSE)
-  add_compile_definitions(OPT_EXE_NAME="${OPT_EXE_NAME}")
-else(NOT OPT_EXE_NAME-NOTFOUND)
-  if(LLVM_FIND_VERBOSE)
-    message(STATUS "OPT_EXE not found")
-  endif(LLVM_FIND_VERBOSE)
-endif(NOT OPT_EXE_NAME-NOTFOUND)
-if(NOT LLVM_INCLUDE_DIR-NOTFOUND)
-  if(LLVM_FIND_VERBOSE)
-    message(STATUS "LLVM_INCLUDE_DIR ..... = ${LLVM_INCLUDE_DIR}")
-  endif(LLVM_FIND_VERBOSE)
-else(NOT LLVM_INCLUDE_DIR-NOTFOUND)
-  if(LLVM_FIND_VERBOSE)
-    message(STATUS "LLVM_INCLUDE_DIR not found")
-  endif(LLVM_FIND_VERBOSE)
-endif(NOT LLVM_INCLUDE_DIR-NOTFOUND)
 
 # -----------------------------------------------------------------------------
 # Try to find libclang
@@ -611,8 +568,10 @@ if(NOT CLANG_clang-cpp_LIB)
   find_and_add_clang_lib(clangBasic)
 endif(NOT CLANG_clang-cpp_LIB)
 list(REMOVE_DUPLICATES LIBCLANG_LIBRARY_DIR)
+
 # -----------------------------------------------------------------------------
 # Actions taken when all components have been found
+
 if(LIBCLANG_INCLUDE_DIRS AND LIBCLANG_LIBRARY)
   set(LIBCLANG_FOUND TRUE)
 else(LIBCLANG_INCLUDE_DIRS AND LIBCLANG_LIBRARY)
@@ -661,7 +620,7 @@ else()
 endif()
 
 # -----------------------------------------------------------------------------
-# compose the real list of paths
+# Compose the real list of paths
 
 set( LIBVC_INCLUDE_DIRS ${LIBVC_INCLUDE_DIRS}
                     ${UUID_INCLUDE_DIR}
@@ -695,7 +654,8 @@ endif (NOT UUID_LIBRARY)
 get_filename_component (UUID_LIBRARY_DIR ${UUID_LIBRARY} PATH)
 
 # -----------------------------------------------------------------------------
-# check for the libVersioningCompiler library
+# Check for the libVersioningCompiler library
+
 find_library(
   LIBVC_LIBRARY VersioningCompiler
   PATHS ${LIBVC_INSTALL_PATH}/lib ${LIBVC_BINARY_PATH} /usr/local/lib /usr/lib
@@ -731,7 +691,6 @@ list( REMOVE_DUPLICATES LIBVC_LIB_DIR )
 set (LIVC_LIB_DIR "${LIBVC_LIB_DIR}") # for backward compatibility
 list( REMOVE_DUPLICATES LIBVC_LIBRARIES )
 
-# -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 # Actions taken when all components have been found
 

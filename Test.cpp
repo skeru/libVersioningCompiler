@@ -29,6 +29,10 @@
 #include <stdlib.h>
 #include <string>
 #include <vector>
+#include <cmath>
+#include <type_traits>
+#include <fstream>
+#include <limits>
 
 #ifndef FORCED_PATH_TO_TEST
 #define FORCED_PATH_TO_TEST "../libVersioningCompiler/test_code"
@@ -41,6 +45,10 @@
 
 #ifndef SECOND_FUNCTION
 #define SECOND_FUNCTION "test_function2"
+#endif
+
+#ifndef THIRD_FUNCTION
+#define THIRD_FUNCTION "test_function3"
 #endif
 
 #ifndef TEST_FUNCTION_LBL
@@ -63,11 +71,62 @@
 #define LLVM_VERSION_MAJOR 0
 #endif
 
+#ifndef DEFAULT_COMPILER_DIR
+#define DEFAULT_COMPILER_DIR "/usr/bin"
+#endif
+
+#ifndef DEFAULT_COMPILER_NAME
+#define DEFAULT_COMPILER_NAME "gcc"
+#endif
+
+#ifndef LLVM_FOUND
+#define LLVM_FOUND 0
+#endif
+
 // someone should provide the signature of the function now versioning
 // in the form of function pointer type.
-typedef int (*signature_t)(int);
+typedef float (*compute_func_t)(int);   // For test_function and test_function2
+typedef int (*validate_func_t)(float);  // For test_function3
+int ret_value = 0;
+
+void checkResult(float result, float expected){
+  if (std::fabs(result - expected) < 10*std::numeric_limits<float>::epsilon()) {
+    std::cout << "PASSED" << std::endl;
+  }else{
+    std::cout << "FAILED: expected = " << expected << ", got = " << result << std::endl;
+    if(!ret_value)
+      ret_value=1;
+  }
+}
+
+int check_log_for_content(const std::string &log_file, const std::string &expected) {
+    std::ifstream log(log_file);
+    if (!log.is_open()) {
+        std::cerr << "FAILED: unable to open log file: " << log_file << std::endl;
+        ret_value=1;
+        return 2;
+    }
+
+    std::string line;
+    while (std::getline(log, line)) {
+        if (line.find(expected) != std::string::npos) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+void delete_warning_log() {
+const std::filesystem::path log_path = std::filesystem::u8path("./test_warning.log");
+  if (std::filesystem::exists(log_path)) {
+    std::filesystem::remove(log_path);
+  }
+}
 
 int main(int argc, char const *argv[]) {
+  std::cout << std::endl;
+  std::cout << "=== libVC_test ===" << std::endl;
+  std::cout << std::endl;
   // At least one builder is needed. A builder will provide the immutable
   // object Verison, which identifies a function version configuration.
   // There are more that one builder just to show different constructors.
@@ -76,7 +135,7 @@ int main(int argc, char const *argv[]) {
   // the same builder by calling reset() on it, or just using another builder.
   // WARNING: builder does not call any compiler
   vc::Version::Builder builder, another_builder;
-
+  delete_warning_log();
   auto t_fun_index = builder.addFunctionName(TEST_FUNCTION); // This returns 0
   if (t_fun_index == -1)
     std::cerr << "Error: TEST_FUNCTION name not added correctly" << std::endl;
@@ -84,6 +143,10 @@ int main(int argc, char const *argv[]) {
       builder.addFunctionName(SECOND_FUNCTION); // This returns 1
   if (second_fun_index == -1)
     std::cerr << "Error: SECOND_FUNCTION name not added correctly" << std::endl;
+  auto third_fun_index =
+      builder.addFunctionName(THIRD_FUNCTION); // This returns 2
+  if (third_fun_index == -1)
+    std::cerr << "Error: THIRD_FUNCTION name not added correctly" << std::endl;
   builder.addSourceFile(PATH_TO_C_TEST_CODE);
   builder.addFunctionFlag(TEST_FUNCTION_LBL);
   // ---------- Initialize the compiler to be used. ----------
@@ -99,10 +162,14 @@ int main(int argc, char const *argv[]) {
   // Setting both callStrings and install path as absolute path would cause to
   // ignore the install path! See
   // https://en.cppreference.com/w/cpp/filesystem/path/append
-  vc::compiler_ptr_t gcc = vc::make_compiler<vc::SystemCompiler>(
-      "gcc", std::filesystem::u8path("gcc"), std::filesystem::u8path("."),
+  vc::compiler_ptr_t default_comp = vc::make_compiler<vc::SystemCompiler>(
+      "default_comp", std::filesystem::u8path(DEFAULT_COMPILER_NAME), std::filesystem::u8path("."),
       std::filesystem::u8path("./test.log"),
-      std::filesystem::u8path("/usr/bin"), false);
+      std::filesystem::u8path(DEFAULT_COMPILER_DIR), false);
+  vc::compiler_ptr_t warning_comp = vc::make_compiler<vc::SystemCompiler>(
+      "warning_comp", std::filesystem::u8path(DEFAULT_COMPILER_NAME), std::filesystem::u8path("."),
+      std::filesystem::u8path("./test_warning.log"),
+      std::filesystem::u8path(DEFAULT_COMPILER_DIR), false);
   // FAQ: I have a separate install folder for LLVM/clang.
   // ANS: Here it is an example of how to handle that case.
   vc::compiler_ptr_t clang = vc::make_compiler<vc::SystemCompilerOptimizer>(
@@ -128,7 +195,7 @@ int main(int argc, char const *argv[]) {
   // start configuring version v2
   // want to reuse the same parameters as Version v. Use the same builder.
   // just modify the compiler...
-  builder._compiler = gcc;
+  builder._compiler = default_comp;
   // builder._autoremoveFilesEnable = false; // uncomment this to keep the
   // intermediate files
   // ...and the option list
@@ -140,13 +207,8 @@ int main(int argc, char const *argv[]) {
   // start configuring version v3
   // another way to clone a version: construct a builder by cloning v2
   another_builder = vc::Version::Builder(v2);
+#if LLVM_FOUND  
   another_builder.setCompiler(clang);
-#if LLVM_VERSION_MAJOR < 16
-  another_builder.setOptOptions(
-      {vc::Option("fp-contract", "-fp-contract=", "fast"),
-       vc::Option("inline", "-inline"), vc::Option("unroll", "-loop-unroll"),
-       vc::Option("mem2reg", "-mem2reg")});
-#else
   another_builder.setOptOptions(
       {vc::Option("Optimization Passes",
                   "-passes=", "'inline,loop-unroll,mem2reg'"),
@@ -158,20 +220,15 @@ int main(int argc, char const *argv[]) {
   // start configuring version v4
 #if HAVE_CLANG_AS_LIB
   builder.setCompiler(clangAsLib);
-#endif
   builder._autoremoveFilesEnable = true;
-#if LLVM_VERSION_MAJOR < 16
-  builder.setOptOptions({
-      vc::Option("mem2reg", "-mem2reg"),
-      vc::Option("o", "-O", "3"),
-  });
-#else
   builder.setOptOptions({
       vc::Option("mem2reg", "-passes='defaultO3,mem2reg'"),
   });
 #endif
   vc::version_ptr_t v4 = builder.build();
   // end configuring version v4
+
+  std::cout << ">>> Compilation and IR Generation Log" << std::endl;;
 
   // actually compile v.
   bool ok = v->compile();
@@ -252,7 +309,7 @@ int main(int argc, char const *argv[]) {
   std::cout << "Notify: v4 compiled." << std::endl;
 
   vc::version_ptr_t v5 = vc::Version::Builder::createFromSO(
-      v4->getFileName_bin(), TEST_FUNCTION, gcc, false,
+      v4->getFileName_bin(), TEST_FUNCTION, default_comp, false,
       {"version created from shared object"});
   if (!v5->compile()) {
     if (v5->hasGeneratedBin()) {
@@ -264,65 +321,134 @@ int main(int argc, char const *argv[]) {
     return -1;
   }
   std::cout << "Notify: v5 loaded." << std::endl;
+  std::cout << "Notify: v5 compiled. Going for v6" << std::endl;
 
-  std::vector<signature_t> f;
-  f.push_back((signature_t)v->getSymbol(t_fun_index));
-  f.push_back((signature_t)v->getSymbol(second_fun_index));
-  f.push_back((signature_t)v2->getSymbol(t_fun_index));
-  f.push_back((signature_t)v3->getSymbol(t_fun_index));
-  f.push_back((signature_t)v4->getSymbol()); // equivalent to v4->getSymbol(0)
+  // start configuring version v6
+  builder._compiler = warning_comp;
+  builder.options({vc::Option("o", "-O", "2"),
+                        vc::Option("werror", "-Werror"),
+                        vc::Option("wall", "-Wall"),
+                        vc::Option("wall", "-Wconversion")});
+  vc::version_ptr_t v6 = builder.build();
+  // end configuring version v6
+
+  ok = v6->compile();
+  if (!ok) {
+    if (!v6->hasGeneratedBin()) {
+      std::cout << "Notify: v6 compilation failed as expected." << std::endl;
+    } else {
+      std::cerr << "Error: symbol 6 not loaded" << std::endl;
+    }
+  }
+
+  std::cout << std::endl;
+  std::cout << ">>> Test Configuration" << std::endl;
+            
+  std::cout << "- v:  Default system compiler with IR option -fPIC." << std::endl
+            << "- v2: Based on v; changed compiler and added -O2 optimization." << std::endl
+            << "- v3: Cloned from v2; switched to Clang (if LLVM available) with" << std::endl
+            << "       -passes='inline,loop-unroll,mem2reg' and --fp-contract=fast." << std::endl
+            << "- v4: Based on v2; uses clangAsLib if available, with "
+            << "-passes='defaultO3,mem2reg'." << std::endl
+            << "- v5: Built from shared object using v4 binary; falls back to default system compiler." << std::endl
+            << "- v6: Based on system compiler; adds -Werror and warning flags to treat warnings as errors"<< std::endl
+            << "- test_function(x):  Computes x*x and stores the result in a global variable." << std::endl
+            << "- test_function2(x): Returns global value if x == 0; otherwise computes x*x*x." << std::endl
+            << "- test_function3(x): Verifies the global variable matches expected value x." << std::endl;         
+
+  std::cout << "\n>>> Test Cases" << std::endl;
+
+  std::vector<compute_func_t> f;
+  f.push_back((compute_func_t)v->getSymbol(t_fun_index));
+  f.push_back((compute_func_t)v->getSymbol(second_fun_index));
+  f.push_back((compute_func_t)v2->getSymbol(t_fun_index));
+  f.push_back((compute_func_t)v3->getSymbol(t_fun_index));
+  f.push_back((compute_func_t)v4->getSymbol()); // equivalent to v4->getSymbol(0)
                                              // or v4->getSymbol(t_fun_index)
-  f.push_back((signature_t)v2->getSymbol(
+  f.push_back((compute_func_t)v2->getSymbol(
       second_fun_index)); // equivalent to v5->getSymbol(1).
-  f.push_back((signature_t)v5->getSymbol());
+  f.push_back((compute_func_t)v5->getSymbol());
+  std::vector<validate_func_t> f2;
+  f2.push_back((validate_func_t)v->getSymbol(third_fun_index));
+  f2.push_back((validate_func_t)v2->getSymbol(third_fun_index));
+  f2.push_back((validate_func_t)v3->getSymbol(third_fun_index));
+  f2.push_back((validate_func_t)v4->getSymbol(third_fun_index));
   if (f[0]) {
-    std::cout << "Expected: 42**2 = 1764" << std::endl;
-    f[0](42); // prints "42**2 = 1764" and sets v's global variable to 1764
-    std::cout << "Expected: 1764" << std::endl;
-    f[1](0); // prints v's global variable value, 1764
-    std::cout << "Expected: 24**2 = 576" << std::endl;
-    f[2](24); // prints "24**2 = 576" and sets v2's global variable to 576
-    std::cout << "Expected: 3**2 = 9" << std::endl;
-    f[3](3); // prints "3**2 = 9" and sets v3's global variable to 9.
-    std::cout << "Expected: 0**2 = 0" << std::endl;
-    f[4](0); // prints "0**2 = 0" and sets v4's global variable to 0
-    std::cout << "Expected: 576" << std::endl;
-    f[5](0); // prints v2's global variable value, which is 576.
-    std::cout << "Expected: 22**2 = 484" << std::endl;
-    f[2](22); // prints "22**2 = 484" and sets v2's global variable to 484
-    std::cout << "Expected: 484" << std::endl;
-    f[5](0); // prints v2's global variable (484)
-    std::cout << "Expected: 6**3 = 216" << std::endl;
-    f[5](6); // prints "6**3 = 216"
-    std::cout << "Expected: 484" << std::endl;
-    f[5](0); // prints v2's global variable (484)
-    std::cout << "Expected: 3**2 = 9" << std::endl;
-    f[6](3); // prints "3**2 = 9"
+    std::cout << "Test 01: Version v  --> test_function(42)\t";
+    checkResult(f[0](42),1764.f); // sets v's global variable to 1764
+    std::cout << "Test 02: Version v  --> test_function2(0)\t";
+    checkResult(f[1](0),1764.f); // checks v's global variable value, 1764
+    std::cout << "Test 03: Version v2 --> test_function(24)\t";
+    checkResult(f[2](24),576.f); // sets v2's global variable to 576
+    std::cout << "Test 04: Version v3 --> test_function(3)\t";
+    checkResult(f[3](3),9.f); // sets v3's global variable to 9.
+    std::cout << "Test 05: Version v4 --> test_function(0)\t";
+    checkResult(f[4](0),0.f); // sets v4's global variable to 0
+    std::cout << "Test 06: Version v2 --> test_function2(0)\t";
+    checkResult(f[5](0),576.f); // checks v2's global variable value, which is 576.
+    std::cout << "Test 07: Version v2 --> test_function(22)\t";
+    checkResult(f[2](22),484.f); // sets v2's global variable to 484
+    std::cout << "Test 08: Version v2 --> test_function2(0)\t";
+    checkResult(f[5](0),484.f); // checks v2's global variable (484)
+    std::cout << "Test 09: Version v2 --> test_function2(6)\t";
+    checkResult(f[5](6),216.f); // computes "6**3 = 216"
+    std::cout << "Test 10: Version v2 --> test_function2(0)\t";
+    checkResult(f[5](0),484.f); // check v2's global variable (484)
+    std::cout << "Test 11: Version v5 --> test_function(3)\t";
+    checkResult(f[6](3),9.f); // sets v5's global variable to 9"
   } else {
-    std::cerr << "Error function pointers unavailable" << '\n';
+    std::cerr << "Error: function pointers unavailable" << std::endl;
+  }
+  if (f2[0]){
+    // Now check the status of the global variable for each version
+    // exept for v5 which only has test_function
+    std::cout << "Test 12: Version v  --> test_function3(1764)\t";
+    if(f2[0](1764.f) && !ret_value)
+      ret_value=1;
+    std::cout << "Test 13: Version v2 --> test_function3(484)\t";
+    if(f2[1](484.f) && !ret_value)
+      ret_value=1;
+    std::cout << "Test 14: Version v3 --> test_function3(9)\t";
+    if(f2[2](9.f) && !ret_value)
+      ret_value=1;
+    std::cout << "Test 15: Version v4 --> test_function3(9)\t";
+    if(f2[3](9.f) && !ret_value)
+      ret_value=1;
+  } else {
+    std::cerr << "Error: function pointers unavailable" << std::endl;
   }
   v->fold();
   v2->fold();
   v3->fold();
   v4->fold();
   v5->fold();
-  std::cout << "Version folded, reloading it." << std::endl;
+  std::cout << "All Versions folded, reloading v3..." << std::endl;
   v3->reload();
-  signature_t reloaded =
-      (signature_t)v3->getSymbol(); // equivalent to v3->getSymbol(t_fun_index)
-  signature_t reloaded2 = (signature_t)v3->getSymbol(
-      1); // equivalent to v3->getSymbol(second_fun_index)
+  compute_func_t reloaded =
+      (compute_func_t)v3->getSymbol(); // equivalent to v3->getSymbol(t_fun_index)
+  compute_func_t reloaded2 = 
+      (compute_func_t)v3->getSymbol(1); // equivalent to v3->getSymbol(second_fun_index)
   if (reloaded) {
-    std::cout << "Expected: -1" << std::endl;
-    reloaded2(
-        0); // v3's global variable was set to 9. After folding, the version is
-            // reset to its initial state so v3's global value is -1.
-    std::cout << "Expected: 15**2 = 225" << std::endl;
-    reloaded(15);
-    std::cout << "Expected: 225" << std::endl;
-    reloaded2(0);
+    std::cout << "Test 16: Version v3 --> test_function2(0)\t";
+    checkResult(reloaded2(0),-1.f); // v3's global variable was set to 9. After folding, the version is
+                                  // reset to its initial state so v3's global value is -1.
+    std::cout << "Test 17: Version v3 --> test_function(15)\t";
+    checkResult(reloaded(15),225.f); 
+    std::cout << "Test 18: Version v4 --> test_function2(3)\t";
+    checkResult(reloaded2(0),225.f);
   } else {
     std::cerr << "Error in folding and reloading v3" << std::endl;
   }
-  return 0;
+
+  //check warning log
+  std::cout << "Test 19: Check correct detection of warnings\t";
+  int ret_warning = check_log_for_content("test_warning.log", "-Werror=conversion");
+  if(ret_warning==0){
+    std::cout << "PASSED" << std::endl;
+  }else if(ret_warning==1){
+    std::cout << "FAILED: error not detected in the log file" << std::endl;
+    if(!ret_value)
+      ret_value=1;
+  }
+  return ret_value;
 }
