@@ -351,6 +351,7 @@ int main(int argc, char const *argv[]) {
             << "- v4: Based on v2; uses clangAsLib if available, with "
             << "-passes='defaultO3,mem2reg'." << std::endl
             << "- v5: Built from shared object using v4 binary; falls back to default system compiler." << std::endl
+            << "- v6: Based on system compiler; adds -Werror and warning flags to treat warnings as errors"<< std::endl
             << "- test_function(x):  Computes x*x and stores the result in a global variable." << std::endl
             << "- test_function2(x): Returns global value if x == 0; otherwise computes x*x*x." << std::endl
             << "- test_function3(x): Verifies the global variable matches expected value x." << std::endl;         
