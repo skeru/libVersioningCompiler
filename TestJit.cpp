@@ -53,6 +53,9 @@
 #include <stdlib.h>
 #include <string>
 #include <vector>
+#include <cmath>
+#include <type_traits>
+#include <limits>
 
 #ifndef FORCED_PATH_TO_TEST
 #define FORCED_PATH_TO_TEST "../libVersioningCompiler/test_code"
@@ -70,20 +73,40 @@
 #define SECOND_FUNCTION "test_function2"
 #endif
 
+#ifndef THIRD_FUNCTION
+#define THIRD_FUNCTION "test_function3"
+#endif
+
 using namespace llvm;
 using namespace orc;
 
 // someone should provide the signature of the function now versioning
 // in the form of function pointer type.
-typedef int (*signature_t)(int);
+typedef float (*compute_func_t)(int);
+typedef int (*validate_func_t)(float);
+int ret_value=0;
+
+void checkResult(float result, float expected){
+  if (std::fabs(result - expected) < 10*std::numeric_limits<float>::epsilon()) {
+    std::cout << "PASSED" << std::endl;
+  }else{
+    std::cout << "FAILED: expected = " << expected << ", got = " << result << std::endl;
+    if(!ret_value)
+      ret_value=1;
+  }
+}
 
 int main(int argc, char const *argv[]) {
-
+  std::cout << std::endl;
+  std::cout << "=== libVC_testJit ===" << std::endl;
+  std::cout << std::endl;
+  std::cout << ">>> Compilation and IR Generation Log" << std::endl;
   std::cout << "Setting up builder.." << std::endl;
 
   vc::Version::Builder builder;
   builder.addFunctionName(TEST_FUNCTION);   // returns 0
   builder.addFunctionName(SECOND_FUNCTION); // returns 1
+  builder.addFunctionName(THIRD_FUNCTION);  // returns 2
   builder.addSourceFile(PATH_TO_C_TEST_CODE);
   builder.addFunctionFlag(TEST_FUNCTION_LBL);
 
@@ -100,16 +123,9 @@ int main(int argc, char const *argv[]) {
   builder.setCompiler(jitCompiler);
   // builder._autoremoveFilesEnable = false; // uncomment this to keep
   // intermediate files
-#if LLVM_VERSION_MAJOR < 16
-  builder.setOptOptions({
-      vc::Option("mem2reg", "-mem2reg"),
-      vc::Option("o", "-O", "3"),
-  });
-#else
   builder.setOptOptions({
       vc::Option("mem2reg", "-passes='defaultO3,mem2reg'"),
   });
-#endif
   std::cout << "Building version.." << std::endl;
   vc::version_ptr_t myversion = builder.build();
 
@@ -145,28 +161,35 @@ int main(int argc, char const *argv[]) {
   }
   std::cout << "Object myversion compiled." << std::endl;
 
-  std::cout << "Executing myversion symbol." << std::endl;
-
-  std::vector<signature_t> f;
-  f.push_back((signature_t)myversion->getSymbol());  // TEST_FUNCTION
-  f.push_back((signature_t)myversion->getSymbol(1)); // SECOND_FUNCTION
+  std::cout << std::endl;
+  std::cout << ">>> Test Cases" << std::endl;;
+  std::vector<compute_func_t> f;
+  f.push_back((compute_func_t)myversion->getSymbol());  // TEST_FUNCTION
+  f.push_back((compute_func_t)myversion->getSymbol(1)); // SECOND_FUNCTION
+  std::vector<validate_func_t> f2;
+  f2.push_back((validate_func_t)myversion->getSymbol(2)); //THIRD_FUNCTION
   if (f[0]) {
-    std::cout << "Expected 42**2 = 1764" << std::endl;
-    f[0](42);
-    std::cout << "Expected 1764" << std::endl;
-    f[1](0);
-    std::cout << "Expected 24**2 = 576" << std::endl;
-    f[0](24);
-    std::cout << "Expected 3**3 = 27" << std::endl;
-    f[1](3);
-    std::cout << "Expected 576" << std::endl;
-    f[1](0);
-    std::cout << "Expected 7**2 = 49" << std::endl;
-    f[0](7);
-    std::cout << "Expected 6**3 = 216" << std::endl;
-    f[1](6);
+    std::cout << "Test 01: myversion  --> test_function(42)\t";
+    checkResult(f[0](42),1764.f);
+    std::cout << "Test 02: myversion  --> test_function2(0)\t";
+    checkResult(f[1](0),1764.f);
+    std::cout << "Test 03: myversion  --> test_function(24)\t";
+    checkResult(f[0](24),576.f);
+    std::cout << "Test 04: myversion  --> test_function2(3)\t";
+    checkResult(f[1](3),27.f);
+    std::cout << "Test 05: myversion  --> test_function(0)\t";
+    checkResult(f[1](0),576.f);
+    std::cout << "Test 06: myversion  --> test_function(7)\t";
+    checkResult(f[0](7),49.f);
+    std::cout << "Test 07: myversion  --> test_function2(6)\t";
+    checkResult(f[1](6),216.f);
   } else {
-    std::cerr << "Error function pointers unavailable" << '\n';
+    std::cerr << "Error function pointers unavailable" << std::endl;
+  }
+  if (f2[0]){
+    std::cout << "Test 08: myversion  --> test_function3(49)\t";
+    if(f2[0](49.f) && !ret_value)
+      ret_value=1;
   }
 
   std::cout << "Folding myversion object." << std::endl;
@@ -175,21 +198,21 @@ int main(int argc, char const *argv[]) {
   std::cout << "Version folded, reloading it." << std::endl;
   myversion->reload();
   std::cout << "Executing myversion reloaded symbol." << std::endl;
-  signature_t reloaded = (signature_t)myversion->getSymbol(); // TEST_FUNCTION
-  signature_t reloaded2 =
-      (signature_t)myversion->getSymbol(1); // SECOND_FUNCTION
+  compute_func_t reloaded = (compute_func_t)myversion->getSymbol(); // TEST_FUNCTION
+  compute_func_t reloaded2 =
+      (compute_func_t)myversion->getSymbol(1); // SECOND_FUNCTION
   if (reloaded) {
-    std::cout << "Expected -1" << std::endl;
-    reloaded2(0);
-    std::cout << "Expected 15**2 = 225" << std::endl;
-    reloaded(15);
-    std::cout << "Expected 225" << std::endl;
-    reloaded2(0);
+    std::cout << "Test 09: myversion  --> test_function2(0)\t";
+    checkResult(reloaded2(0),-1.f);
+    std::cout << "Test 10: myversion  --> test_function(15)\t";
+    checkResult(reloaded(15),225.f);
+    std::cout << "Test 11: myversion  --> test_function(0)\t";
+    checkResult(reloaded2(0),225.f);
   } else {
     std::cerr << "Error in folding and reloading myversion" << std::endl;
   }
 
   myversion->fold();
 
-  return 0;
+  return ret_value;
 }

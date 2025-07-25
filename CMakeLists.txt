@@ -109,6 +109,11 @@ if(ENABLE_JIT AND NOT ENABLE_CLANG_AS_LIB)
   set(ENABLE_JIT OFF)
 endif()
 
+if(ENABLE_JIT AND LLVM_VERSION_MAJOR LESS 20)
+  message(WARNING "The JITCompiler implementation requires LLVM 20. JITCompiler is being disabled.")
+  set(ENABLE_JIT OFF)
+endif()
+
 list(REMOVE_DUPLICATES VC_LIB_DEPS)
 
 #############################################
