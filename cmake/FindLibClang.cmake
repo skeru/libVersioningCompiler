@@ -54,6 +54,7 @@ if(NOT LLVM_CONFIG_EXECUTABLE)
   list(APPEND LLVM_PATH_CANDIDATES "${LLVM_TOOLS_BINARY_DIR}") # Manually specified by user
   list(APPEND LLVM_PATH_CANDIDATES "/usr/bin/") # Ubuntu
   list(APPEND LLVM_PATH_CANDIDATES "/opt/homebrew/opt/llvm/") # Manjaro
+  list(APPEND LLVM_PATH_CANDIDATES "/usr/local/opt/llvm/bin/") # Homebrew Cellar symlink
   list(APPEND LLVM_PATH_CANDIDATES "/usr/local/Cellar/llvm/") # Homebrew Cellar
   if(LIBCLANG_FIND_VERBOSE)
     message(STATUS "FindLibClang is looking for llvm-config...")
