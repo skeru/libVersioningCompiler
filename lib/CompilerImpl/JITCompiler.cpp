@@ -44,8 +44,8 @@
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/Error.h"
-#include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/TargetParser/Host.h"
+#include "llvm/Transforms/Utils/Cloning.h"
 
 #ifndef OPT_EXE_NAME
 #define OPT_EXE_NAME "opt"
