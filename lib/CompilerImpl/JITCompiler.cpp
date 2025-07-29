@@ -44,6 +44,7 @@
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/Error.h"
+#include "llvm/TargetParser/Host.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 
 #ifndef OPT_EXE_NAME
@@ -261,7 +262,7 @@ JITCompiler::runOptimizer(const std::filesystem::path &src_IR,
   // command line options are static and should be accessed exclusively
   opt_parse_mtx.lock();
 
-  resetOptOptions();
+  llvm::codegen::RegisterCodeGenFlags();
   llvm::cl::ParseCommandLineOptions(argc,
                                     const_cast<const char **>(argv.data()),
                                     "JITCompiler::runOptimizer");
@@ -485,14 +486,8 @@ JITCompiler::runOptimizer(const std::filesystem::path &src_IR,
     }
     Passes.add(createPrintModulePass(*OS, "", PreserveAssemblyUseListOrder));
   }
-#if LLVM_VERSION_MAJOR < 16
-  else if (OutputThinLTOBC) {
-    Passes.add(createWriteThinLTOBitcodePass(*OS));
-  }
-#endif
   else {
-    Passes.add(createBitcodeWriterPass(*OS, PreserveBitcodeUseListOrder,
-                                       EmitSummaryIndex, EmitModuleHash));
+    Passes.add(createBitcodeWriterPass(*OS, PreserveBitcodeUseListOrder));
   }
 
 #ifdef VC_DEBUG
@@ -584,7 +579,11 @@ void JITCompiler::addModule(std::unique_ptr<llvm::Module> m,
 llvm::Expected<llvm::JITEvaluatedSymbol>
 JITCompiler::findSymbol(const std::string Name, const std::string &versionID) {
   llvm::StringRef llvmName(Name);
-  return _ES->lookup({&_mainJD}, _mangle(llvmName.str()));
+  auto Symbol = _ES->lookup({&_mainJD}, _mangle(llvmName.str()));
+  if (!Symbol)
+      return Symbol.takeError();
+  return llvm::JITEvaluatedSymbol(Symbol->getAddress().getValue(),
+                                 Symbol->getFlags());
 }
 
 // ---------------------------------------------------------------------------
